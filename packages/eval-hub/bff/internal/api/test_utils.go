@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 
 	"github.com/opendatahub-io/eval-hub/bff/internal/config"
 	"github.com/opendatahub-io/eval-hub/bff/internal/constants"
@@ -53,6 +54,26 @@ func (f *crStatusK8sFactory) ValidateRequestIdentity(_ *kubernetes.RequestIdenti
 }
 
 var testLogger = slog.New(slog.NewTextHandler(io.Discard, nil))
+
+var (
+	testOpenAPIOnce    sync.Once
+	testOpenAPIHandler *OpenAPIHandler
+	testOpenAPIErr     error
+)
+
+func getTestOpenAPIHandler() *OpenAPIHandler {
+	testOpenAPIOnce.Do(func() {
+		testOpenAPIHandler, testOpenAPIErr = newOpenAPIHandlerAtPath(
+			testLogger,
+			"../../openapi/src/eval-hub.yaml",
+			"../../openapi/src",
+		)
+	})
+	if testOpenAPIErr != nil {
+		panic(fmt.Sprintf("failed to load test OpenAPI schema: %v", testOpenAPIErr))
+	}
+	return testOpenAPIHandler
+}
 
 // setupApiTestWithEvalHub exercises handlers that require an EvalHub client in context.
 func setupApiTestWithEvalHub[T any](method, url string, body interface{}, k8Factory kubernetes.KubernetesClientFactory, identity *kubernetes.RequestIdentity, ehClient evalhub.EvalHubClientInterface) (T, *http.Response, error) {
@@ -113,6 +134,7 @@ func newTestAppWithEvalHub(k8Factory kubernetes.KubernetesClientFactory, ehClien
 	return &App{
 		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal, MockEvalHubClient: true},
 		logger:                  testLogger,
+		openAPI:                 getTestOpenAPIHandler(),
 		kubernetesClientFactory: k8Factory,
 		evalHubClientFactory:    mockFactory,
 		repositories:            repositories.NewRepositories(),
@@ -164,6 +186,10 @@ func (c *testK8sClient) CanListEvalHubInstances(_ context.Context, _ *kubernetes
 }
 
 func (c *testK8sClient) CanCreateEvalHubResources(_ context.Context, _ *kubernetes.RequestIdentity, _ string) (bool, error) {
+	return true, nil
+}
+
+func (c *testK8sClient) CanDeleteEvalHubResources(_ context.Context, _ *kubernetes.RequestIdentity, _ string) (bool, error) {
 	return true, nil
 }
 
@@ -220,6 +246,15 @@ func (e *erroringEHClient) ListCollections(_ context.Context, _ evalhub.ListColl
 }
 func (e *erroringEHClient) CreateCollection(_ context.Context, _ string, _ evalhub.CreateCollectionRequest) (*evalhub.Collection, error) {
 	return nil, fmt.Errorf("erroring client")
+}
+func (e *erroringEHClient) CreateCollectionGeneration(_ context.Context, _ string, _ evalhub.CreateCollectionGenerationRequest) (*evalhub.CollectionGenerationResource, error) {
+	return nil, fmt.Errorf("erroring client")
+}
+func (e *erroringEHClient) GetCollectionGeneration(_ context.Context, _ string, _ string) (*evalhub.CollectionGenerationResource, error) {
+	return nil, fmt.Errorf("erroring client")
+}
+func (e *erroringEHClient) DeleteCollectionGeneration(_ context.Context, _ string, _ string) error {
+	return fmt.Errorf("erroring client")
 }
 func (e *erroringEHClient) ListProviders(_ context.Context, _ string, _, _ int) (evalhub.ProvidersResponse, error) {
 	return evalhub.ProvidersResponse{}, nil

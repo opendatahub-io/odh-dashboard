@@ -24,7 +24,7 @@ import EvalHubProjectSelector from '~/app/components/EvalHubProjectSelector';
 import EvalHubHeader from '~/app/components/EvalHubHeader';
 import StartEvaluationRunModal from '~/app/components/StartEvaluationRunModal';
 import { useCollectionDrawer } from '~/app/hooks/useCollectionDrawer';
-import { useCanImportCollections } from '~/app/hooks/collections';
+import { useCanCreateCollections } from '~/app/hooks/collections';
 import {
   evaluationCopySuiteRoute,
   evaluationCreateSuiteRoute,
@@ -51,7 +51,7 @@ const BenchmarkSuitesPage: React.FC = () => {
   const projectDisplayName = useProjectDisplayName(namespace);
   const [collectionToRun, setCollectionToRun] = React.useState<Collection | undefined>();
   const [isImportOpen, setIsImportOpen] = React.useState(false);
-  const canImportQuery = useCanImportCollections(namespace ?? '');
+  const canImportQuery = useCanCreateCollections(namespace ?? '');
   // Import is enabled only on an explicit allowed result: it stays disabled
   // while the check is pending or has failed, so limited-access users are
   // never offered a creation flow the upstream authorization rejects.

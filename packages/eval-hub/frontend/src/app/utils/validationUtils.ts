@@ -25,6 +25,24 @@ export const getUrlValidationError = (url: string): string | undefined => {
   return undefined;
 };
 
+const isClusterLocalServiceHost = (hostname: string): boolean =>
+  hostname.toLowerCase().endsWith('.svc.cluster.local');
+
+export const getGenerationModelUrlValidationError = (url: string): string | undefined => {
+  const basicError = getUrlValidationError(url);
+  if (basicError) {
+    return basicError;
+  }
+  const parsed = new URL(url.trim());
+  if (parsed.username || parsed.password) {
+    return 'Endpoint URL must not contain embedded credentials; use a secret reference.';
+  }
+  if (parsed.protocol === 'http:' && !isClusterLocalServiceHost(parsed.hostname)) {
+    return 'External recommendation model endpoints must use HTTPS.';
+  }
+  return undefined;
+};
+
 export const RECOGNIZED_CONNECTION_ERROR_CODES = new Set([
   'CONNECTION_FAILED',
   'TIMEOUT',

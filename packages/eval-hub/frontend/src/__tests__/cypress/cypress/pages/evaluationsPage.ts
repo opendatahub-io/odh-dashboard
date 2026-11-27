@@ -75,6 +75,10 @@ class EvaluationsPage {
     return cy.findByTestId('app-page-title');
   }
 
+  findCollectionBuilderGenerationApiCalls() {
+    return cy.get('@collectionBuilderGenerationApi.all');
+  }
+
   findPageDescription() {
     return cy.findByTestId('app-page-description');
   }
@@ -113,6 +117,18 @@ class EvaluationsPage {
 
   findCreateSuiteButton() {
     return cy.findByTestId('create-suite-button');
+  }
+
+  findCreateSuiteHeaderButton() {
+    return cy.findByTestId('create-suite-header-button');
+  }
+
+  findBuildSuiteFromGoalTile() {
+    return cy.findByTestId('build-collection-from-goal-tile');
+  }
+
+  findChooseOwnBenchmarksTile() {
+    return cy.findByTestId('choose-own-benchmarks-tile');
   }
 
   findImportCollectionButton() {

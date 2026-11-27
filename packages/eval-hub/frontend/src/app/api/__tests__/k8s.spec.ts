@@ -8,11 +8,14 @@ import {
   isModArchResponse,
 } from 'mod-arch-core';
 import {
+  createCollectionGeneration,
+  deleteCollectionGeneration,
   deleteCollection,
   patchCollection,
   cloneCollection,
   createCollection,
   getCollection,
+  getCollectionGeneration,
   getCollections,
   getEvalHubCRStatus,
   validateHardwareProfiles,
@@ -29,6 +32,8 @@ import {
 } from '~/app/api/k8s';
 import type {
   Collection,
+  CollectionGenerationRequest,
+  CollectionGenerationResource,
   CreateCollectionRequest,
   CreateEvaluationJobRequest,
   EvalHubCRStatus,
@@ -643,6 +648,154 @@ describe('createCollection', () => {
         benchmarks: [{ id: 'benchmark-001' }],
       })({}),
     ).rejects.toThrow('Invalid collection: missing resource.id');
+  });
+});
+
+describe('collection generation API', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    (handleRestFailures as jest.Mock).mockImplementation((promise: Promise<unknown>) => promise);
+  });
+
+  const request: CollectionGenerationRequest = {
+    evaluation_goal: 'Evaluate instruction following and factual accuracy',
+    model: {
+      name: 'generator-model',
+      url: 'https://models.example.com/v1',
+      parameters: { temperature: 0.2 },
+      auth: { secret_ref: 'model-credentials' },
+    },
+    provider_filter: 'provider-a,provider-b',
+    max_benchmarks: 8,
+    strictness: 'moderate',
+    generation_effort: 'standard',
+  };
+
+  const generation: CollectionGenerationResource = {
+    resource: {
+      id: 'generation-1',
+      tenant: 'test-ns',
+      owner: 'user@example.com',
+      created_at: '2026-11-17T12:00:00Z',
+      updated_at: '2026-11-17T12:00:00Z',
+    },
+    request: {
+      ...request,
+      max_benchmarks: 8,
+      strictness: 'moderate',
+      generation_effort: 'standard',
+    },
+    status: { state: 'completed' },
+    result: {
+      collection: {
+        name: 'Instruction following collection',
+        domains: ['trustworthiness'],
+        benchmarks: [{ id: 'truthfulqa_mc1', provider_id: 'provider-a' }],
+      },
+      yaml: 'name: Instruction following collection',
+      rationale: 'Covers instruction following and factual accuracy.',
+      explanation: {
+        selected_benchmarks: [
+          {
+            provider_id: 'provider-a',
+            id: 'truthfulqa_mc1',
+            reason: 'Measures factual accuracy.',
+          },
+        ],
+        rejected_benchmarks: [],
+      },
+      actions: [],
+    },
+  };
+
+  it('should submit the request with namespace and return the generation resource', async () => {
+    mockRestCREATE.mockResolvedValue({ data: generation });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(createCollectionGeneration('', 'test-ns', request)({})).resolves.toEqual(
+      generation,
+    );
+    expect(mockRestCREATE).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections/generation',
+      request,
+      { namespace: 'test-ns' },
+      {},
+    );
+  });
+
+  it('should fetch a generation resource using an encoded ID', async () => {
+    mockRestGET.mockResolvedValue({ data: generation });
+    mockIsModArchResponse.mockReturnValue(true);
+
+    await expect(getCollectionGeneration('', 'test-ns', 'generation/one')({})).resolves.toEqual(
+      generation,
+    );
+    expect(mockRestGET).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections/generation/generation%2Fone',
+      { namespace: 'test-ns' },
+      {},
+    );
+  });
+
+  it('should reject an invalid generation response envelope', async () => {
+    mockRestGET.mockResolvedValue({ invalid: 'format' });
+    mockIsModArchResponse.mockReturnValue(false);
+
+    await expect(getCollectionGeneration('', 'test-ns', 'generation-1')({})).rejects.toThrow(
+      'Invalid collection generation response format',
+    );
+  });
+
+  it('should reject empty generation IDs without making a request', async () => {
+    await expect(getCollectionGeneration('', 'test-ns', '')({})).rejects.toThrow(
+      'Collection generation ID must not be empty',
+    );
+    expect(mockRestGET).not.toHaveBeenCalled();
+  });
+
+  it('should delete a generation without parsing the empty 204 response', async () => {
+    mockRestDELETE.mockResolvedValue('');
+    const opts = {};
+
+    await expect(deleteCollectionGeneration('', 'test-ns', 'generation/one')(opts)).resolves.toBe(
+      undefined,
+    );
+    expect(mockRestDELETE).toHaveBeenCalledWith(
+      '',
+      '/eval-hub/api/v1/evaluations/collections/generation/generation%2Fone',
+      {},
+      { namespace: 'test-ns' },
+      { ...opts, parseJSON: false },
+    );
+  });
+
+  it('should reject an empty generation ID without making a request', async () => {
+    await expect(deleteCollectionGeneration('', 'test-ns', '')({})).rejects.toThrow(
+      'Collection generation ID must not be empty',
+    );
+    expect(mockRestDELETE).not.toHaveBeenCalled();
+  });
+
+  it('should treat an already deleted generation as clean', async () => {
+    mockRestDELETE.mockResolvedValue(
+      JSON.stringify({
+        error: { code: 'NOT_FOUND', message: 'collection generation not found' },
+      }),
+    );
+
+    await expect(deleteCollectionGeneration('', 'test-ns', 'generation-1')({})).resolves.toBe(
+      undefined,
+    );
+  });
+
+  it('should surface a non-empty delete response as an error', async () => {
+    mockRestDELETE.mockResolvedValue('Generation could not be deleted');
+
+    await expect(deleteCollectionGeneration('', 'test-ns', 'generation-1')({})).rejects.toThrow(
+      'Generation could not be deleted',
+    );
   });
 });
 

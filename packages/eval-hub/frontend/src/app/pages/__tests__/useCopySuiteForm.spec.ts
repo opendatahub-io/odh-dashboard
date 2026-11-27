@@ -189,7 +189,6 @@ describe('createBenchmarkFromKey', () => {
         suiteModalities: [],
         suiteIndustries: [],
         suiteEvaluates: ['model'],
-        suiteThreshold: 70,
         benchmarks: [benchmark!],
       }).benchmarks?.[0].parameters,
     ).toEqual({ num_examples: 1000, num_few_shot: 0 });
@@ -198,19 +197,18 @@ describe('createBenchmarkFromKey', () => {
   it('builds a pending collection for a new suite without a source collection', () => {
     const benchmark = createBenchmarkFromKey('provider-one:benchmark-one', providers)!;
 
-    expect(
-      buildPendingCollection({
-        suiteName: 'New suite',
-        suiteDescription: 'A new description',
-        suiteDomains: ['trustworthiness'],
-        suiteTasks: [],
-        suiteModalities: [],
-        suiteIndustries: [],
-        suiteEvaluates: ['model'],
-        suiteThreshold: 70,
-        benchmarks: [benchmark],
-      }),
-    ).toEqual(
+    const pendingCollection = buildPendingCollection({
+      suiteName: 'New suite',
+      suiteDescription: 'A new description',
+      suiteDomains: ['trustworthiness'],
+      suiteTasks: [],
+      suiteModalities: [],
+      suiteIndustries: [],
+      suiteEvaluates: ['model'],
+      benchmarks: [benchmark],
+    });
+
+    expect(pendingCollection).toEqual(
       expect.objectContaining({
         resource: { id: '' },
         name: 'New suite',
@@ -218,6 +216,7 @@ describe('createBenchmarkFromKey', () => {
         benchmarks: [expect.objectContaining({ id: 'benchmark-one' })],
       }),
     );
+    expect(pendingCollection).not.toHaveProperty('pass_criteria');
   });
 
   it('serializes test_data_ref from the benchmark form values', () => {
@@ -232,7 +231,6 @@ describe('createBenchmarkFromKey', () => {
         suiteModalities: [],
         suiteIndustries: [],
         suiteEvaluates: ['model'],
-        suiteThreshold: 70,
         benchmarks: [
           {
             ...benchmark,
@@ -268,7 +266,6 @@ describe('createBenchmarkFromKey', () => {
         suiteModalities: [],
         suiteIndustries: [],
         suiteEvaluates: ['model'],
-        suiteThreshold: 70,
         benchmarks: [benchmark],
       }).benchmarks?.[0].test_data_ref,
     ).toBeUndefined();
@@ -295,7 +292,6 @@ describe('createBenchmarkFromKey', () => {
         suiteModalities: [],
         suiteIndustries: [],
         suiteEvaluates: ['model'],
-        suiteThreshold: 70,
         benchmarks: [benchmark!],
       }).benchmarks?.[0].pass_criteria,
     ).toEqual({ threshold: 250 });
@@ -318,7 +314,6 @@ describe('useCopySuiteForm', () => {
     expect(result.result.current.suiteModalities).toEqual(['text']);
     expect(result.result.current.suiteIndustries).toEqual(['technology']);
     expect(result.result.current.suiteEvaluates).toEqual(['model']);
-    expect(result.result.current.suiteThreshold).toBe(80);
     expect(result.result.current.benchmarks).toEqual([
       expect.objectContaining({
         id: 'benchmark-one',
@@ -453,8 +448,31 @@ describe('useCopySuiteForm', () => {
     expect(mockPatchCollection.mock.calls[0]?.[3]).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ path: '/benchmarks' })]),
     );
+    expect(mockPatchCollection.mock.calls[0]?.[3]).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ path: '/pass_criteria' })]),
+    );
     expect(mockCloneCollection).not.toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith('/evaluation/test-namespace/collections');
+  });
+
+  it('should preview source benchmark settings when an edit does not patch benchmarks', async () => {
+    const editSourceCollection: Collection = {
+      ...sourceCollection,
+      benchmarks: [
+        {
+          id: 'benchmark-one',
+          provider_id: 'provider-one',
+          primary_score: { metric: 'accuracy', lower_is_better: false },
+        },
+      ],
+    };
+    const result = renderForm({ mode: 'edit', sourceCollection: editSourceCollection });
+    await waitFor(() => expect(result.result.current.suiteName).toBe(editSourceCollection.name));
+
+    act(() => result.result.current.setSuiteName('Updated suite'));
+    expect(result.result.current.buildPendingCollection()?.benchmarks).toEqual(
+      editSourceCollection.benchmarks,
+    );
   });
 
   it('should preserve untouched source benchmark settings when another benchmark is edited', async () => {
@@ -703,7 +721,6 @@ describe('useCopySuiteForm', () => {
       result.result.current.form.setValue('suiteEvaluates', ['model'], {
         shouldValidate: true,
       });
-      result.result.current.form.setValue('suiteThreshold', 85, { shouldValidate: true });
       result.result.current.form.setValue('benchmarks', [
         {
           id: 'benchmark-one',
@@ -742,6 +759,7 @@ describe('useCopySuiteForm', () => {
         ],
       }),
     );
+    expect(mockCreateCollection.mock.calls[0]?.[2]).not.toHaveProperty('pass_criteria');
     expect(mockCreateCollection).toHaveBeenCalledWith(
       '',
       'test-namespace',
@@ -771,13 +789,13 @@ describe('useCopySuiteForm', () => {
         suiteModalities: JSON.stringify(['text']),
         suiteIndustries: JSON.stringify(['technology']),
         suiteEvaluates: JSON.stringify(['model']),
-        suiteThreshold: 85,
         benchmarkCount: 1,
         benchmarks: 'Benchmark One',
         benchmarkParameterKeys: JSON.stringify(['num_examples']),
         hasAdditionalParameters: true,
       }),
     );
+    expect(savedCall?.[1]).not.toHaveProperty('suiteThreshold');
     expect(savedCall?.[1]).not.toHaveProperty('sourceCollectionId');
     expect(savedCall?.[1]).not.toHaveProperty('suiteName');
     expect(savedCall?.[1]).not.toHaveProperty('suiteDescription');
@@ -797,6 +815,7 @@ describe('useCopySuiteForm', () => {
 
     act(() => {
       result.result.current.form.setValue('suiteName', 'New suite', { shouldValidate: true });
+      result.result.current.form.setValue('suiteDomains', ['reasoning'], { shouldValidate: true });
       result.result.current.form.setValue('benchmarks', [
         {
           id: 'benchmark-one',
@@ -830,6 +849,37 @@ describe('useCopySuiteForm', () => {
     ]);
   });
 
+  it('should reject a create save when the collection category is missing', async () => {
+    const result = renderForm({ mode: 'create', sourceCollection: undefined });
+
+    await waitFor(() => expect(result.result.current.suiteName).toBe(''));
+    act(() => {
+      result.result.current.form.setValue('suiteName', 'New suite', { shouldValidate: true });
+      result.result.current.form.setValue('benchmarks', [
+        {
+          id: 'benchmark-one',
+          providerId: 'provider-one',
+          name: 'Benchmark One',
+          weight: 1,
+          parameters: [],
+          threshold: 70,
+          availableMetrics: [],
+          testDataRef: { ...testDataRefDefaultValues },
+        },
+      ]);
+    });
+
+    await act(async () => {
+      await result.result.current.handleSaveOnly();
+    });
+
+    expect(result.result.current.isSettingsValid).toBe(false);
+    expect(result.result.current.form.formState.errors.suiteDomains?.message).toBe(
+      'At least one category is required',
+    );
+    expect(mockCreateCollection).not.toHaveBeenCalled();
+  });
+
   it('should create a collection for a create-and-run flow', async () => {
     const createdCollection = {
       resource: { id: 'created-collection' },
@@ -844,6 +894,7 @@ describe('useCopySuiteForm', () => {
 
     act(() => {
       result.result.current.form.setValue('suiteName', 'New suite', { shouldValidate: true });
+      result.result.current.form.setValue('suiteDomains', ['reasoning'], { shouldValidate: true });
       result.result.current.form.setValue('benchmarks', [
         {
           id: 'benchmark-one',
@@ -906,6 +957,7 @@ describe('useCopySuiteForm', () => {
 
     act(() => {
       result.result.current.form.setValue('suiteName', 'New suite', { shouldValidate: true });
+      result.result.current.form.setValue('suiteDomains', ['reasoning'], { shouldValidate: true });
       result.result.current.form.setValue('benchmarks', [
         {
           id: 'benchmark-one',
@@ -1223,7 +1275,6 @@ describe('useCopySuiteForm', () => {
       result.result.current.setSuiteName('Updated suite');
       result.result.current.setSuiteDescription('Updated description');
       result.result.current.setSuiteEvaluates(['traces']);
-      result.result.current.handleSuiteThresholdChange(65);
       const [benchmark] = result.result.current.benchmarks;
       result.result.current.updateBenchmark(
         0,
@@ -1238,7 +1289,6 @@ describe('useCopySuiteForm', () => {
     // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
     // expect(result.result.current.suiteEvaluates).toEqual(['traces']);
     expect(result.result.current.suiteEvaluates).toEqual(['model']);
-    expect(result.result.current.suiteThreshold).toBe(65);
     expect(result.result.current.benchmarks[0]).toEqual(
       expect.objectContaining({
         parameters: [
@@ -1295,6 +1345,7 @@ describe('useCopySuiteForm', () => {
       'test-namespace',
       'source-collection',
       expect.objectContaining({
+        pass_criteria: { threshold: 0.8 },
         benchmarks: [expect.objectContaining({ pass_criteria: { threshold: 250 } })],
       }),
     );
@@ -1564,7 +1615,7 @@ describe('useCopySuiteForm', () => {
     );
   });
 
-  it('should apply benchmark selection and prevent an empty suite', async () => {
+  it('should apply benchmark selection and reflect an empty suite', async () => {
     const result = renderForm();
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
@@ -1586,18 +1637,23 @@ describe('useCopySuiteForm', () => {
     expect(result.result.current.benchmarks[0].weight).toBe(1);
 
     act(() => result.result.current.applyBenchmarkSelection([]));
-    expect(result.result.current.benchmarks).toHaveLength(1);
+    expect(result.result.current.benchmarks).toHaveLength(0);
   });
 
-  it('should be invalid when the suite name or benchmark list is empty', async () => {
+  it('should be invalid when settings or the benchmark list is incomplete', async () => {
     const result = renderForm({ sourceCollection: undefined });
 
     expect(result.result.current.isValid).toBe(false);
     expect(result.result.current.isSettingsValid).toBe(false);
 
     act(() => result.result.current.setSuiteName('New suite'));
-    expect(result.result.current.isSettingsValid).toBe(true);
+    expect(result.result.current.isSettingsValid).toBe(false);
     expect(result.result.current.isValid).toBe(false);
+
+    act(() =>
+      result.result.current.form.setValue('suiteDomains', ['reasoning'], { shouldValidate: true }),
+    );
+    await waitFor(() => expect(result.result.current.isSettingsValid).toBe(true));
 
     act(() => result.result.current.applyBenchmarkSelection(['provider-two:benchmark-two']));
     await waitFor(() => expect(result.result.current.isValid).toBe(true));
@@ -1785,7 +1841,7 @@ describe('useCopySuiteForm', () => {
     );
   });
 
-  it('should send explicit empty metadata arrays when all values are removed', async () => {
+  it('should retain the required category while clearing optional metadata arrays', async () => {
     const cloneFetcher = jest.fn().mockResolvedValue({
       resource: { id: 'saved-collection' },
       name: 'Saved suite',
@@ -1795,7 +1851,7 @@ describe('useCopySuiteForm', () => {
     await waitFor(() => expect(result.result.current.suiteName).toMatch(defaultSuiteNamePattern));
 
     act(() => {
-      result.result.current.form.setValue('suiteDomains', [], { shouldValidate: true });
+      result.result.current.form.setValue('suiteDomains', ['reasoning'], { shouldValidate: true });
       result.result.current.form.setValue('suiteTasks', [], { shouldValidate: true });
       result.result.current.form.setValue('suiteModalities', [], { shouldValidate: true });
       result.result.current.form.setValue('suiteIndustries', [], { shouldValidate: true });
@@ -1811,7 +1867,7 @@ describe('useCopySuiteForm', () => {
       'test-namespace',
       'source-collection',
       expect.objectContaining({
-        domains: [],
+        domains: ['reasoning'],
         tasks: [],
         modalities: [],
         industries: [],
@@ -1868,6 +1924,7 @@ describe('useCopySuiteForm', () => {
     await waitFor(() => expect(result.result.current.suiteName).toBe(''));
     act(() => {
       result.result.current.form.setValue('suiteName', 'New suite', { shouldValidate: true });
+      result.result.current.form.setValue('suiteDomains', ['reasoning'], { shouldValidate: true });
       result.result.current.form.setValue('benchmarks', [
         {
           id: 'benchmark-one',

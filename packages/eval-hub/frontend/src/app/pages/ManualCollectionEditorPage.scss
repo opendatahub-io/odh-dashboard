@@ -1,0 +1,51 @@
+.evalhub-copy-suite-page {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+
+  > .pf-v6-l-flex {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+
+    > .pf-m-flex-1 {
+      min-height: 0;
+
+      > .pf-v6-l-flex {
+        min-height: 0;
+        overflow: hidden;
+      }
+    }
+  }
+}
+
+.evalhub-copy-suite-page__section {
+  --pf-v6-c-page__main-section--RowGap: 0;
+
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.evalhub-copy-suite-page__editor {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.evalhub-copy-suite-page__step {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.evalhub-copy-suite-page__breadcrumb-link-disabled {
+  color: var(--pf-t--global--text--color--disabled);
+}

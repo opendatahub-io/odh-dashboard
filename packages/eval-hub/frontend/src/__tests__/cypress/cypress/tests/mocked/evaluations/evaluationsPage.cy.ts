@@ -1,6 +1,8 @@
 /* eslint-disable camelcase */
 import type { Namespace } from 'mod-arch-core';
+import { mockModArchResponse } from 'mod-arch-core';
 import { mockNamespace } from '~/__mocks__/mockNamespace';
+import { mockProvider } from '~/__mocks__/mockProvider';
 import { mockUserSettings } from '~/__mocks__/mockUserSettings';
 import { mockEvaluationJob } from '~/__mocks__/mockEvaluationJob';
 import { mockEvalHubHealth } from '~/__mocks__/mockEvalHubHealth';
@@ -10,9 +12,12 @@ import {
   mockCuratedBenchmarkSuiteCollections,
 } from '~/__mocks__/mockCollection';
 import { evaluationsPage } from '~/__tests__/cypress/cypress/pages/evaluationsPage';
+import { collectionBuilderPage } from '~/__tests__/cypress/cypress/pages/collectionBuilderPage';
+import { manualCollectionEditorPage } from '~/__tests__/cypress/cypress/pages/manualCollectionEditorPage';
 import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
 import type {
   Collection,
+  CollectionGenerationResource,
   EvalHubHealthResponse,
   EvaluationJob,
   InfoResponse,
@@ -21,6 +26,11 @@ import type {
 
 const NAMESPACE = 'test-namespace';
 const API_VERSION = { apiVersion: CLIENT_API_VERSION };
+// Set CYPRESS_goalCollectionBuilderEnabled=true when re-enabling the chooser and goal routes.
+const goalBuilderEnabledInCypress =
+  Cypress.env('goalCollectionBuilderEnabled') === true ||
+  Cypress.env('goalCollectionBuilderEnabled') === 'true';
+const itGoalBuilderEnabled = goalBuilderEnabledInCypress ? it : it.skip;
 
 type InterceptOptions = {
   namespaces?: Namespace[];
@@ -66,6 +76,12 @@ const initIntercepts = ({
     { path: API_VERSION },
     mockCollectionsListResponse(collections, collectionsTotalCount),
   );
+
+  cy.interceptApi(
+    'GET /api/:apiVersion/evaluations/collection-imports/access',
+    { path: API_VERSION },
+    { allowed: true },
+  );
 };
 
 describe('Evaluations Page - Tabs', () => {
@@ -102,6 +118,281 @@ describe('Evaluations Page - Tabs', () => {
         'contain.text',
         'Evaluate models using curated benchmark collections. Start with a curated collection, customize it, or create your own. Add a collection to your project to use it in your evaluations.',
       );
+  });
+
+  it('should navigate from the Create collection header action to the manual suite form', () => {
+    evaluationsPage.visit(NAMESPACE);
+
+    evaluationsPage.findCreateSuiteHeaderButton().click();
+    if (goalBuilderEnabledInCypress) {
+      cy.url().should('include', `/evaluation/${NAMESPACE}/create-suite`);
+      evaluationsPage.findTitle().should('contain.text', 'Create collection');
+      cy.testA11y();
+      evaluationsPage
+        .findBuildSuiteFromGoalTile()
+        .should('be.visible')
+        .and('not.have.attr', 'aria-disabled');
+      evaluationsPage.findChooseOwnBenchmarksTile().click();
+    }
+    cy.url().should('include', `/evaluation/${NAMESPACE}/create/collections/new`);
+    evaluationsPage.findTitle().should('contain.text', 'Create collection');
+    manualCollectionEditorPage.findCollectionNameInput().should('be.visible');
+    cy.testA11y();
+  });
+
+  itGoalBuilderEnabled('should preserve goal form values when returning to an earlier step', () => {
+    cy.intercept(
+      {
+        method: 'POST',
+        pathname: `/eval-hub/api/${CLIENT_API_VERSION}/evaluations/collections/generation`,
+      },
+      { statusCode: 500, body: { error: { code: '500', message: 'Unexpected generation' } } },
+    ).as('collectionBuilderGenerationApi');
+    initIntercepts({ providers: [mockProvider()] });
+    cy.interceptApi(
+      'GET /api/:apiVersion/inferenceservices',
+      { path: API_VERSION },
+      { items: [{ name: 'granite-3b', url: 'https://granite.example.com/v1', ready: true }] },
+    );
+    evaluationsPage.visit(NAMESPACE);
+
+    evaluationsPage.findCreateSuiteHeaderButton().click();
+    evaluationsPage.findBuildSuiteFromGoalTile().click();
+    cy.url().should('include', `/evaluation/${NAMESPACE}/create-suite/from-goal`);
+
+    collectionBuilderPage
+      .findCurrentStep('suite-settings')
+      .should('have.attr', 'aria-current', 'step');
+    collectionBuilderPage.findCurrentStep('define-goal').should('be.disabled');
+    collectionBuilderPage.findNextButton().should('be.disabled');
+    collectionBuilderPage.findMaxBenchmarksHelper().should('be.visible');
+    collectionBuilderPage.findMaxBenchmarksSlider().should('have.attr', 'aria-valuenow', '12');
+    collectionBuilderPage.findMaxBenchmarksSlider().should('have.attr', 'aria-valuemin', '1');
+    collectionBuilderPage.findMaxBenchmarksSlider().should('have.attr', 'aria-valuemax', '20');
+    collectionBuilderPage.findMaxBenchmarksInput().should('have.value', '12');
+    cy.testA11y();
+    collectionBuilderPage.findNameInput().type('   ');
+    collectionBuilderPage.findNameError().should('be.visible');
+    collectionBuilderPage.findNextButton().should('be.disabled');
+
+    collectionBuilderPage.findNameInput().clear().type('Reasoning suite');
+    collectionBuilderPage.findDescriptionInput().should('have.value', '');
+    collectionBuilderPage.findDescriptionInput().type('Check general reasoning performance.');
+    collectionBuilderPage.findRecommendationModelToggle().click();
+    collectionBuilderPage.findRecommendationModelOption('granite-3b').click();
+    collectionBuilderPage.findRecommendationModelToggle().should('have.text', 'granite-3b');
+    collectionBuilderPage.findNextButton().should('be.enabled');
+    collectionBuilderPage.findNextButton().click();
+
+    collectionBuilderPage
+      .findCurrentStep('define-goal')
+      .should('have.attr', 'aria-current', 'step');
+    collectionBuilderPage.findDefineGoalStep().should('be.visible');
+    cy.testA11y();
+    collectionBuilderPage
+      .findEvaluationGoalInput()
+      .should('be.visible')
+      .and('have.attr', 'maxlength', '10000');
+    collectionBuilderPage.findRecommendButton().should('be.disabled');
+    collectionBuilderPage.findGoalExample('answer-quality').should('be.visible').click();
+    collectionBuilderPage
+      .findEvaluationGoalInput()
+      .should('have.value', 'Assess a model’s accuracy and truthfulness across common questions.');
+    collectionBuilderPage
+      .findGoalExample('answer-quality')
+      .should('have.attr', 'aria-pressed', 'true');
+    collectionBuilderPage.findGoalExample('code-generation').should('not.exist');
+    collectionBuilderPage.findViewExamplesButton().click();
+    collectionBuilderPage.findGoalExample('adversarial-content').should('be.visible');
+    collectionBuilderPage
+      .findViewExamplesButton()
+      .should('contain.text', 'View fewer examples')
+      .click();
+    collectionBuilderPage.findGoalExample('code-generation').should('not.exist');
+    collectionBuilderPage.findEvaluationGoalInput().clear().type('A custom evaluation goal.');
+    collectionBuilderPage
+      .findGoalExample('answer-quality')
+      .should('have.attr', 'aria-pressed', 'false');
+    collectionBuilderPage.findCurrentStep('suite-settings').click();
+
+    collectionBuilderPage
+      .findCurrentStep('suite-settings')
+      .should('have.attr', 'aria-current', 'step');
+    collectionBuilderPage.findNameInput().should('have.value', 'Reasoning suite');
+    collectionBuilderPage
+      .findDescriptionInput()
+      .should('have.value', 'Check general reasoning performance.');
+    collectionBuilderPage.findMaxBenchmarksSlider().should('have.attr', 'aria-valuenow', '12');
+    collectionBuilderPage.findMaxBenchmarksInput().should('have.value', '12');
+    collectionBuilderPage.findRecommendationModelToggle().should('have.text', 'granite-3b');
+    collectionBuilderPage.findCurrentStep('define-goal').click();
+    collectionBuilderPage
+      .findCurrentStep('define-goal')
+      .should('have.attr', 'aria-current', 'step');
+    collectionBuilderPage
+      .findEvaluationGoalInput()
+      .should('have.value', 'A custom evaluation goal.');
+    evaluationsPage.findCollectionBuilderGenerationApiCalls().should('have.length', 0);
+  });
+
+  itGoalBuilderEnabled('should generate and refine benchmark recommendations', () => {
+    const pendingGeneration: CollectionGenerationResource = {
+      resource: {
+        id: 'generation-flow',
+        tenant: NAMESPACE,
+        owner: 'test-user',
+        created_at: '2026-11-17T12:00:00Z',
+        updated_at: '2026-11-17T12:00:00Z',
+      },
+      request: {
+        evaluation_goal: 'Assess a model’s accuracy and truthfulness across common questions.',
+        model: { name: 'granite-3b', url: 'https://granite.example.com/v1' },
+        max_benchmarks: 12,
+        strictness: 'moderate',
+        generation_effort: 'standard',
+      },
+      status: { state: 'pending' },
+    };
+    const runningGeneration: CollectionGenerationResource = {
+      ...pendingGeneration,
+      status: {
+        state: 'running',
+        progress: {
+          phase: 'model_generation',
+          updated_at: '2026-11-17T12:00:10Z',
+          last_completed_action: {
+            name: 'search_benchmarks',
+            completed_at: '2026-11-17T12:00:09Z',
+          },
+        },
+      },
+    };
+    const completedGeneration: CollectionGenerationResource = {
+      ...pendingGeneration,
+      status: { state: 'completed' },
+      result: {
+        collection: {
+          name: 'AI recommendations',
+          benchmarks: [
+            {
+              id: 'truthfulqa_mc1',
+              provider_id: 'lm_evaluation_harness',
+              primary_score: { metric: 'accuracy', lower_is_better: false },
+              pass_criteria: { threshold: 0.8 },
+            },
+          ],
+        },
+        yaml: 'name: AI recommendations',
+        rationale: 'TruthfulQA measures whether answers are accurate and truthful.',
+        explanation: {
+          selected_benchmarks: [
+            {
+              id: 'truthfulqa_mc1',
+              provider_id: 'lm_evaluation_harness',
+              reason: 'It directly measures factual accuracy.',
+            },
+          ],
+          rejected_benchmarks: [
+            {
+              id: 'hellaswag',
+              provider_id: 'lm_evaluation_harness',
+              reason: 'It measures commonsense reasoning rather than factual accuracy.',
+            },
+          ],
+        },
+        actions: [],
+      },
+    };
+    let generationReadCount = 0;
+
+    initIntercepts({ providers: [mockProvider()] });
+    cy.interceptApi(
+      'GET /api/:apiVersion/inferenceservices',
+      { path: API_VERSION },
+      { items: [{ name: 'granite-3b', url: 'https://granite.example.com/v1', ready: true }] },
+    );
+    cy.intercept('POST', '**/evaluations/collections/generation*', (request) => {
+      expect(request.query.namespace).to.equal(NAMESPACE);
+      request.reply({ statusCode: 202, body: mockModArchResponse(pendingGeneration) });
+    }).as('createCollectionGeneration');
+    cy.intercept(
+      {
+        method: 'GET',
+        pathname: `/eval-hub/api/${CLIENT_API_VERSION}/evaluations/collections/generation/generation-flow`,
+      },
+      (request) => {
+        generationReadCount += 1;
+        request.reply({
+          body: mockModArchResponse(
+            generationReadCount === 1 ? runningGeneration : completedGeneration,
+          ),
+        });
+      },
+    ).as('getCollectionGeneration');
+
+    evaluationsPage.visit(NAMESPACE);
+    evaluationsPage.findCreateSuiteHeaderButton().click();
+    evaluationsPage.findBuildSuiteFromGoalTile().click();
+    collectionBuilderPage.findNameInput().type('Truthfulness suite');
+    collectionBuilderPage.findRecommendationModelToggle().click();
+    collectionBuilderPage.findRecommendationModelOption('granite-3b').click();
+    collectionBuilderPage.findNextButton().click();
+    collectionBuilderPage.findGoalExample('answer-quality').click();
+    collectionBuilderPage.findRecommendButton().click();
+
+    cy.wait('@createCollectionGeneration').then(({ request }) => {
+      expect(request.body).to.deep.equal({
+        evaluation_goal: 'Assess a model’s accuracy and truthfulness across common questions.',
+        model: { name: 'granite-3b', url: 'https://granite.example.com/v1' },
+        max_benchmarks: 12,
+        strictness: 'moderate',
+        generation_effort: 'standard',
+      });
+      expect(request.body).not.to.have.property('name');
+      expect(request.body).not.to.have.property('description');
+      expect(request.body.model).not.to.have.property('source');
+    });
+    collectionBuilderPage
+      .findCurrentStep('benchmark-overview')
+      .should('have.attr', 'aria-current', 'step');
+    collectionBuilderPage.findOverviewNextButton().should('be.disabled');
+    cy.wait('@getCollectionGeneration');
+    collectionBuilderPage
+      .findGenerationStatusHeading()
+      .should('contain.text', 'AI is comparing benchmarks with your goal');
+    collectionBuilderPage
+      .findGenerationProgress()
+      .should('contain.text', 'Searching the benchmark catalog · Building a recommendation');
+    collectionBuilderPage.findOverviewNextButton().should('be.disabled');
+    cy.wait('@getCollectionGeneration');
+    collectionBuilderPage
+      .findSelectedBenchmarkName('truthfulqa_mc1')
+      .should('contain.text', 'TruthfulQA MC1');
+    collectionBuilderPage
+      .findSelectedBenchmark('truthfulqa_mc1')
+      .should('contain.text', 'accuracy');
+    collectionBuilderPage
+      .findSelectionCount()
+      .should('contain.text', 'Selected benchmarks · 1 of 20');
+    cy.testA11y();
+    collectionBuilderPage.findReviewAlternativesButton().click();
+    collectionBuilderPage
+      .findAlternative('hellaswag')
+      .should('contain.text', 'commonsense reasoning');
+    collectionBuilderPage.findAddAlternativeButton('hellaswag').click();
+    collectionBuilderPage
+      .findSelectionCount()
+      .should('contain.text', 'Selected benchmarks · 2 of 20');
+    cy.testA11y();
+    collectionBuilderPage.findCloseAlternativesButton().click();
+    collectionBuilderPage.findRemoveSelectedBenchmarkButton('truthfulqa_mc1').click();
+    collectionBuilderPage
+      .findSelectionCount()
+      .should('contain.text', 'Selected benchmarks · 1 of 20');
+    collectionBuilderPage.findOverviewNextButton().should('be.enabled');
+    collectionBuilderPage.findOverviewNextButton().click();
+    collectionBuilderPage.findCurrentStep('review').should('have.attr', 'aria-current', 'step');
+    cy.testA11y();
   });
 
   it('should navigate from a Gallery Customize action to the suite editor', () => {

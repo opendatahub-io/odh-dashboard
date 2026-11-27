@@ -2,14 +2,22 @@ import { Modal } from './Modal';
 
 type MonacoModel = {
   getValue: () => string;
+  uri: object;
+};
+
+type MonacoMarker = {
+  message: string;
+  severity: number;
 };
 
 type MonacoGlobal = {
+  MarkerSeverity: { Warning: number };
   editor: {
     getEditors: () => {
       getDomNode: () => HTMLElement | null;
       getModel: () => MonacoModel | null;
     }[];
+    getModelMarkers: (filter: { owner: string; resource: object }) => MonacoMarker[];
   };
 };
 
@@ -60,7 +68,7 @@ export class ImportCollectionModal extends Modal {
       });
   }
 
-  findFileInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+  findFileInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findEditor().findByTestId('import-collection-file-input');
   }
 
@@ -69,9 +77,33 @@ export class ImportCollectionModal extends Modal {
     return this.findEditor().find('.squiggly-error');
   }
 
-  /** Monaco's warning marker squiggles (advisory warnings). */
-  findWarningSquiggles(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findEditor().find('.squiggly-warning');
+  /** Retry against the live Monaco model until the expected warning markers are published. */
+  shouldHaveWarningMarkers(expectedMessages: string[]): void {
+    this.waitForEditorReady();
+    this.findEditor().should(($container) => {
+      const win = $container[0].ownerDocument.defaultView as unknown as {
+        monaco?: MonacoGlobal;
+      };
+      if (!win.monaco) {
+        throw new Error('Monaco editor was not found on window');
+      }
+      const { monaco } = win;
+      const editor = monaco.editor.getEditors().find((candidate) => {
+        const node = candidate.getDomNode();
+        return node !== null && $container[0].contains(node);
+      });
+      if (!editor) {
+        throw new Error('Monaco editor inside the import dialog was not found');
+      }
+      const model = editor.getModel();
+      if (!model) {
+        throw new Error('The import editor has no Monaco model');
+      }
+      const warnings = monaco.editor
+        .getModelMarkers({ owner: 'evalhub-import', resource: model.uri })
+        .filter((marker) => marker.severity === monaco.MarkerSeverity.Warning);
+      expect(warnings.map(({ message }) => message)).to.include.members(expectedMessages);
+    });
   }
 
   /**
@@ -151,7 +183,7 @@ export class ImportCollectionModal extends Modal {
     return this.find().find('.pf-v6-c-code-editor__tab-text');
   }
 
-  findNameInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+  findNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('import-collection-name');
   }
 

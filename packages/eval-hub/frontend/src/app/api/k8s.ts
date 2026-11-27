@@ -15,6 +15,8 @@ import {
   CollectionPatchOperation,
   CloneCollectionRequest,
   CollectionsListResponse,
+  CollectionGenerationRequest,
+  CollectionGenerationResource,
   EvalHubCRStatus,
   EvalHubHealthResponse,
   CreateEvaluationJobRequest,
@@ -535,6 +537,96 @@ export const createCollection =
       throw new Error('Invalid response format');
     });
 
+export const createCollectionGeneration =
+  (hostPath: string, namespace: string, request: CollectionGenerationRequest) =>
+  (opts: APIOptions): Promise<CollectionGenerationResource> =>
+    handleRestFailures(
+      restCREATE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/generation`,
+        request,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<CollectionGenerationResource>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid collection generation response format');
+    });
+
+export const getCollectionGeneration =
+  (hostPath: string, namespace: string, generationId: string) =>
+  (opts: APIOptions): Promise<CollectionGenerationResource> => {
+    if (!generationId) {
+      return Promise.reject(new Error('Collection generation ID must not be empty'));
+    }
+    return handleRestFailures(
+      restGET(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/generation/${encodeURIComponent(
+          generationId,
+        )}`,
+        { namespace },
+        opts,
+      ),
+    ).then((response) => {
+      if (isModArchResponse<CollectionGenerationResource>(response)) {
+        return response.data;
+      }
+      throw new Error('Invalid collection generation response format');
+    });
+  };
+
+export const deleteCollectionGeneration =
+  (hostPath: string, namespace: string, generationId: string) =>
+  (opts: APIOptions): Promise<void> => {
+    if (!generationId) {
+      return Promise.reject(new Error('Collection generation ID must not be empty'));
+    }
+    return handleRestFailures(
+      restDELETE(
+        hostPath,
+        `${URL_PREFIX}/api/${BFF_API_VERSION}/evaluations/collections/generation/${encodeURIComponent(
+          generationId,
+        )}`,
+        {},
+        { namespace },
+        { ...opts, parseJSON: false },
+      ),
+    ).then((response) => {
+      if (typeof response === 'string' && response.trim() !== '') {
+        let errorBody: unknown;
+        try {
+          errorBody = JSON.parse(response);
+        } catch {
+          throw new Error(response);
+        }
+        if (errorBody && typeof errorBody === 'object' && 'error' in errorBody) {
+          const { error } = errorBody;
+          if (
+            error &&
+            typeof error === 'object' &&
+            'code' in error &&
+            (error.code === '404' || error.code === 'NOT_FOUND')
+          ) {
+            return undefined;
+          }
+          if (
+            error &&
+            typeof error === 'object' &&
+            'message' in error &&
+            typeof error.message === 'string'
+          ) {
+            throw new Error(error.message);
+          }
+        }
+        throw new Error(response);
+      }
+      return undefined;
+    });
+  };
+
 export const importCollection =
   (hostPath: string, namespace: string, content: string) =>
   (opts: APIOptions): Promise<ImportCollectionResponse> =>
@@ -554,7 +646,7 @@ export const importCollection =
       throw new Error('Invalid response format');
     });
 
-export const getCollectionImportAccess =
+export const getCollectionCreationAccess =
   (hostPath: string, namespace: string) =>
   (opts: APIOptions): Promise<ImportCollectionAccessResponse> =>
     handleRestFailures(

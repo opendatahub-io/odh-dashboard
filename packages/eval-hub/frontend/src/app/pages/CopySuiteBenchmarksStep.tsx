@@ -2,18 +2,14 @@ import * as React from 'react';
 import { useFormContext } from 'react-hook-form';
 import {
   Button,
+  Content,
   EmptyState,
   EmptyStateActions,
   EmptyStateBody,
   EmptyStateFooter,
   Form,
-  JumpLinks,
-  JumpLinksItem,
-  Sidebar,
-  SidebarContent,
-  SidebarPanel,
+  Title,
 } from '@patternfly/react-core';
-import { useModularArchContext } from 'mod-arch-core';
 import type { CuratedCollectionParameterConfig } from '~/app/curatedSuiteConfig';
 import CopySuiteBenchmarkDetailsOverlay from '~/app/components/CopySuiteBenchmarkDetailsOverlay';
 import CopySuiteBenchmarkSection from '~/app/components/CopySuiteBenchmarkSection';
@@ -27,7 +23,6 @@ import {
 } from '~/app/schemas/testDataRef.schema';
 import type { Provider } from '~/app/types';
 import { buildFlatBenchmarkByKey } from '~/app/utilities/benchmarkDetailsUtils';
-import { getEvalHubScrollContainer } from '~/app/utilities/scrollContainer';
 import { weightsToRatios } from '~/app/utilities/weightDistributionUtils';
 
 import './CopySuiteBenchmarksStep.scss';
@@ -38,18 +33,11 @@ type CopySuiteBenchmarksStepProps = {
   showWeightEdit: boolean;
   weightSegments: WeightSegment[];
   minWeightPercent: number;
-  isValid: boolean;
-  isSubmitting: boolean;
   isInteractionDisabled?: boolean;
   parameterConfig?: Record<string, CuratedCollectionParameterConfig>;
   onUpdateBenchmark: (index: number, field: keyof CopySuiteBenchmark, value: unknown) => void;
   onWeightsChange: (weights: number[]) => void;
-  onSaveAndRun: () => void;
-  onSaveOnly: () => void;
   onBack: () => void;
-  primaryActionTestId?: string;
-  secondaryActionLabel?: string;
-  onCancel: () => void;
 };
 
 const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
@@ -58,20 +46,12 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
   showWeightEdit,
   weightSegments,
   minWeightPercent,
-  isValid,
-  isSubmitting,
   isInteractionDisabled = false,
   parameterConfig,
   onUpdateBenchmark,
   onWeightsChange,
-  onSaveAndRun,
-  onSaveOnly,
   onBack,
-  primaryActionTestId = 'copy-suite-save-and-run',
-  secondaryActionLabel = 'Add to my collections',
-  onCancel,
 }) => {
-  const { config } = useModularArchContext();
   const {
     formState: { errors },
   } = useFormContext<CopySuiteFormValues>();
@@ -84,11 +64,6 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
       setIsWeightsModalOpen(false);
     }
   }, [isInteractionDisabled]);
-
-  const getScrollableElement = React.useCallback(
-    () => getEvalHubScrollContainer(config.deploymentMode),
-    [config.deploymentMode],
-  );
 
   const flatBenchmarkByKey = React.useMemo(() => buildFlatBenchmarkByKey(providers), [providers]);
 
@@ -127,11 +102,7 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
   );
 
   return (
-    <div
-      id="copy-suite-step-content-benchmarks"
-      className="evalhub-copy-suite-page__step"
-      data-testid="copy-suite-step-benchmarks"
-    >
+    <div className="evalhub-copy-suite-page__step" data-testid="copy-suite-step-benchmarks">
       <fieldset
         disabled={isInteractionDisabled}
         className="evalhub-copy-suite-benchmarks-step__fields"
@@ -154,137 +125,58 @@ const CopySuiteBenchmarksStep: React.FC<CopySuiteBenchmarksStepProps> = ({
         }
       >
         {hasBenchmarks ? (
-          <Sidebar hasGutter className="evalhub-copy-suite-benchmarks-step__layout">
-            <SidebarPanel
-              variant="sticky"
-              className="pf-v6-u-display-none pf-v6-u-display-block-on-lg evalhub-copy-suite-benchmarks-step__nav"
-            >
-              <JumpLinks
-                key={isInteractionDisabled ? 'locked' : 'interactive'}
-                isVertical
-                label="Jump to benchmarks"
-                scrollableRef={getScrollableElement}
-                offset={16}
+          <div className="evalhub-copy-suite-benchmarks-step__layout">
+            <Title headingLevel="h2" size="xl" className="pf-v6-u-mb-sm">
+              Benchmark settings
+            </Title>
+            <Content component="p" className="pf-v6-u-mb-lg">
+              Configure each benchmark with a primary metric, threshold, and any framework-specific
+              settings.
+            </Content>
+            <Form onSubmit={(event) => event.preventDefault()}>
+              <div
+                className="evalhub-copy-suite-benchmarks-step__sections"
+                data-testid="copy-suite-benchmark-sections"
               >
-                {benchmarks.map((benchmark, index) => {
-                  const key = `${benchmark.id}-${index}`;
-                  const content = (
-                    <span
-                      className="evalhub-copy-suite-benchmarks-step__jump-link-text"
-                      title={benchmark.name}
-                    >
-                      {benchmark.name}
-                    </span>
-                  );
-
-                  return isInteractionDisabled ? (
-                    <li
-                      key={key}
-                      className="pf-v6-c-jump-links__item"
-                      data-testid={`benchmark-jump-link-${index}`}
-                    >
-                      <span className="evalhub-copy-suite-benchmarks-step__jump-link-disabled">
-                        {content}
-                      </span>
-                    </li>
-                  ) : (
-                    <JumpLinksItem
-                      key={key}
-                      href={`#benchmark-section-${index}`}
-                      data-testid={`benchmark-jump-link-${index}`}
-                    >
-                      {content}
-                    </JumpLinksItem>
-                  );
-                })}
-              </JumpLinks>
-            </SidebarPanel>
-            <SidebarContent>
-              <Form onSubmit={(event) => event.preventDefault()}>
-                <div
-                  className="evalhub-copy-suite-benchmarks-step__sections"
-                  data-testid="copy-suite-benchmark-sections"
-                >
-                  {benchmarks.map((benchmark, index) => (
-                    <CopySuiteBenchmarkSection
-                      key={`${benchmark.id}-${index}`}
-                      benchmark={benchmark}
-                      index={index}
-                      showWeightEdit={showWeightEdit}
-                      weightRatio={weightRatios[index] ?? 1}
-                      totalWeightRatio={totalWeightRatio}
-                      additionalParametersError={
-                        errors.benchmarks?.[index]?.additionalParameters?.message
+                {benchmarks.map((benchmark, index) => (
+                  <CopySuiteBenchmarkSection
+                    key={`${benchmark.id}-${index}`}
+                    benchmark={benchmark}
+                    index={index}
+                    showWeightEdit={showWeightEdit}
+                    weightRatio={weightRatios[index] ?? 1}
+                    totalWeightRatio={totalWeightRatio}
+                    additionalParametersError={
+                      errors.benchmarks?.[index]?.additionalParameters?.message
+                    }
+                    parameterErrors={getParameterErrors(index)}
+                    parameterConfig={parameterConfig}
+                    testDataRefErrors={getTestDataRefErrors(index)}
+                    isInteractionDisabled={isInteractionDisabled}
+                    onUpdate={(updatedIndex, field, value) => {
+                      if (!isInteractionDisabled) {
+                        onUpdateBenchmark(updatedIndex, field, value);
                       }
-                      parameterErrors={getParameterErrors(index)}
-                      parameterConfig={parameterConfig}
-                      testDataRefErrors={getTestDataRefErrors(index)}
-                      isInteractionDisabled={isInteractionDisabled}
-                      onUpdate={(updatedIndex, field, value) => {
-                        if (!isInteractionDisabled) {
-                          onUpdateBenchmark(updatedIndex, field, value);
-                        }
-                      }}
-                      onEditWeights={() => {
-                        if (!isInteractionDisabled) {
-                          setIsWeightsModalOpen(true);
-                        }
-                      }}
-                      onOpenDetails={(benchmarkKey) => {
-                        if (!isInteractionDisabled) {
-                          setDetailsBenchmarkKey(benchmarkKey);
-                        }
-                      }}
-                    />
-                  ))}
-                </div>
-              </Form>
-            </SidebarContent>
-          </Sidebar>
+                    }}
+                    onEditWeights={() => {
+                      if (!isInteractionDisabled) {
+                        setIsWeightsModalOpen(true);
+                      }
+                    }}
+                    onOpenDetails={(benchmarkKey) => {
+                      if (!isInteractionDisabled) {
+                        setDetailsBenchmarkKey(benchmarkKey);
+                      }
+                    }}
+                  />
+                ))}
+              </div>
+            </Form>
+          </div>
         ) : (
           <EmptyBenchmarksState onBack={onBack} />
         )}
       </fieldset>
-
-      <div
-        id="copy-suite-actions"
-        className="evalhub-copy-suite-page__footer"
-        data-testid="copy-suite-actions"
-      >
-        <Button
-          variant="secondary"
-          data-testid="copy-suite-back-step-2"
-          onClick={onBack}
-          isDisabled={isSubmitting}
-        >
-          Back
-        </Button>
-        <Button
-          variant="primary"
-          data-testid={primaryActionTestId}
-          onClick={onSaveAndRun}
-          isDisabled={!isValid || isSubmitting}
-          isLoading={isSubmitting}
-        >
-          Save and run
-        </Button>
-        <Button
-          variant="secondary"
-          data-testid="copy-suite-save-only"
-          onClick={onSaveOnly}
-          isDisabled={!isValid || isSubmitting}
-        >
-          {secondaryActionLabel}
-        </Button>
-        <Button
-          variant="link"
-          data-testid="copy-suite-cancel-step-2"
-          onClick={onCancel}
-          isDisabled={isSubmitting}
-        >
-          Cancel
-        </Button>
-      </div>
 
       {!isInteractionDisabled ? (
         <CopySuiteBenchmarkDetailsOverlay

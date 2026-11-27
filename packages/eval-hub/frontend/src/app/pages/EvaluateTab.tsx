@@ -18,7 +18,7 @@ import {
   evaluationEvaluateNavigationState,
   evaluationSingleBenchmarkRoute,
 } from '~/app/routes';
-import { useCanImportCollections } from '~/app/hooks/collections';
+import { useCanCreateCollections } from '~/app/hooks/collections';
 import type { Collection } from '~/app/types';
 import type { BenchmarkNameMap } from '~/app/components/benchmarkUtils';
 import { useEvalHubTracking } from '~/app/tracking/useEvalHubTracking';
@@ -50,7 +50,7 @@ const EvaluateTab: React.FC<EvaluateTabProps> = ({
 
   const heading = 'Recent benchmark collections';
   const [isImportOpen, setIsImportOpen] = React.useState(false);
-  const canImportQuery = useCanImportCollections(namespace);
+  const canImportQuery = useCanCreateCollections(namespace);
   // Import is enabled only on an explicit allowed result: it stays disabled
   // while the check is pending or has failed, so limited-access users are
   // never offered a creation flow the upstream authorization rejects.

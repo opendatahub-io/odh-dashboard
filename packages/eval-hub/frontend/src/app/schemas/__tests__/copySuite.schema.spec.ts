@@ -1,14 +1,18 @@
 import {
   copySuiteDefaultValues,
   copySuiteSchema,
+  copySuiteSettingsSchema,
+  getCopySuiteSettingsSchema,
   getCopySuiteSchema,
   type CopySuiteFormValues,
 } from '~/app/schemas/copySuite.schema';
 import { testDataRefDefaultValues } from '~/app/schemas/testDataRef.schema';
+import { MAX_COLLECTION_BENCHMARKS } from '~/app/pages/const';
 
 const validValues = (): CopySuiteFormValues => ({
   ...copySuiteDefaultValues,
   suiteName: 'My copied suite',
+  suiteDomains: ['reasoning'],
   benchmarks: [
     {
       id: 'benchmark-one',
@@ -24,6 +28,42 @@ const validValues = (): CopySuiteFormValues => ({
 });
 
 describe('copySuiteSchema', () => {
+  it('should reject more benchmarks than a collection can save', () => {
+    const values = validValues();
+    const benchmarks = Array.from({ length: MAX_COLLECTION_BENCHMARKS + 1 }, (_, index) => ({
+      ...values.benchmarks[0],
+      id: `benchmark-${index}`,
+    }));
+
+    expect(
+      copySuiteSchema.safeParse({ ...values, benchmarks: benchmarks.slice(0, -1) }).success,
+    ).toBe(true);
+    expect(copySuiteSchema.safeParse({ ...values, benchmarks }).success).toBe(false);
+  });
+
+  it('should require a trimmed collection name and at least one category', () => {
+    expect(
+      copySuiteSettingsSchema.safeParse({ suiteName: '   ', suiteDomains: ['reasoning'] }).success,
+    ).toBe(false);
+
+    const result = copySuiteSettingsSchema.safeParse({
+      suiteName: 'New collection',
+      suiteDomains: [],
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: ['suiteDomains'],
+            message: 'At least one category is required',
+          }),
+        ]),
+      );
+    }
+  });
+
   it('should accept empty and valid JSON-object advanced parameters', () => {
     expect(copySuiteSchema.safeParse(validValues()).success).toBe(true);
 
@@ -57,6 +97,25 @@ describe('copySuiteSchema', () => {
     const result = getCopySuiteSchema('Source suite').safeParse({
       ...validValues(),
       suiteName: ' Source suite ',
+    });
+
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error.issues).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            path: ['suiteName'],
+            message: 'Collection name must be different from the source collection name.',
+          }),
+        ]),
+      );
+    }
+  });
+
+  it('should apply the trimmed source-name conflict to settings validation', () => {
+    const result = getCopySuiteSettingsSchema('Source suite').safeParse({
+      suiteName: ' Source suite ',
+      suiteDomains: ['reasoning'],
     });
 
     expect(result.success).toBe(false);

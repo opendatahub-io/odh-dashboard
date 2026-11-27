@@ -1,0 +1,13 @@
+.evalhub-collection-settings-step__max-benchmarks-slider .pf-v6-c-slider__step-label {
+  white-space: nowrap;
+}
+
+.evalhub-collection-settings-step__details-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--pf-t--global--spacer--lg);
+}
+
+.evalhub-collection-settings-step__generation-grid-item {
+  margin-block-start: var(--pf-t--global--spacer--md);
+}

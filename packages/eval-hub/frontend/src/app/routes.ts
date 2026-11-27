@@ -5,6 +5,10 @@ import { evaluationRootSegment, evaluationComparePathSegment } from './routeSegm
 const globNamespace = ':namespace';
 export const globNamespaceAll = `/${globNamespace}?/*`;
 
+// Temporarily disable goal-based collection creation until the generation API is available.
+// Return true to restore the chooser and goal-builder routes together.
+export const isGoalCollectionBuilderEnabled = (): boolean => false;
+
 // Route helpers (used for navigation, resolved relative to the app mount root)
 export const evaluationsBaseRoute = (namespace?: string): string =>
   namespace ? `/${evaluationRootSegment}/${namespace}` : `/${evaluationRootSegment}`;
@@ -32,6 +36,12 @@ export const evaluationCuratedBenchmarkSuitesNavigationState = (evaluationTarget
 export const evaluationCreateRoute = (namespace?: string): string =>
   `${evaluationsBaseRoute(namespace)}/create`;
 
+export const evaluationCreateSuiteChooserRoute = (namespace?: string): string =>
+  `${evaluationsBaseRoute(namespace)}/create-suite`;
+
+export const evaluationBuildSuiteFromGoalRoute = (namespace?: string): string =>
+  `${evaluationCreateSuiteChooserRoute(namespace)}/from-goal`;
+
 export const evaluationCollectionsRoute = (namespace?: string): string =>
   `${evaluationCreateRoute(namespace)}/collections`;
 
@@ -58,6 +68,11 @@ export const evaluationEditSuiteRoute = (namespace?: string, collectionId?: stri
 
 export const evaluationCreateSuiteRoute = (namespace?: string): string =>
   `${evaluationCollectionsRoute(namespace)}/new`;
+
+export const evaluationCreateCollectionEntryRoute = (namespace?: string): string =>
+  isGoalCollectionBuilderEnabled()
+    ? evaluationCreateSuiteChooserRoute(namespace)
+    : evaluationCreateSuiteRoute(namespace);
 
 export const evaluationResultsRoute = (namespace?: string, jobId?: string): string =>
   `${evaluationsBaseRoute(namespace)}/results/${jobId ?? ':jobId'}`;

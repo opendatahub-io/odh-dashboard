@@ -1,0 +1,418 @@
+package api
+
+import (
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/url"
+	"strings"
+	"unicode"
+	"unicode/utf8"
+
+	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/julienschmidt/httprouter"
+	"github.com/opendatahub-io/eval-hub/bff/internal/constants"
+	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/connectionprobe"
+	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
+	kubernetes "github.com/opendatahub-io/eval-hub/bff/internal/integrations/kubernetes"
+)
+
+const collectionGenerationPath = "/evaluations/collections/generation"
+
+type CollectionGenerationEnvelope Envelope[evalhub.CollectionGenerationResource, None]
+
+// collectionRouteTail returns the unescaped route tail after /evaluations/collections/.
+// Inspecting EscapedPath keeps IDs containing encoded slashes on the legacy collection path.
+func collectionRouteTail(r *http.Request) (string, bool) {
+	path := r.URL.EscapedPath()
+	prefix := ApiPathPrefix + "/evaluations/collections/"
+	index := strings.Index(path, prefix)
+	if index < 0 {
+		return "", false
+	}
+	return path[index+len(prefix):], true
+}
+
+func isCollectionGenerationPath(tail string) bool {
+	return tail == "generation" || strings.HasPrefix(tail, "generation/")
+}
+
+// CollectionGetByIDHandler routes the reserved generation poll path before the
+// catch-all collection ID handler while retaining encoded-slash collection IDs.
+func (app *App) CollectionGetByIDHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	tail, ok := collectionRouteTail(r)
+	if ok && strings.HasPrefix(tail, "generation/") {
+		encodedID := strings.TrimPrefix(tail, "generation/")
+		if encodedID == "" || strings.Contains(encodedID, "/") {
+			app.notFoundResponse(w, r)
+			return
+		}
+		id, err := url.PathUnescape(encodedID)
+		if err != nil || strings.TrimSpace(id) == "" || strings.Contains(id, "/") {
+			app.badRequestResponse(w, r, fmt.Errorf("invalid collection generation id"))
+			return
+		}
+		app.GetCollectionGenerationHandler(w, r, id)
+		return
+	}
+	if ok && tail == "generation" {
+		app.methodNotAllowedResponse(w, r)
+		return
+	}
+	app.GetCollectionHandler(w, r, ps)
+}
+
+// CollectionPostByIDHandler routes collection generation creation before the
+// collection clone catch-all. Other paths under /generation remain not found.
+func (app *App) CollectionPostByIDHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	tail, ok := collectionRouteTail(r)
+	if ok && tail == "generation" {
+		app.CreateCollectionGenerationHandler(w, r)
+		return
+	}
+	if ok && strings.HasPrefix(tail, "generation/") {
+		app.notFoundResponse(w, r)
+		return
+	}
+	app.CloneCollectionHandler(w, r, ps)
+}
+
+func (app *App) CollectionPatchByIDHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	if tail, ok := collectionRouteTail(r); ok && isCollectionGenerationPath(tail) {
+		app.methodNotAllowedResponse(w, r)
+		return
+	}
+	app.PatchCollectionHandler(w, r, ps)
+}
+
+func (app *App) CollectionDeleteByIDHandler(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	if tail, ok := collectionRouteTail(r); ok {
+		if tail == "generation" {
+			app.methodNotAllowedResponse(w, r)
+			return
+		}
+		if strings.HasPrefix(tail, "generation/") {
+			encodedID := strings.TrimPrefix(tail, "generation/")
+			if encodedID == "" || strings.Contains(encodedID, "/") {
+				app.notFoundResponse(w, r)
+				return
+			}
+			id, err := url.PathUnescape(encodedID)
+			if err != nil || strings.TrimSpace(id) == "" || strings.Contains(id, "/") {
+				app.badRequestResponse(w, r, fmt.Errorf("invalid collection generation id"))
+				return
+			}
+			app.DeleteCollectionGenerationHandler(w, r, id)
+			return
+		}
+	}
+	app.DeleteCollectionHandler(w, r, ps)
+}
+
+func validateCollectionGenerationRequest(input evalhub.CreateCollectionGenerationRequest) error {
+	goalLength := utf8.RuneCountInString(input.EvaluationGoal)
+	if strings.TrimSpace(input.EvaluationGoal) == "" {
+		return fmt.Errorf("evaluation_goal is required")
+	}
+	if goalLength > 10000 {
+		return fmt.Errorf("evaluation_goal must be at most 10000 characters")
+	}
+	if strings.TrimSpace(input.Model.Name) == "" {
+		return fmt.Errorf("model name is required")
+	}
+	if strings.TrimSpace(input.Model.URL) == "" {
+		return fmt.Errorf("model url is required")
+	}
+	if input.ProviderFilter != "" && strings.TrimSpace(input.ProviderFilter) == "" {
+		return fmt.Errorf("provider_filter must not be blank")
+	}
+	if input.MaxBenchmarks != nil && (*input.MaxBenchmarks < 1 || *input.MaxBenchmarks > 100) {
+		return fmt.Errorf("max_benchmarks must be between 1 and 100")
+	}
+	if input.Strictness != "" && input.Strictness != "lenient" && input.Strictness != "moderate" && input.Strictness != "strict" {
+		return fmt.Errorf("strictness must be lenient, moderate, or strict")
+	}
+	if input.GenerationEffort != "" && input.GenerationEffort != "low" && input.GenerationEffort != "standard" && input.GenerationEffort != "high" {
+		return fmt.Errorf("generation_effort must be low, standard, or high")
+	}
+	return nil
+}
+
+type collectionGenerationCreateBody struct {
+	EvaluationGoal   string           `json:"evaluation_goal"`
+	Model            evalhub.JobModel `json:"model"`
+	ProviderFilter   json.RawMessage  `json:"provider_filter"`
+	MaxBenchmarks    *int             `json:"max_benchmarks"`
+	Strictness       json.RawMessage  `json:"strictness"`
+	GenerationEffort json.RawMessage  `json:"generation_effort"`
+}
+
+func decodeOptionalGenerationString(raw json.RawMessage, field string) (string, error) {
+	if raw == nil {
+		return "", nil
+	}
+	var value string
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return "", fmt.Errorf("%s must be a string", field)
+	}
+	if strings.TrimSpace(value) == "" {
+		return "", fmt.Errorf("%s must not be blank when provided", field)
+	}
+	return value, nil
+}
+
+func (app *App) requireEvalHubResourceAccess(w http.ResponseWriter, r *http.Request, verb, action string) bool {
+	ctx := r.Context()
+	identity, ok := ctx.Value(constants.RequestIdentityKey).(*kubernetes.RequestIdentity)
+	if !ok || identity == nil {
+		app.badRequestResponse(w, r, fmt.Errorf("missing RequestIdentity in context"))
+		return false
+	}
+	k8sClient, err := app.kubernetesClientFactory.GetClient(ctx)
+	if err != nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to get Kubernetes client: %w", err))
+		return false
+	}
+	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	var allowed bool
+	switch verb {
+	case "create":
+		allowed, err = app.repositories.Access.CanCreateEvalHubResources(k8sClient, ctx, identity, namespace)
+	case "delete":
+		allowed, err = app.repositories.Access.CanDeleteEvalHubResources(k8sClient, ctx, identity, namespace)
+	default:
+		app.serverErrorResponse(w, r, fmt.Errorf("unsupported EvalHub resource permission verb %q", verb))
+		return false
+	}
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return false
+	}
+	if !allowed {
+		app.forbiddenResponse(w, r, fmt.Sprintf("user does not have permission to %s in this namespace", action))
+		return false
+	}
+	return true
+}
+
+func validateCollectionGenerationResourceSchema(generation *evalhub.CollectionGenerationResource, schema *openapi3.Schema) error {
+	if schema == nil {
+		return fmt.Errorf("collection generation response schema is unavailable")
+	}
+	encoded, err := json.Marshal(generation)
+	if err != nil {
+		return fmt.Errorf("could not encode upstream collection generation response for validation: %w", err)
+	}
+	var response any
+	if err := json.Unmarshal(encoded, &response); err != nil {
+		return fmt.Errorf("could not decode upstream collection generation response for validation: %w", err)
+	}
+	if err := schema.VisitJSON(response); err != nil {
+		return fmt.Errorf("upstream returned a collection generation response that violates the API schema: %w", err)
+	}
+	return nil
+}
+
+func validateCollectionGenerationID(id string) error {
+	if strings.TrimSpace(id) == "" || strings.TrimSpace(id) != id || id == "." || id == ".." ||
+		strings.ContainsAny(id, "/\\") || strings.IndexFunc(id, unicode.IsControl) >= 0 {
+		return fmt.Errorf("invalid collection generation id")
+	}
+	return nil
+}
+
+func (app *App) collectionGenerationResourceSchema() *openapi3.Schema {
+	if app.openAPI == nil || app.openAPI.spec == nil {
+		return nil
+	}
+	schemaRef := app.openAPI.spec.Components.Schemas["CollectionGenerationResource"]
+	if schemaRef == nil {
+		return nil
+	}
+	return schemaRef.Value
+}
+
+func validateCollectionGenerationResource(generation *evalhub.CollectionGenerationResource, namespace string, schema *openapi3.Schema) error {
+	if generation == nil {
+		return fmt.Errorf("upstream returned an empty collection generation")
+	}
+	if strings.TrimSpace(generation.Resource.ID) == "" || strings.TrimSpace(generation.Resource.Tenant) == "" ||
+		strings.TrimSpace(generation.Resource.Owner) == "" || generation.Resource.CreatedAt == "" || generation.Resource.UpdatedAt == "" {
+		return fmt.Errorf("upstream returned collection generation with incomplete resource metadata")
+	}
+	if generation.Resource.Tenant != namespace {
+		return fmt.Errorf("upstream returned collection generation for a different tenant")
+	}
+	if err := validateCollectionGenerationID(generation.Resource.ID); err != nil {
+		return err
+	}
+	if strings.TrimSpace(generation.Request.EvaluationGoal) == "" || strings.TrimSpace(generation.Request.Model.Name) == "" ||
+		strings.TrimSpace(generation.Request.Model.URL) == "" || generation.Request.MaxBenchmarks < 1 || generation.Request.MaxBenchmarks > 100 {
+		return fmt.Errorf("upstream returned collection generation with incomplete request summary")
+	}
+	if generation.Request.Strictness != "lenient" && generation.Request.Strictness != "moderate" && generation.Request.Strictness != "strict" {
+		return fmt.Errorf("upstream returned collection generation with invalid strictness")
+	}
+	if generation.Request.GenerationEffort != "low" && generation.Request.GenerationEffort != "standard" && generation.Request.GenerationEffort != "high" {
+		return fmt.Errorf("upstream returned collection generation with invalid generation effort")
+	}
+	switch generation.Status.State {
+	case "pending", "running", "completed", "failed", "cancelled":
+	default:
+		return fmt.Errorf("upstream returned collection generation with invalid state %q", generation.Status.State)
+	}
+	hasResult := len(generation.Result) > 0 && string(generation.Result) != "null"
+	hasError := len(generation.Status.Error) > 0 && string(generation.Status.Error) != "null"
+	hasProgress := len(generation.Status.Progress) > 0 && string(generation.Status.Progress) != "null"
+	if generation.Status.State == "completed" && !hasResult {
+		return fmt.Errorf("upstream completed collection generation without a result")
+	}
+	if generation.Status.State != "completed" && hasResult {
+		return fmt.Errorf("upstream returned a result for a non-completed collection generation")
+	}
+	if generation.Status.State == "failed" && !hasError {
+		return fmt.Errorf("upstream failed collection generation without an error")
+	}
+	if generation.Status.State != "failed" && hasError {
+		return fmt.Errorf("upstream returned an error for a non-failed collection generation")
+	}
+	if generation.Status.State != "running" && hasProgress {
+		return fmt.Errorf("upstream returned progress for a non-running collection generation")
+	}
+	return validateCollectionGenerationResourceSchema(generation, schema)
+}
+
+func (app *App) CreateCollectionGenerationHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	client, ok := ctx.Value(constants.EvalHubClientKey).(evalhub.EvalHubClientInterface)
+	if !ok || client == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("EvalHub client not available in context"))
+		return
+	}
+
+	var body collectionGenerationCreateBody
+	if err := app.ReadJSON(w, r, &body); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	providerFilter, err := decodeOptionalGenerationString(body.ProviderFilter, "provider_filter")
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	strictness, err := decodeOptionalGenerationString(body.Strictness, "strictness")
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	generationEffort, err := decodeOptionalGenerationString(body.GenerationEffort, "generation_effort")
+	if err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	input := evalhub.CreateCollectionGenerationRequest{
+		EvaluationGoal:   body.EvaluationGoal,
+		Model:            body.Model,
+		ProviderFilter:   providerFilter,
+		MaxBenchmarks:    body.MaxBenchmarks,
+		Strictness:       strictness,
+		GenerationEffort: generationEffort,
+	}
+	if err := validateCollectionGenerationRequest(input); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	if err := connectionprobe.ValidateModelEndpointURL(input.Model.URL, app.config.DevMode || app.config.InsecureSkipVerify); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	generationSchema := app.collectionGenerationResourceSchema()
+	if generationSchema == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("collection generation response schema is unavailable"))
+		return
+	}
+	if !app.requireEvalHubResourceAccess(w, r, "create", "create collection generations") {
+		return
+	}
+
+	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	generation, err := client.CreateCollectionGeneration(ctx, namespace, input)
+	if err != nil {
+		app.evalHubErrorResponse(w, r, err, "failed to create collection generation")
+		return
+	}
+	if err := validateCollectionGenerationResource(generation, namespace, generationSchema); err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	locationQuery := url.Values{"namespace": []string{namespace}}
+	location := PathPrefix + ApiPathPrefix + collectionGenerationPath + "/" + url.PathEscape(generation.Resource.ID) + "?" + locationQuery.Encode()
+	w.Header().Set("Location", location)
+	if err := app.WriteJSON(w, http.StatusAccepted, CollectionGenerationEnvelope{Data: *generation}, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *App) GetCollectionGenerationHandler(w http.ResponseWriter, r *http.Request, id string) {
+	ctx := r.Context()
+	client, ok := ctx.Value(constants.EvalHubClientKey).(evalhub.EvalHubClientInterface)
+	if !ok || client == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("EvalHub client not available in context"))
+		return
+	}
+	if err := validateCollectionGenerationID(id); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	generation, err := client.GetCollectionGeneration(ctx, id, namespace)
+	if err != nil {
+		app.evalHubErrorResponse(w, r, err, "failed to get collection generation")
+		return
+	}
+	if generation == nil {
+		app.notFoundResponse(w, r)
+		return
+	}
+	if generation.Resource.Tenant != namespace {
+		app.notFoundResponse(w, r)
+		return
+	}
+	if generation.Resource.ID != id {
+		app.serverErrorResponse(w, r, fmt.Errorf("upstream returned a different collection generation resource"))
+		return
+	}
+	if err := validateCollectionGenerationResource(generation, namespace, app.collectionGenerationResourceSchema()); err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+	if err := app.WriteJSON(w, http.StatusOK, CollectionGenerationEnvelope{Data: *generation}, nil); err != nil {
+		app.serverErrorResponse(w, r, err)
+	}
+}
+
+func (app *App) DeleteCollectionGenerationHandler(w http.ResponseWriter, r *http.Request, id string) {
+	ctx := r.Context()
+	client, ok := ctx.Value(constants.EvalHubClientKey).(evalhub.EvalHubClientInterface)
+	if !ok || client == nil {
+		app.serverErrorResponse(w, r, fmt.Errorf("EvalHub client not available in context"))
+		return
+	}
+	if err := validateCollectionGenerationID(id); err != nil {
+		app.badRequestResponse(w, r, err)
+		return
+	}
+	if !app.requireEvalHubResourceAccess(w, r, "delete", "delete collection generations") {
+		return
+	}
+
+	namespace, _ := ctx.Value(constants.NamespaceHeaderParameterKey).(string)
+	if err := client.DeleteCollectionGeneration(ctx, id, namespace); err != nil {
+		app.evalHubErrorResponse(w, r, err, "failed to delete collection generation")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}

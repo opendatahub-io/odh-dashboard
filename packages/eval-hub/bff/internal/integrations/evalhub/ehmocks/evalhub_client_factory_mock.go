@@ -8,11 +8,12 @@ import (
 
 // MockClientFactory creates mock EvalHub clients for development and testing.
 type MockClientFactory struct {
-	mockClient evalhub.EvalHubClientInterface
+	mockClient      evalhub.EvalHubClientInterface
+	generationState *mockGenerationState
 }
 
 func NewMockClientFactory() *MockClientFactory {
-	return &MockClientFactory{}
+	return &MockClientFactory{generationState: newMockGenerationState()}
 }
 
 func (f *MockClientFactory) SetMockClient(client evalhub.EvalHubClientInterface) {
@@ -23,5 +24,5 @@ func (f *MockClientFactory) CreateClient(baseURL, authToken string, insecureSkip
 	if f.mockClient != nil {
 		return f.mockClient
 	}
-	return NewMockEvalHubClient()
+	return &MockEvalHubClient{generationState: f.generationState}
 }

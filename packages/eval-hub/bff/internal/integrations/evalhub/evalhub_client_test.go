@@ -529,6 +529,114 @@ func TestEvalHubClient_ListCollections_ParsesTopLevelDerivedFrom(t *testing.T) {
 	assert.Equal(t, "knowledge-reasoning-v1", result.Items[0].DerivedFrom)
 }
 
+func TestEvalHubClient_CreateCollectionGeneration(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodPost, r.Method)
+		assert.Equal(t, "/api/v1/evaluations/collections/generation", r.URL.Path)
+		assert.Equal(t, "test-namespace", r.Header.Get("X-Tenant"))
+		assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+
+		body, err := io.ReadAll(r.Body)
+		if !assert.NoError(t, err) {
+			http.Error(w, "invalid request body", http.StatusBadRequest)
+			return
+		}
+		assert.NotContains(t, string(body), "collection_name")
+		assert.NotContains(t, string(body), "collection_description")
+		var request CreateCollectionGenerationRequest
+		if !assert.NoError(t, json.Unmarshal(body, &request)) {
+			http.Error(w, "invalid request JSON", http.StatusBadRequest)
+			return
+		}
+		assert.Equal(t, "Build a reasoning collection", request.EvaluationGoal)
+		assert.Equal(t, "generator", request.Model.Name)
+		assert.Equal(t, "https://models.example.com/v1", request.Model.URL)
+		require.NotNil(t, request.MaxBenchmarks)
+		assert.Equal(t, 100, *request.MaxBenchmarks)
+		if !assert.NotNil(t, request.Model.Auth) {
+			http.Error(w, "missing model auth", http.StatusBadRequest)
+			return
+		}
+		assert.Equal(t, "model-secret", request.Model.Auth.SecretRef)
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusAccepted)
+		_, _ = w.Write([]byte(`{
+			"resource": {"id":"generation-001","tenant":"test-namespace","owner":"user@example.com","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"},
+			"request": {"evaluation_goal":"Build a reasoning collection","model":{"name":"generator","url":"https://models.example.com/v1"},"max_benchmarks":100,"strictness":"moderate","generation_effort":"standard"},
+			"status": {"state":"pending"}
+		}`))
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	maxBenchmarks := 100
+	result, err := client.CreateCollectionGeneration(context.Background(), "test-namespace", CreateCollectionGenerationRequest{
+		EvaluationGoal: "Build a reasoning collection",
+		Model:          JobModel{Name: "generator", URL: "https://models.example.com/v1", Auth: &ModelAuth{SecretRef: "model-secret"}},
+		MaxBenchmarks:  &maxBenchmarks,
+	})
+
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "generation-001", result.Resource.ID)
+	assert.Equal(t, "pending", result.Status.State)
+	assert.Equal(t, 100, result.Request.MaxBenchmarks)
+}
+
+func TestEvalHubClient_GetCollectionGeneration(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodGet, r.Method)
+		assert.Equal(t, "/api/v1/evaluations/collections/generation/generation-001", r.URL.Path)
+		assert.Equal(t, "test-namespace", r.Header.Get("X-Tenant"))
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"resource": {"id":"generation-001","tenant":"test-namespace","owner":"user@example.com","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"},
+			"request": {"evaluation_goal":"Build a reasoning collection","model":{"name":"generator","url":"https://models.example.com/v1"},"max_benchmarks":12,"strictness":"moderate","generation_effort":"standard"},
+			"status": {"state":"completed"},
+			"result": {"collection":{"name":"Reasoning","benchmarks":[{"id":"arc_challenge","provider_id":"lm_evaluation_harness"}]},"yaml":"name: Reasoning","rationale":"A rationale","explanation":{"selected_benchmarks":[{"provider_id":"lm_evaluation_harness","id":"arc_challenge","reason":"Tests reasoning"}],"rejected_benchmarks":[]},"actions":[]}
+		}`))
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	result, err := client.GetCollectionGeneration(context.Background(), "generation-001", "test-namespace")
+
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "completed", result.Status.State)
+	assert.JSONEq(t, `{"collection":{"name":"Reasoning","benchmarks":[{"id":"arc_challenge","provider_id":"lm_evaluation_harness"}]},"yaml":"name: Reasoning","rationale":"A rationale","explanation":{"selected_benchmarks":[{"provider_id":"lm_evaluation_harness","id":"arc_challenge","reason":"Tests reasoning"}],"rejected_benchmarks":[]},"actions":[]}`, string(result.Result))
+}
+
+func TestEvalHubClient_DeleteCollectionGeneration(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, http.MethodDelete, r.Method)
+		assert.Equal(t, "/api/v1/evaluations/collections/generation/generation-001", r.URL.Path)
+		assert.Equal(t, "test-namespace", r.Header.Get("X-Tenant"))
+		w.WriteHeader(http.StatusNoContent)
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	require.NoError(t, client.DeleteCollectionGeneration(context.Background(), "generation-001", "test-namespace"))
+}
+
+func TestEvalHubClient_DeleteCollectionGenerationPreservesNotFound(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, `{"message":"generation expired"}`, http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	client := NewEvalHubClient(server.URL, "", false, nil, "/api/v1")
+	err := client.DeleteCollectionGeneration(context.Background(), "generation-expired", "test-namespace")
+
+	require.Error(t, err)
+	var ehErr *EvalHubError
+	require.ErrorAs(t, err, &ehErr)
+	assert.Equal(t, ErrCodeNotFound, ehErr.Code)
+	assert.Equal(t, http.StatusNotFound, ehErr.StatusCode)
+}
+
 func TestEvalHubClient_DeleteCollection(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, http.MethodDelete, r.Method)

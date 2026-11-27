@@ -254,6 +254,16 @@ func (kc *InternalKubernetesClient) CanListEvalHubInstances(ctx context.Context,
 // confirmation with the TrustyAI team; this mirrors the access that governs the
 // collections the EvalHub server materializes in the tenant namespace.
 func (kc *InternalKubernetesClient) CanCreateEvalHubResources(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {
+	return kc.canAccessEvalHubResource(ctx, identity, namespace, "create")
+}
+
+// CanDeleteEvalHubResources performs a SubjectAccessReview for the delete verb
+// on the tenant-scoped virtual "evaluations" resource.
+func (kc *InternalKubernetesClient) CanDeleteEvalHubResources(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {
+	return kc.canAccessEvalHubResource(ctx, identity, namespace, "delete")
+}
+
+func (kc *InternalKubernetesClient) canAccessEvalHubResource(ctx context.Context, identity *RequestIdentity, namespace, verb string) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
@@ -262,7 +272,7 @@ func (kc *InternalKubernetesClient) CanCreateEvalHubResources(ctx context.Contex
 			User:   identity.UserID,
 			Groups: identity.Groups,
 			ResourceAttributes: &authv1.ResourceAttributes{
-				Verb:      "create",
+				Verb:      verb,
 				Group:     EvalHubCRDGroup,
 				Resource:  EvalHubVirtualResource,
 				Namespace: namespace,
@@ -272,8 +282,8 @@ func (kc *InternalKubernetesClient) CanCreateEvalHubResources(ctx context.Contex
 
 	resp, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 	if err != nil {
-		kc.Logger.Error("failed to perform EvalHub create SAR", "namespace", namespace, "error", err)
-		return false, fmt.Errorf("failed to verify EvalHub create permissions: %w", err)
+		kc.Logger.Error("failed to perform EvalHub resource SAR", "verb", verb, "namespace", namespace, "error", err)
+		return false, fmt.Errorf("failed to verify EvalHub %s permissions: %w", verb, err)
 	}
 
 	return resp.Status.Allowed, nil

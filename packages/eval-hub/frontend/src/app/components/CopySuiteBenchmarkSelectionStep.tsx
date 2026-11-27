@@ -4,6 +4,7 @@ import {
   Button,
   Checkbox,
   Content,
+  Flex,
   HelperText,
   HelperTextItem,
   Label,
@@ -30,11 +31,11 @@ import {
 } from '~/app/components/benchmarkUtils';
 import CopySuiteBenchmarkDetailsOverlay from '~/app/components/CopySuiteBenchmarkDetailsOverlay';
 import SearchableMultiSelectFilter from '~/app/components/SearchableMultiSelectFilter';
-import { MAX_BENCHMARKS } from '~/app/pages/useCopySuiteForm';
 import {
   BenchmarkFilterOptions,
   BenchmarkFilterDataType,
   initialBenchmarkFilterData,
+  MAX_COLLECTION_BENCHMARKS,
 } from '~/app/pages/const';
 import {
   filterBenchmarks,
@@ -79,9 +80,7 @@ export type CopySuiteBenchmarkSelectionStepProps = {
   collectionCategories?: readonly string[];
   prefilterProviders?: boolean;
   isInteractionDisabled?: boolean;
-  onNext: (selectedKeys: string[]) => void;
-  onBack: () => void;
-  onCancel: () => void;
+  onSelectionChange: (selectedKeys: string[]) => void;
 };
 
 const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepProps> = ({
@@ -90,25 +89,14 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
   collectionCategories = [],
   prefilterProviders = false,
   isInteractionDisabled = false,
-  onNext,
-  onBack,
-  onCancel,
+  onSelectionChange,
 }) => {
   const { trackEvalHubEvent } = useEvalHubTracking();
 
-  const [draftSelectedBenchmarkKeys, setDraftSelectedBenchmarkKeys] =
-    React.useState(selectedBenchmarkKeys);
   const [page, setPage] = React.useState(1);
   const [detailsBenchmarkKey, setDetailsBenchmarkKey] = React.useState<string | undefined>();
 
-  React.useEffect(() => {
-    setDraftSelectedBenchmarkKeys(selectedBenchmarkKeys);
-  }, [selectedBenchmarkKeys]);
-
-  const selected = React.useMemo(
-    () => new Set(draftSelectedBenchmarkKeys),
-    [draftSelectedBenchmarkKeys],
-  );
+  const selected = React.useMemo(() => new Set(selectedBenchmarkKeys), [selectedBenchmarkKeys]);
 
   const catalogBenchmarks = React.useMemo<CatalogBenchmark[]>(() => {
     const benchmarks: CatalogBenchmark[] = [];
@@ -255,17 +243,19 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
     return sortedBenchmarks.slice(start, start + PAGE_SIZE);
   }, [sortedBenchmarks, effectivePage]);
 
-  const selectionCount = draftSelectedBenchmarkKeys.length;
-  const remainingSelections = MAX_BENCHMARKS - selectionCount;
-  const isSelectionCountValid = selectionCount >= 1 && selectionCount <= MAX_BENCHMARKS;
-  const isAtSelectionLimit = selectionCount >= MAX_BENCHMARKS;
-  const hasTooManySelections = selectionCount > MAX_BENCHMARKS;
+  const selectionCount = selectedBenchmarkKeys.length;
+  const isAtSelectionLimit = selectionCount >= MAX_COLLECTION_BENCHMARKS;
+  const hasTooManySelections = selectionCount > MAX_COLLECTION_BENCHMARKS;
   const hasActiveFilters = hasActiveBenchmarkFilters(filterData);
   const hasAutoPrefilter =
     (initialCategoryFilters.length > 0 || initialFrameworkFilters.length > 0) &&
     !hasUserAdjustedFilters;
   const selectedCollectionCategoryNoun =
     normalizedCollectionCategories.length === 1 ? 'category' : 'categories';
+  const autoPrefilterMessage =
+    initialCategoryFilters.length > 0
+      ? `Category filters were applied automatically to match your collection ${selectedCollectionCategoryNoun}. You can change or clear them.`
+      : 'Framework filters were applied automatically based on benchmarks in your collection. You can change or clear them.';
   const flatBenchmarkByKey = React.useMemo(() => buildFlatBenchmarkByKey(providers), [providers]);
   const detailsBenchmark: FlatBenchmark | undefined = detailsBenchmarkKey
     ? flatBenchmarkByKey.get(detailsBenchmarkKey)
@@ -311,18 +301,21 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
     searchInputTrackingProps.reset();
   }, [searchInputTrackingProps, setFilterDataFromUser]);
 
-  const toggleSelection = React.useCallback((key: string) => {
-    setPage(1);
-    setDraftSelectedBenchmarkKeys((currentKeys) =>
-      toggleBenchmarkSelectionKey(currentKeys, key, MAX_BENCHMARKS),
-    );
-  }, []);
-
-  const handleNext = React.useCallback(() => {
-    if (isSelectionCountValid && !isInteractionDisabled) {
-      onNext([...draftSelectedBenchmarkKeys]);
-    }
-  }, [draftSelectedBenchmarkKeys, isInteractionDisabled, isSelectionCountValid, onNext]);
+  const toggleSelection = React.useCallback(
+    (key: string) => {
+      if (isInteractionDisabled) {
+        return;
+      }
+      setPage(1);
+      const nextKeys = toggleBenchmarkSelectionKey(
+        selectedBenchmarkKeys,
+        key,
+        MAX_COLLECTION_BENCHMARKS,
+      );
+      onSelectionChange(nextKeys);
+    },
+    [isInteractionDisabled, onSelectionChange, selectedBenchmarkKeys],
+  );
 
   return (
     <div
@@ -336,16 +329,22 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
         aria-busy={isInteractionDisabled}
       >
         <div className="evalhub-copy-suite-benchmark-catalog__content">
-          <Title headingLevel="h1" size="2xl" data-testid="copy-suite-select-benchmarks-title">
-            Select benchmarks
+          <Title
+            headingLevel="h2"
+            size="xl"
+            className="pf-v6-u-mb-sm"
+            data-testid="copy-suite-select-benchmarks-title"
+          >
+            Benchmarks
           </Title>
-          <Content component="p">
-            Search and select up to {MAX_BENCHMARKS} benchmarks to include in your collection.
+          <Content component="p" className="pf-v6-u-mb-lg">
+            Search and select up to {MAX_COLLECTION_BENCHMARKS} benchmarks to include in your
+            collection.
           </Content>
 
-          <Stack hasGutter>
+          <Stack hasGutter className="evalhub-copy-suite-benchmark-catalog__stack">
             <StackItem>
-              <Toolbar clearAllFilters={onClearFilters}>
+              <Toolbar customLabelGroupContent={<></>}>
                 <ToolbarContent>
                   <ToolbarToggleGroup breakpoint="md" toggleIcon={<FilterIcon aria-hidden />}>
                     <ToolbarGroup variant="filter-group" data-testid="benchmark-catalog-filters">
@@ -494,6 +493,18 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
                       />
                     </ToolbarGroup>
                   </ToolbarToggleGroup>
+                  {hasActiveFilters ? (
+                    <ToolbarItem alignSelf="center">
+                      <Button
+                        variant="link"
+                        isInline
+                        onClick={onClearFilters}
+                        data-testid="benchmark-catalog-clear-filters"
+                      >
+                        Clear filters
+                      </Button>
+                    </ToolbarItem>
+                  ) : null}
                   <ToolbarItem variant="pagination" align={{ default: 'alignEnd' }}>
                     <Pagination
                       itemCount={sortedBenchmarks.length}
@@ -512,7 +523,7 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
                       variant="info"
                       isInline
                       isPlain
-                      title={`Filters were applied automatically to show benchmarks matching the selected collection ${selectedCollectionCategoryNoun}.`}
+                      title={autoPrefilterMessage}
                       data-testid="benchmark-catalog-prefilter-alert"
                     />
                   </ToolbarItem>
@@ -520,26 +531,76 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
               </Toolbar>
             </StackItem>
             <StackItem>
-              <HelperText>
-                <HelperTextItem
-                  className="evalhub-copy-suite-benchmark-catalog__limit-message"
-                  data-testid="benchmark-catalog-limit-message"
+              <Flex
+                alignItems={{ default: 'alignItemsCenter' }}
+                className="evalhub-copy-suite-benchmark-catalog__selection-summary"
+              >
+                <Content
+                  component="p"
+                  className="evalhub-copy-suite-benchmark-catalog__selection-count pf-v6-u-mb-0"
+                  data-testid="benchmark-catalog-selection-summary"
                 >
-                  {hasTooManySelections ? (
-                    <strong>
-                      Invalid selection: {selectionCount} benchmarks selected. Select no more than{' '}
-                      {MAX_BENCHMARKS}.
-                    </strong>
-                  ) : (
-                    <>
-                      You can select a maximum of {MAX_BENCHMARKS} benchmarks for this collection.{' '}
-                      <strong>
-                        {remainingSelections} out of {MAX_BENCHMARKS} remaining
-                      </strong>
-                    </>
-                  )}
-                </HelperTextItem>
-              </HelperText>
+                  <strong>
+                    Selected benchmarks · {selectionCount} of {MAX_COLLECTION_BENCHMARKS}
+                  </strong>
+                </Content>
+                {selectionCount > 0 ? (
+                  <Button
+                    variant="link"
+                    isInline
+                    isDisabled={isInteractionDisabled}
+                    onClick={() => {
+                      setPage(1);
+                      onSelectionChange([]);
+                    }}
+                    data-testid="benchmark-catalog-clear-selection"
+                  >
+                    Clear selection
+                  </Button>
+                ) : null}
+              </Flex>
+              {selectionCount > 0 ? (
+                <LabelGroup
+                  isCompact
+                  numLabels={5}
+                  aria-label="Selected benchmarks"
+                  data-testid="benchmark-catalog-selected-benchmarks"
+                >
+                  {selectedBenchmarkKeys.map((key) => {
+                    const benchmarkName = flatBenchmarkByKey.get(key)?.name ?? key;
+                    return (
+                      <Label
+                        key={key}
+                        color="grey"
+                        isCompact
+                        isDisabled={isInteractionDisabled}
+                        closeBtnProps={{ isDisabled: isInteractionDisabled }}
+                        onClose={(event) => {
+                          event.stopPropagation();
+                          if (!isInteractionDisabled) {
+                            toggleSelection(key);
+                          }
+                        }}
+                        closeBtnAriaLabel={`Remove ${benchmarkName}`}
+                      >
+                        {benchmarkName}
+                      </Label>
+                    );
+                  })}
+                </LabelGroup>
+              ) : null}
+              {hasTooManySelections ? (
+                <HelperText>
+                  <HelperTextItem
+                    className="evalhub-copy-suite-benchmark-catalog__limit-message"
+                    data-testid="benchmark-catalog-limit-message"
+                    variant="error"
+                  >
+                    Invalid selection: {selectionCount} benchmarks selected. Select no more than{' '}
+                    {MAX_COLLECTION_BENCHMARKS}.
+                  </HelperTextItem>
+                </HelperText>
+              ) : null}
             </StackItem>
             <StackItem isFilled className="evalhub-copy-suite-benchmark-catalog__table-wrap">
               {paginatedBenchmarks.length === 0 ? (
@@ -660,37 +721,6 @@ const CopySuiteBenchmarkSelectionStep: React.FC<CopySuiteBenchmarkSelectionStepP
           </Stack>
         </div>
       </fieldset>
-
-      <div
-        id="copy-suite-select-benchmarks-actions"
-        className="evalhub-copy-suite-page__footer"
-        data-testid="copy-suite-select-benchmarks-actions"
-      >
-        <Button
-          variant="secondary"
-          data-testid="copy-suite-back-select-benchmarks"
-          onClick={onBack}
-          isDisabled={isInteractionDisabled}
-        >
-          Back
-        </Button>
-        <Button
-          variant="primary"
-          data-testid="copy-suite-next-select-benchmarks"
-          onClick={handleNext}
-          isDisabled={isInteractionDisabled || !isSelectionCountValid}
-        >
-          Next
-        </Button>
-        <Button
-          variant="link"
-          data-testid="copy-suite-cancel-select-benchmarks"
-          onClick={onCancel}
-          isDisabled={isInteractionDisabled}
-        >
-          Cancel
-        </Button>
-      </div>
 
       {!isInteractionDisabled ? (
         <CopySuiteBenchmarkDetailsOverlay

@@ -251,10 +251,10 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(EvaluationJobBenchmarkLogsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.GetEvaluationJobBenchmarkLogsHandler))))
 	apiRouter.GET(CollectionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CollectionsHandler))))
 	apiRouter.POST(CollectionsPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CreateCollectionHandler))))
-	apiRouter.GET(CollectionByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.GetCollectionHandler))))
-	apiRouter.PATCH(CollectionByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.PatchCollectionHandler))))
-	apiRouter.DELETE(CollectionByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.DeleteCollectionHandler))))
-	apiRouter.POST(CollectionClonePath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CloneCollectionHandler))))
+	apiRouter.GET(CollectionByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CollectionGetByIDHandler))))
+	apiRouter.PATCH(CollectionByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CollectionPatchByIDHandler))))
+	apiRouter.DELETE(CollectionByIDPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CollectionDeleteByIDHandler))))
+	apiRouter.POST(CollectionClonePath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.CollectionPostByIDHandler))))
 	apiRouter.POST(CollectionImportPath, app.AttachNamespace(app.RequireAccessToService(app.AttachEvalHubClient(app.ImportCollectionHandler))))
 	// Collection import access check runs a SubjectAccessReview directly and
 	// does not need the EvalHub REST client.

@@ -77,7 +77,6 @@ const CopySuiteBenchmarkSection: React.FC<CopySuiteBenchmarkSectionProps> = ({
 
   return (
     <section
-      id={`benchmark-section-${index}`}
       className="evalhub-copy-suite-benchmark-section"
       data-testid={`benchmark-section-${index}`}
     >

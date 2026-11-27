@@ -6,6 +6,7 @@ import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-rou
 import { setupTrackingTest } from '~/__tests__/unit/testUtils/setupTrackingTest';
 import { EvaluationJob, EvaluationJobsResult, HardwareProfileInfo } from '~/app/types';
 import { mockEvaluationJob } from '~/__tests__/unit/testUtils/mockEvaluationData';
+import { evaluationCreateCollectionEntryRoute } from '~/app/routes';
 import {
   mockBenchmarkSuiteCollections,
   mockCuratedBenchmarkSuiteCollections,
@@ -27,6 +28,7 @@ const mockUseEvaluationJobs = jest.fn<
   [EvaluationJobsResult, boolean, Error | undefined, jest.Mock],
   []
 >();
+const mockUseCanCreateCollections = jest.fn();
 
 const mockUseEvalHubHealth = jest.fn<
   { isHealthy: boolean; loaded: boolean; error: Error | undefined },
@@ -168,7 +170,7 @@ jest.mock('~/app/context/CollectionsContext', () => ({
 jest.mock('~/app/hooks/collections', () => ({
   useCollectionsQuery: (...args: unknown[]) => mockUseCollectionsQuery(...args),
   useDeleteCollectionMutation: (...args: unknown[]) => mockUseDeleteCollectionMutation(...args),
-  useCanImportCollections: () => ({ data: true }),
+  useCanCreateCollections: (...args: unknown[]) => mockUseCanCreateCollections(...args),
   useImportCollectionMutation: () => ({
     isPending: false,
     reset: jest.fn(),
@@ -230,6 +232,8 @@ describe('EvaluationsPage', () => {
           <LocationDisplay />
           <Routes>
             <Route path="/:namespace" element={<EvaluationsPage />} />
+            <Route path="/evaluation/:namespace/create-suite" element={<div />} />
+            <Route path="/evaluation/:namespace/create/collections/new" element={<div />} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>,
@@ -254,6 +258,7 @@ describe('EvaluationsPage', () => {
       mockRefresh,
     ]);
     mockUseUser.mockReturnValue({ clusterAdmin: true });
+    mockUseCanCreateCollections.mockReturnValue({ data: true, isError: false, isPending: false });
     mockUseEvaluationJobDetailPolling.mockReturnValue({
       polledJobDataMap: new Map(),
       isWarning: false,
@@ -339,6 +344,23 @@ describe('EvaluationsPage', () => {
     expect(screen.getByTestId('page-description')).toHaveTextContent(
       'Evaluate models using curated benchmark collections. Start with a curated collection, customize it, or create your own. Add a collection to your project to use it in your evaluations.',
     );
+  });
+
+  it('should navigate to collection creation from the page header', () => {
+    renderPage('test-project');
+
+    fireEvent.click(screen.getByTestId('create-suite-header-button'));
+
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+      evaluationCreateCollectionEntryRoute('test-project'),
+    );
+  });
+
+  it('disables the create entry point when collection creation permission is denied', () => {
+    mockUseCanCreateCollections.mockReturnValue({ data: false, isError: false, isPending: false });
+    renderPage('test-project');
+
+    expect(screen.getByTestId('create-suite-header-button')).toBeDisabled();
   });
 
   it('should show prerequisites and gate only judge-model suites behind customization', () => {
@@ -1228,6 +1250,7 @@ describe('EvaluationsPage', () => {
       it('should show the admin unavailable empty state', () => {
         renderPage('test-project');
         expect(screen.getByTestId('evalhub-unavailable-empty-state')).toBeInTheDocument();
+        expect(screen.queryByTestId('create-suite-header-button')).not.toBeInTheDocument();
       });
 
       it('should display the correct admin unavailable message', () => {

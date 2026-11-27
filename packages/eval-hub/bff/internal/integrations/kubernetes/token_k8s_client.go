@@ -290,13 +290,22 @@ func (kc *TokenKubernetesClient) CanListEvalHubInstances(ctx context.Context, _ 
 // InternalKubernetesClient for the verb/resource rationale.
 // The RequestIdentity parameter is unused because the token already represents the user.
 func (kc *TokenKubernetesClient) CanCreateEvalHubResources(ctx context.Context, _ *RequestIdentity, namespace string) (bool, error) {
+	return kc.canAccessEvalHubResource(ctx, namespace, "create")
+}
+
+// CanDeleteEvalHubResources performs a SelfSubjectAccessReview for generation cleanup.
+func (kc *TokenKubernetesClient) CanDeleteEvalHubResources(ctx context.Context, _ *RequestIdentity, namespace string) (bool, error) {
+	return kc.canAccessEvalHubResource(ctx, namespace, "delete")
+}
+
+func (kc *TokenKubernetesClient) canAccessEvalHubResource(ctx context.Context, namespace, verb string) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	sar := &authv1.SelfSubjectAccessReview{
 		Spec: authv1.SelfSubjectAccessReviewSpec{
 			ResourceAttributes: &authv1.ResourceAttributes{
-				Verb:      "create",
+				Verb:      verb,
 				Group:     EvalHubCRDGroup,
 				Resource:  EvalHubVirtualResource,
 				Namespace: namespace,
@@ -306,8 +315,8 @@ func (kc *TokenKubernetesClient) CanCreateEvalHubResources(ctx context.Context, 
 
 	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
 	if err != nil {
-		kc.Logger.Error("failed to perform EvalHub create SAR", "namespace", namespace, "error", err)
-		return false, fmt.Errorf("failed to verify EvalHub create permissions: %w", err)
+		kc.Logger.Error("failed to perform EvalHub resource SAR", "verb", verb, "namespace", namespace, "error", err)
+		return false, fmt.Errorf("failed to verify EvalHub %s permissions: %w", verb, err)
 	}
 
 	return resp.Status.Allowed, nil

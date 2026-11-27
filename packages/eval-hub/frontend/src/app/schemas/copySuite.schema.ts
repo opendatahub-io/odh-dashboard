@@ -1,5 +1,9 @@
 import * as z from 'zod';
-import { MODEL_EVALUATION_TARGETS, SUITE_EVALUATES_OPTIONS } from '~/app/pages/const';
+import {
+  MAX_COLLECTION_BENCHMARKS,
+  MODEL_EVALUATION_TARGETS,
+  SUITE_EVALUATES_OPTIONS,
+} from '~/app/pages/const';
 import { getBenchmarkParameterLabel } from '~/app/components/benchmarkUtils';
 import { isPercentageMetric } from '~/app/utilities/evaluationUtils';
 import { refineTestDataRef, testDataRefFormSchema } from '~/app/schemas/testDataRef.schema';
@@ -94,17 +98,55 @@ export const copySuiteBenchmarkSchema = z
     );
   });
 
-export const copySuiteSchema = z
-  .object({
-    suiteName: z.string().trim().min(1, 'Collection name is required'),
+export const SOURCE_COLLECTION_NAME_ERROR =
+  'Collection name must be different from the source collection name.';
+
+export const isSameAsSourceCollectionName = (
+  suiteName: string,
+  sourceCollectionName: string | undefined,
+): boolean =>
+  Boolean(sourceCollectionName?.trim()) && suiteName.trim() === sourceCollectionName?.trim();
+
+export const copySuiteSettingsSchema = z.object({
+  suiteName: z.string().trim().min(1, 'Collection name is required'),
+  suiteDomains: z.array(z.string()).min(1, 'At least one category is required'),
+});
+
+const addSourceCollectionNameValidation = (
+  suiteName: string,
+  sourceCollectionName: string | undefined,
+  ctx: z.RefinementCtx,
+): void => {
+  if (isSameAsSourceCollectionName(suiteName, sourceCollectionName)) {
+    ctx.addIssue({
+      code: 'custom',
+      message: SOURCE_COLLECTION_NAME_ERROR,
+      path: ['suiteName'],
+    });
+  }
+};
+
+export const getCopySuiteSettingsSchema = (
+  sourceCollectionName?: string,
+): typeof copySuiteSettingsSchema =>
+  copySuiteSettingsSchema.superRefine((data, ctx) => {
+    addSourceCollectionNameValidation(data.suiteName, sourceCollectionName, ctx);
+  });
+
+export const copySuiteSchema = copySuiteSettingsSchema
+  .extend({
     suiteDescription: z.string(),
-    suiteDomains: z.array(z.string()),
     suiteTasks: z.array(z.string()),
     suiteModalities: z.array(z.string()),
     suiteIndustries: z.array(z.string()),
     suiteEvaluates: z.array(z.enum(SUITE_EVALUATES_OPTIONS)),
-    suiteThreshold: z.number().min(0).max(100),
-    benchmarks: z.array(copySuiteBenchmarkSchema).min(1, 'At least one benchmark is required'),
+    benchmarks: z
+      .array(copySuiteBenchmarkSchema)
+      .min(1, 'At least one benchmark is required')
+      .max(
+        MAX_COLLECTION_BENCHMARKS,
+        `Select no more than ${MAX_COLLECTION_BENCHMARKS} benchmarks.`,
+      ),
   })
   .superRefine((data, ctx) => {
     data.benchmarks.forEach((benchmark, index) => {
@@ -122,27 +164,12 @@ export const copySuiteSchema = z
     });
   });
 
-export const SOURCE_COLLECTION_NAME_ERROR =
-  'Collection name must be different from the source collection name.';
-
-export const isSameAsSourceCollectionName = (
-  suiteName: string,
-  sourceCollectionName: string | undefined,
-): boolean =>
-  Boolean(sourceCollectionName?.trim()) && suiteName.trim() === sourceCollectionName?.trim();
-
 export const getCopySuiteSchema = (
   sourceCollectionName?: string,
   requiredParameterKeys: ReadonlySet<string> = new Set(),
 ): typeof copySuiteSchema =>
   copySuiteSchema.superRefine((data, ctx) => {
-    if (isSameAsSourceCollectionName(data.suiteName, sourceCollectionName)) {
-      ctx.addIssue({
-        code: 'custom',
-        message: SOURCE_COLLECTION_NAME_ERROR,
-        path: ['suiteName'],
-      });
-    }
+    addSourceCollectionNameValidation(data.suiteName, sourceCollectionName, ctx);
 
     data.benchmarks.forEach((benchmark, benchmarkIndex) => {
       benchmark.parameters.forEach((parameter, parameterIndex) => {
@@ -170,6 +197,5 @@ export const copySuiteDefaultValues: CopySuiteFormValues = {
   // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
   // suiteEvaluates: [],
   suiteEvaluates: [...MODEL_EVALUATION_TARGETS],
-  suiteThreshold: 70,
   benchmarks: [],
 };

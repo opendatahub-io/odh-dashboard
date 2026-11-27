@@ -2,6 +2,7 @@ import * as React from 'react';
 import {
   Alert,
   Button,
+  Content,
   Form,
   FormHelperText,
   FormGroup,
@@ -13,30 +14,25 @@ import {
   Select,
   SelectList,
   SelectOption,
+  Stack,
+  StackItem,
   TextArea,
   TextInputGroup,
   TextInputGroupMain,
   TextInputGroupUtilities,
   TextInput,
+  Title,
 } from '@patternfly/react-core';
 import { TimesIcon } from '@patternfly/react-icons';
-import { Controller, useFormContext, type Control } from 'react-hook-form';
-import BenchmarkThresholdField from '~/app/components/BenchmarkThresholdField';
+import { Controller, useFormContext, useFormState, type Control } from 'react-hook-form';
 import { formatCollectionMetadataValue } from '~/app/components/benchmarkUtils';
 // TEMP: Keep model-only behavior until EvalHub supports more evaluation_targets; restore this code when support is added.
 // import { COLLECTION_METADATA_OPTIONS, SUITE_EVALUATES_MENU_OPTIONS } from '~/app/pages/const';
 import { COLLECTION_METADATA_OPTIONS } from '~/app/pages/const';
-import {
-  isSameAsSourceCollectionName,
-  SOURCE_COLLECTION_NAME_ERROR,
-  type CopySuiteFormValues,
-} from '~/app/schemas/copySuite.schema';
+import type { CopySuiteFormValues } from '~/app/schemas/copySuite.schema';
 
 type CopySuiteSettingsStepProps = {
-  onNext: () => void;
-  onCancel: () => void;
   prerequisite?: string;
-  sourceCollectionName?: string;
 };
 
 type CollectionMetadataFieldName =
@@ -144,132 +140,140 @@ const CollectionMetadataTypeaheadField: React.FC<CollectionMetadataTypeaheadFiel
         };
 
         return (
-          <Select
-            id={`${fieldId}-select`}
-            role="menu"
-            isOpen={isOpen}
-            selected={selected}
-            onSelect={(_event, value) => {
-              if (typeof value === 'string') {
-                toggleSelection(value);
-              }
-            }}
-            onOpenChange={(open) => {
-              setIsOpen(open);
-              if (!open) {
-                setSearch('');
-                resetFocusedOption();
-              }
-            }}
-            toggle={(toggleRef) => (
-              <MenuToggle
-                ref={toggleRef}
-                id={`${fieldId}-toggle`}
-                variant="typeahead"
-                onClick={() => {
-                  setIsOpen((previous) => !previous);
-                  inputRef.current?.focus();
+          <Stack hasGutter>
+            <StackItem>
+              <Select
+                id={`${fieldId}-select`}
+                role="menu"
+                isOpen={isOpen}
+                selected={selected}
+                onSelect={(_event, value) => {
+                  if (typeof value === 'string') {
+                    toggleSelection(value);
+                  }
                 }}
-                isExpanded={isOpen}
-                isFullWidth
-                data-testid={`${testId}-toggle`}
-              >
-                <TextInputGroup isPlain>
-                  <TextInputGroupMain
-                    inputId={fieldId}
-                    value={search}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      if (!isOpen) {
-                        setIsOpen(true);
-                      }
+                onOpenChange={(open) => {
+                  setIsOpen(open);
+                  if (!open) {
+                    setSearch('');
+                    resetFocusedOption();
+                  }
+                }}
+                toggle={(toggleRef) => (
+                  <MenuToggle
+                    ref={toggleRef}
+                    id={`${fieldId}-toggle`}
+                    variant="typeahead"
+                    onClick={() => {
+                      setIsOpen((previous) => !previous);
+                      inputRef.current?.focus();
                     }}
-                    onChange={(_event, value) => {
-                      setSearch(value);
-                      resetFocusedOption();
-                      if (!isOpen) {
-                        setIsOpen(true);
-                      }
-                    }}
-                    onKeyDown={handleInputKeyDown}
-                    autoComplete="off"
-                    innerRef={inputRef}
-                    placeholder={
-                      selected.length === 0
-                        ? (emptySelectionLabel ?? `Select ${label.toLowerCase()}`)
-                        : undefined
-                    }
-                    aria-label={label}
-                    role="combobox"
                     isExpanded={isOpen}
-                    aria-controls={listboxId}
-                    aria-activedescendant={
-                      focusedOptionIndex !== null && filteredOptions[focusedOptionIndex]
-                        ? getOptionId(filteredOptions[focusedOptionIndex])
-                        : undefined
-                    }
-                    inputProps={{ 'data-testid': `${testId}-input` }}
+                    isInForm
+                    isFullWidth
+                    data-testid={`${testId}-toggle`}
                   >
-                    <LabelGroup aria-label="Current selections">
-                      {selected.map((value) => (
-                        <Label
-                          key={value}
-                          variant="outline"
-                          data-testid={`${testId}-tag-${value}`}
-                          closeBtnProps={{
-                            'aria-label': `Remove ${formatCollectionMetadataValue(value)}`,
-                          }}
-                          onClose={(event) => {
-                            event.stopPropagation();
-                            toggleSelection(value);
-                          }}
-                        >
-                          {formatCollectionMetadataValue(value)}
-                        </Label>
-                      ))}
-                    </LabelGroup>
-                  </TextInputGroupMain>
-                  <TextInputGroupUtilities>
-                    {selected.length > 0 ? (
-                      <Button
-                        variant="plain"
-                        icon={<TimesIcon aria-hidden />}
-                        aria-label="Clear all selections"
+                    <TextInputGroup isPlain>
+                      <TextInputGroupMain
+                        inputId={fieldId}
+                        value={search}
                         onClick={(event) => {
                           event.stopPropagation();
-                          field.onChange([]);
-                          setSearch('');
-                          resetFocusedOption();
-                          inputRef.current?.focus();
+                          if (!isOpen) {
+                            setIsOpen(true);
+                          }
                         }}
+                        onChange={(_event, value) => {
+                          setSearch(value);
+                          resetFocusedOption();
+                          if (!isOpen) {
+                            setIsOpen(true);
+                          }
+                        }}
+                        onKeyDown={handleInputKeyDown}
+                        autoComplete="off"
+                        innerRef={inputRef}
+                        placeholder={
+                          selected.length > 0
+                            ? `${selected.length} selected`
+                            : (emptySelectionLabel ?? `Select ${label.toLowerCase()}`)
+                        }
+                        aria-label={label}
+                        role="combobox"
+                        isExpanded={isOpen}
+                        aria-controls={listboxId}
+                        aria-activedescendant={
+                          focusedOptionIndex !== null && filteredOptions[focusedOptionIndex]
+                            ? getOptionId(filteredOptions[focusedOptionIndex])
+                            : undefined
+                        }
+                        inputProps={{ 'data-testid': `${testId}-input` }}
                       />
-                    ) : null}
-                  </TextInputGroupUtilities>
-                </TextInputGroup>
-              </MenuToggle>
-            )}
-            variant="typeahead"
-          >
-            <SelectList isAriaMultiselectable id={listboxId}>
-              {filteredOptions.length > 0 ? (
-                filteredOptions.map((option, index) => (
-                  <SelectOption
-                    key={option}
-                    value={option}
-                    hasCheckbox
-                    isSelected={selected.includes(option)}
-                    isFocused={focusedOptionIndex === index}
-                    id={getOptionId(option)}
-                    data-testid={`${testId}-option-${option}`}
-                  >
-                    {formatCollectionMetadataValue(option)}
-                  </SelectOption>
-                ))
-              ) : (
-                <SelectOption isDisabled>No results found</SelectOption>
-              )}
-            </SelectList>
-          </Select>
+                      <TextInputGroupUtilities>
+                        {selected.length > 0 ? (
+                          <Button
+                            variant="plain"
+                            icon={<TimesIcon aria-hidden />}
+                            aria-label="Clear all selections"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              field.onChange([]);
+                              setSearch('');
+                              resetFocusedOption();
+                              inputRef.current?.focus();
+                            }}
+                          />
+                        ) : null}
+                      </TextInputGroupUtilities>
+                    </TextInputGroup>
+                  </MenuToggle>
+                )}
+                variant="typeahead"
+              >
+                <SelectList isAriaMultiselectable id={listboxId}>
+                  {filteredOptions.length > 0 ? (
+                    filteredOptions.map((option, index) => (
+                      <SelectOption
+                        key={option}
+                        value={option}
+                        hasCheckbox
+                        isSelected={selected.includes(option)}
+                        isFocused={focusedOptionIndex === index}
+                        id={getOptionId(option)}
+                        data-testid={`${testId}-option-${option}`}
+                      >
+                        {formatCollectionMetadataValue(option)}
+                      </SelectOption>
+                    ))
+                  ) : (
+                    <SelectOption isDisabled>No results found</SelectOption>
+                  )}
+                </SelectList>
+              </Select>
+            </StackItem>
+            {selected.length > 0 ? (
+              <StackItem onClick={(event) => event.stopPropagation()}>
+                <LabelGroup aria-label="Current selections">
+                  {selected.map((value) => (
+                    <Label
+                      key={value}
+                      variant="outline"
+                      data-testid={`${testId}-tag-${value}`}
+                      closeBtnProps={{
+                        'aria-label': `Remove ${formatCollectionMetadataValue(value)}`,
+                      }}
+                      onClose={(event) => {
+                        event.stopPropagation();
+                        toggleSelection(value);
+                      }}
+                    >
+                      {formatCollectionMetadataValue(value)}
+                    </Label>
+                  ))}
+                </LabelGroup>
+              </StackItem>
+            ) : null}
+          </Stack>
         );
       }}
     />
@@ -278,26 +282,25 @@ const CollectionMetadataTypeaheadField: React.FC<CollectionMetadataTypeaheadFiel
 
 const CollectionMetadataField: React.FC<CollectionMetadataFieldProps> = (props) => {
   const { control } = useFormContext<CopySuiteFormValues>();
+  const { errors } = useFormState({ control, name: props.name });
+  const errorMessage = errors[props.name]?.message;
 
   return (
     <FormGroup label={props.label} isRequired={props.isRequired} fieldId={props.fieldId}>
       <CollectionMetadataTypeaheadField control={control} {...props} />
+      {errorMessage ? (
+        <FormHelperText>
+          <HelperText>
+            <HelperTextItem variant="error">{errorMessage}</HelperTextItem>
+          </HelperText>
+        </FormHelperText>
+      ) : null}
     </FormGroup>
   );
 };
 
-const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
-  onNext,
-  onCancel,
-  prerequisite,
-  sourceCollectionName,
-}) => {
-  const { control, watch } = useFormContext<CopySuiteFormValues>();
-  const suiteName = watch('suiteName');
-  const suiteDomains = watch('suiteDomains');
-  const isSourceNameConflict = isSameAsSourceCollectionName(suiteName, sourceCollectionName);
-  const isSettingsValid =
-    suiteName.trim() !== '' && suiteDomains.length > 0 && !isSourceNameConflict;
+const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({ prerequisite }) => {
+  const { control } = useFormContext<CopySuiteFormValues>();
 
   return (
     <div
@@ -305,6 +308,17 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
       className="evalhub-copy-suite-page__step"
       data-testid="copy-suite-step-settings"
     >
+      <Title
+        headingLevel="h2"
+        size="xl"
+        className="pf-v6-u-mb-sm"
+        data-testid="copy-suite-step-title"
+      >
+        Collection settings
+      </Title>
+      <Content component="p" data-testid="copy-suite-step-description" className="pf-v6-u-mb-lg">
+        Set the collection name, description, and category.
+      </Content>
       <Form id="copy-suite-form" style={{ maxWidth: 840 }} data-testid="copy-suite-form">
         {prerequisite ? (
           <Alert
@@ -321,11 +335,7 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
             name="suiteName"
             control={control}
             render={({ field, fieldState }) => {
-              const errorMessage =
-                fieldState.error?.message ??
-                (isSameAsSourceCollectionName(field.value, sourceCollectionName)
-                  ? SOURCE_COLLECTION_NAME_ERROR
-                  : undefined);
+              const errorMessage = fieldState.error?.message;
 
               return (
                 <>
@@ -417,38 +427,7 @@ const CopySuiteSettingsStep: React.FC<CopySuiteSettingsStepProps> = ({
           options={COLLECTION_METADATA_OPTIONS.industries}
         />
         */}
-
-        <Controller
-          name="suiteThreshold"
-          control={control}
-          render={({ field }) => (
-            <BenchmarkThresholdField
-              value={field.value}
-              onChange={field.onChange}
-              label="Collection threshold"
-              description="Set the minimum passing score for this collection. Results below this threshold are marked as failing."
-              fieldId="suite-threshold"
-            />
-          )}
-        />
       </Form>
-      <div
-        id="copy-suite-settings-actions"
-        className="evalhub-copy-suite-page__footer"
-        data-testid="copy-suite-settings-actions"
-      >
-        <Button
-          variant="primary"
-          data-testid="copy-suite-next"
-          onClick={onNext}
-          isDisabled={!isSettingsValid}
-        >
-          Next
-        </Button>
-        <Button variant="link" data-testid="copy-suite-cancel" onClick={onCancel}>
-          Cancel
-        </Button>
-      </div>
     </div>
   );
 };

@@ -1,0 +1,13 @@
+.evalhub-collection-benchmark-review__grid {
+  .pf-v6-l-gallery__item {
+    display: flex;
+  }
+
+  .evalhub-collection-benchmark-review__card {
+    height: 100%;
+  }
+
+  .pf-v6-c-description-list.pf-m-compact {
+    --pf-v6-c-description-list--m-compact--RowGap: var(--pf-t--global--spacer--sm);
+  }
+}

@@ -7,7 +7,7 @@ import {
 } from '@tanstack/react-query';
 import {
   deleteCollection,
-  getCollectionImportAccess,
+  getCollectionCreationAccess,
   getCollections,
   importCollection,
   patchCollection,
@@ -164,16 +164,16 @@ export const useImportCollectionMutation = (
 };
 
 /**
- * Reports whether the current user may create (import) collections in the
- * namespace, via a BFF SubjectAccessReview. When the check itself fails the
- * query errors; callers should fall back to showing the import entry point
- * (the server still enforces RBAC on submission).
+ * Reports whether the current user may create collections in the namespace,
+ * including by importing or uploading one, via a BFF SubjectAccessReview.
+ * When the check itself fails the query errors; the server still enforces RBAC
+ * when a collection is created.
  */
-export const useCanImportCollections = (namespace: string): UseQueryResult<boolean, Error> =>
+export const useCanCreateCollections = (namespace: string): UseQueryResult<boolean, Error> =>
   useQuery<boolean, Error>({
     queryKey: ['evalhub', 'collections', 'import-access', namespace],
     queryFn: ({ signal }) =>
-      getCollectionImportAccess('', namespace)({ signal }).then((response) => response.allowed),
+      getCollectionCreationAccess('', namespace)({ signal }).then((response) => response.allowed),
     // The answer only changes with RBAC changes; avoid refetch churn.
     staleTime: 5 * 60 * 1000,
     retry: false,

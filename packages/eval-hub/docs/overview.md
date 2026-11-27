@@ -41,5 +41,6 @@
 - Default `STYLE_THEME` is `mui-theme` in standalone/kubeflow; federated Makefile flow sets PatternFly.
 - Port 4002 is shared conventionally with other packages — avoid two BFFs on the same port.
 - Contract tests expect `GET /healthcheck` on the BFF.
+- With `MOCK_EVALHUB_CLIENT=true`, collection generation POST returns `pending`; the first GET completes after about two seconds with a fixed five-benchmark proposal. The mock exercises the wizard without calling a generation model; it does not tailor recommendations to the submitted goal or filters. Restart the Go BFF to pick up mock code changes.
 - The Queued job status is derived (`status.state = pending` plus a set `hardware_config.queue`) — it is not polled from Kueue. When the job response echoes no queue name, the UI infers the tenant queue from `hardware_config.hardware_profile_name` via the /info hardware profiles. Live workload statuses and queue position are not available.
 - Reconfiguring a run supports S3 prerecorded references only: stored PVC, Git, and Hugging Face references marked `pre_recorded_data` are dropped when a run is reconfigured through the UI (the collection's test-data fields are hidden, so the user cannot see or restore them). Runs created through the API with non-S3 prerecorded references lose those references on reconfigure.

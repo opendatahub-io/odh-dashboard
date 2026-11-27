@@ -157,6 +157,110 @@ describe('EvalHub API Contract Tests', () => {
     });
   });
 
+  describe('Collection Generation Endpoint', () => {
+    it('should create and retrieve a tenant-scoped generation resource', async () => {
+      const request = {
+        // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+        evaluation_goal: 'Assess reasoning and factual accuracy',
+        model: {
+          name: 'my-model',
+          url: 'https://models.example.com/v1',
+          auth: {
+            // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+            secret_ref: 'model-credentials',
+          },
+        },
+        // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+        max_benchmarks: 100,
+        strictness: 'strict',
+        // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+        generation_effort: 'high',
+      };
+      const created = await apiClient.post(
+        '/eval-hub/api/v1/evaluations/collections/generation?namespace=default',
+        request,
+      );
+
+      expect(created).toMatchContract(apiSchema, {
+        ref: '#/components/responses/CollectionGenerationAcceptedResponse/content/application~1json/schema',
+        status: 202,
+      });
+      if (!created.success) {
+        return;
+      }
+
+      const { location } = created.response.headers;
+      // The contract matcher validates the body, but does not narrow its unknown TypeScript type.
+      const createdGeneration = (created.response.data as { data: { resource: { id: string } } })
+        .data;
+      expect(location).toBe(
+        `/eval-hub/api/v1/evaluations/collections/generation/${createdGeneration.resource.id}?namespace=default`,
+      );
+      const polled = await apiClient.get(location);
+      expect(polled).toMatchContract(apiSchema, {
+        ref: '#/components/responses/CollectionGenerationResponse/content/application~1json/schema',
+        status: 200,
+      });
+      if (polled.success) {
+        expect(polled.response.data).toMatchObject({
+          data: {
+            resource: { id: createdGeneration.resource.id, tenant: 'default' },
+            request: {
+              // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+              evaluation_goal: request.evaluation_goal,
+              // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+              max_benchmarks: request.max_benchmarks,
+              strictness: request.strictness,
+              // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+              generation_effort: request.generation_effort,
+            },
+            status: { state: 'completed' },
+            result: {
+              collection: {
+                benchmarks: expect.arrayContaining([
+                  expect.objectContaining({ id: 'truthfulqa_mc1' }),
+                ]),
+              },
+            },
+          },
+        });
+      }
+
+      const deleted = await apiClient.delete(location);
+      expect(deleted.success).toBe(true);
+      if (deleted.success) {
+        expect(deleted.response.status).toBe(204);
+      }
+
+      const deletedUnknown = await apiClient.delete(location);
+      expect(deletedUnknown.success).toBe(false);
+      if (!deletedUnknown.success) {
+        expect({
+          status: deletedUnknown.error.status,
+          data: deletedUnknown.error.data,
+        }).toMatchContract(apiSchema, {
+          ref: '#/components/responses/NotFound/content/application~1json/schema',
+          status: 404,
+        });
+      }
+    });
+
+    it('should expose the completed fixture only to its seeded tenant', async () => {
+      const fixturePath =
+        '/eval-hub/api/v1/evaluations/collections/generation/generation-fixture-001';
+      const fixture = await apiClient.get(`${fixturePath}?namespace=default`);
+      expect(fixture).toMatchContract(apiSchema, {
+        ref: '#/components/responses/CollectionGenerationResponse/content/application~1json/schema',
+        status: 200,
+      });
+      const otherTenant = await apiClient.get(`${fixturePath}?namespace=other-ns`);
+      expect(otherTenant.success).toBe(false);
+      if (!otherTenant.success) {
+        expect(otherTenant.error.status).toBe(404);
+      }
+    });
+  });
+
   describe('Create Collection Endpoint', () => {
     it('should create a collection with metadata and evaluation target arrays', async () => {
       const createRequest = {
@@ -387,8 +491,11 @@ describe('EvalHub API Contract Tests', () => {
             },
           },
         });
-        const warnings: string[] = result.response.data.data.warnings ?? [];
-        expect(warnings.join('\n')).toContain('managed by the server');
+        expect(result.response.data).toMatchObject({
+          data: {
+            warnings: expect.arrayContaining([expect.stringContaining('managed by the server')]),
+          },
+        });
       }
     });
 
