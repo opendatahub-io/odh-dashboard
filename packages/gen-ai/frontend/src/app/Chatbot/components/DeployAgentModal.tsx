@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   Alert,
@@ -13,7 +14,6 @@ import {
   ModalHeader,
   TextInput,
 } from '@patternfly/react-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import AgentConfigurationCard from '~/app/AIAssets/components/agentprofiles/AgentConfigurationCard';
 import type { AgentProfile } from '~/app/agentProfile/types';
 import { PLAYGROUND_AGENT_EVENTS } from '~/app/tracking/playgroundAgentTrackingConstants';
@@ -70,6 +70,7 @@ const DeployAgentModal: React.FC<DeployAgentModalProps> = ({
   onDeploy,
   onClose,
 }) => {
+  const trackEvent = useTrackEvent();
   const maxNameLength = getMaxDeploymentNameLength(namespace);
   const defaultName = React.useMemo(
     () => getNextDeploymentName(profile.spec.displayName, maxNameLength, existingDeploymentNames),
@@ -91,13 +92,13 @@ const DeployAgentModal: React.FC<DeployAgentModalProps> = ({
         : 'The deployment endpoint will be available when creation completes.';
 
   const handleDeploy = () => {
-    fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_SUBMITTED, { outcome: 'submit' });
+    trackEvent(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_SUBMITTED, { outcome: 'submit' });
     onDeploy(name);
   };
 
   const handleCancel = () => {
     if (!isDeploying) {
-      fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_SUBMITTED, { outcome: 'cancel' });
+      trackEvent(PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_SUBMITTED, { outcome: 'cancel' });
     }
     onClose();
   };

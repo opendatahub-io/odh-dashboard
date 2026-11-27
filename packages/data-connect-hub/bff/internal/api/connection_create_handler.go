@@ -14,9 +14,10 @@ import (
 )
 
 type CreateConnectionRequest struct {
-	Name                 string `json:"name"`
-	DataConnectionTypeID string `json:"data_connection_type_id"`
-	Format               string `json:"format"`
+	Name                 string  `json:"name"`
+	Description          *string `json:"description,omitempty"`
+	DataConnectionTypeID string  `json:"data_connection_type_id"`
+	Format               string  `json:"format"`
 	Credentials          struct {
 		Secret     string            `json:"secret"`
 		Properties map[string]string `json:"properties"`
@@ -55,6 +56,7 @@ func (app *App) CreateConnectionHandler(w http.ResponseWriter, r *http.Request, 
 	if app.config.MockHTTPClient {
 		created := mockConnections(namespace)[0]
 		created.Resource.Name = request.Name
+		created.Resource.Description = request.Description
 		created.Resource.DataConnectionTypeID = request.DataConnectionTypeID
 		created.Resource.Format = request.Format
 		created.Resource.Properties = request.Properties

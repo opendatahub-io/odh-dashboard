@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   Button,
@@ -11,7 +12,6 @@ import {
   Stack,
 } from '@patternfly/react-core';
 import text from '@patternfly/react-styles/css/utilities/Text/text';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import SafeNavigationBlocker from '~/app/components/SafeNavigationBlocker';
 import { useSafeBrowserUnloadBlocker } from '~/app/hooks/useSafeBrowserUnloadBlocker';
 import {
@@ -83,6 +83,7 @@ export default function PromptAssistantFormGroup({
   systemInstruction,
   onSystemInstructionChange,
 }: PromptAssistantFormGroupProps): React.ReactNode {
+  const trackEvent = useTrackEvent();
   const { openModal } = usePlaygroundStore();
   const { namespace } = React.useContext(GenAiContext);
   const activePrompt = useChatbotConfigStore(selectActivePrompt(configId));
@@ -153,7 +154,7 @@ export default function PromptAssistantFormGroup({
       const instruction =
         version.template ?? version.messages?.find((m) => m.role === 'system')?.content ?? '';
       onSystemInstructionChange(instruction);
-      fireMiscTrackingEvent('Playground Prompt Version Switched', {
+      trackEvent('Playground Prompt Version Switched', {
         fromVersion: activePrompt?.version,
         toVersion: version.version,
       });
@@ -162,11 +163,11 @@ export default function PromptAssistantFormGroup({
     confirm(doSwitch, {
       ...VERSION_SWITCH_CONFIRMATION_CONFIG,
       onConfirmTracking: () =>
-        fireMiscTrackingEvent('Playground Prompt Version Switch Interrupted', {
+        trackEvent('Playground Prompt Version Switch Interrupted', {
           outcome: 'submit',
         }),
       onCancelTracking: () =>
-        fireMiscTrackingEvent('Playground Prompt Version Switch Interrupted', {
+        trackEvent('Playground Prompt Version Switch Interrupted', {
           outcome: 'cancel',
         }),
     });
@@ -261,11 +262,11 @@ export default function PromptAssistantFormGroup({
                         ? CONFIRMATION_CONFIG
                         : UNSAVED_PROMPT_REVERT_CONFIRMATION_CONFIG),
                       onConfirmTracking: () =>
-                        fireMiscTrackingEvent('Playground Prompt Reverted', {
+                        trackEvent('Playground Prompt Reverted', {
                           outcome: 'submit',
                         }),
                       onCancelTracking: () =>
-                        fireMiscTrackingEvent('Playground Prompt Reverted', {
+                        trackEvent('Playground Prompt Reverted', {
                           outcome: 'cancel',
                         }),
                     })

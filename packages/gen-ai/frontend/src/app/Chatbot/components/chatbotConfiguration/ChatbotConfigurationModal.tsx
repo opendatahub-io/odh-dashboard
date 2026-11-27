@@ -1,4 +1,5 @@
 /* eslint-disable camelcase */
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import React from 'react';
 import {
   Alert,
@@ -16,10 +17,6 @@ import {
   Switch,
 } from '@patternfly/react-core';
 import { ArrowLeftIcon } from '@patternfly/react-icons';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { PLAYGROUND_TRACING_EVENTS } from '~/app/tracking/playgroundTracingTrackingConstants';
@@ -99,6 +96,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   initialStepId,
   onUpdateInitiated,
 }) => {
+  const trackEvent = useTrackEvent();
   const { namespace } = React.useContext(GenAiContext);
   const { api, apiAvailable } = useGenAiAPI();
   const guardrailsEnabled = useGuardrailsEnabled();
@@ -397,15 +395,12 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
   const goBack = () => setCurrentStepIndex((i) => Math.max(i - 1, 0));
 
   const fireErrorEvents = (e: Error) => {
-    fireFormTrackingEvent(
-      isExistingPlayground ? UPDATE_PLAYGROUND_EVENT_NAME : SETUP_PLAYGROUND_EVENT_NAME,
-      {
-        outcome: TrackingOutcome.submit,
-        success: false,
-        error: errorCategory(e),
-        namespace: namespace?.name,
-      },
-    );
+    trackEvent(isExistingPlayground ? UPDATE_PLAYGROUND_EVENT_NAME : SETUP_PLAYGROUND_EVENT_NAME, {
+      outcome: TrackingOutcome.submit,
+      success: false,
+      error: errorCategory(e),
+      namespace: namespace?.name,
+    });
   };
 
   const isNemoGuardrailsConflict = (e: unknown): boolean =>
@@ -483,7 +478,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
 
       Promise.all([installLSDPromise, nemoPromise])
         .then(() => {
-          fireFormTrackingEvent(
+          trackEvent(
             isExistingPlayground ? UPDATE_PLAYGROUND_EVENT_NAME : SETUP_PLAYGROUND_EVENT_NAME,
             {
               outcome: TrackingOutcome.submit,
@@ -544,13 +539,10 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
     setAlertTitle(undefined);
     setModelTypeMap(new Map());
     setEmbeddingDimensionMap(new Map());
-    fireFormTrackingEvent(
-      isExistingPlayground ? UPDATE_PLAYGROUND_EVENT_NAME : SETUP_PLAYGROUND_EVENT_NAME,
-      {
-        outcome: TrackingOutcome.cancel,
-        namespace: namespace?.name,
-      },
-    );
+    trackEvent(isExistingPlayground ? UPDATE_PLAYGROUND_EVENT_NAME : SETUP_PLAYGROUND_EVENT_NAME, {
+      outcome: TrackingOutcome.cancel,
+      namespace: namespace?.name,
+    });
     onClose();
   };
 
@@ -619,7 +611,7 @@ const ChatbotConfigurationModal: React.FC<ChatbotConfigurationModalProps> = ({
                 isChecked={enableTracing}
                 onChange={(_event, checked) => {
                   setEnableTracing(checked);
-                  fireMiscTrackingEvent(PLAYGROUND_TRACING_EVENTS.CONFIGURE_TRACING_TOGGLED, {
+                  trackEvent(PLAYGROUND_TRACING_EVENTS.CONFIGURE_TRACING_TOGGLED, {
                     isEnabled: checked,
                     source: 'configure_playground_modal',
                   });

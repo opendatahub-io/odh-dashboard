@@ -661,10 +661,49 @@ paths:
       operationId: getStatus
       summary: Get user session status
       description: >-
-        Returns user identity, admin status, cluster info, and access status.
-        Once identity is authenticated, failed admin or allowed-access reviews degrade to false
-        for the corresponding flag, preserving the Fastify status polling contract.
-        Authentication failures still fail the request; guarded operations enforce their own reviews.
+        Bootstrap endpoint. Returns three separable things, and the contract
+        keeps them separate:
+
+
+        **Identity** (`userName`, `userID`, `currentUser`) is resolved by the
+        API server. It is the only hard requirement: a failure here fails the
+        request.
+
+
+        **Admission** (`isAllowed`) says whether the dashboard shell may load.
+        How it is decided depends on the admission mode. A caller whose `patch`
+        review on `auths/auth` succeeds (a dashboard admin) is admitted first,
+        without an Auth lookup or a `get` review. For everyone else, in
+        `auth-resource` mode (the OpenShift default) the Auth resource gates
+        it: an absent CRD
+        or an `allowedGroups` entry of `system:authenticated` admits everyone,
+        otherwise an SSAR for `get` on `auths/auth` decides. A missing Auth
+        instance, a forbidden read, or an upstream failure each defer to that
+        SSAR rather than denying outright, so reduced service-account RBAC
+        never becomes an admission dependency. In `authenticated` mode (the xKS
+        default) any caller the API server resolves is admitted, and the Auth
+        resource is not consulted at all.
+
+
+        **UI capability** (`isAdmin`) says whether admin surfaces are offered.
+        It comes from an SSAR for `patch` on `auths/auth` and degrades to
+        `false` when the review cannot be evaluated.
+
+
+        Neither `isAllowed` nor `isAdmin` authorizes anything. Every API
+        operation runs its own resource authorization regardless of what this
+        endpoint returned, and a client must not treat these fields as
+        permission to call a guarded route.
+
+
+        On the xKS profile bootstrap reads are read-only: required resources
+        are provisioned by the installation owner or supplied through the
+        configured source, and the dashboard never creates them. On OpenShift,
+        `GET /api/config` still auto-creates a missing `OdhDashboardConfig`
+        instance when the CRD is installed, as RHOAI does today.
+
+
+        See `docs/bootstrap-contract.md`.
       responses:
         '200':
           $ref: '#/components/responses/StatusResponse'
@@ -844,6 +883,25 @@ paths:
         - ClusterSettings
       operationId: updateClusterSettings
       summary: Update cluster settings (admin)
+      description: >-
+        Always sends the OdhDashboardConfig patch; the culler and segment-key ConfigMap writes
+        and the notebook-controller rollout happen only when they change the stored values.
+        Every write is bound to the version the request read. A configuration or ConfigMap changed by another save after that read is a
+        conflict, returned as 200 with success false and the reason in error; reload the settings
+        and save again. Such a change is detected before the configuration patch where possible;
+        a change in the short window after that check can leave the configuration patch applied
+        while a later ConfigMap write reports the conflict. Enabling user tracking without a provisioned segment-key ConfigMap, or while the
+        OdhDashboardConfig sets disableTracking, is also 200 with success false, before anything is written. If the notebook-controller
+        rollout itself fails after the settings were stored, the response is 200 with success
+        false (or 403/401 under the caller policy when the rollout is denied) and a retry does not restart the controller (the stored settings already match);
+        restart it once it can be patched. A notebook-controller Deployment that does not exist is
+        nothing to restart, not a failure. Under the caller credential policy (xKS) every planned write is reviewed
+        first, and a write the caller may not make is 403 before anything is written (decided by the review's
+        allowed field, also when it carries an evaluationError). When a
+        conflict and an authorization failure both occur, the authorization failure decides the
+        status. Under the caller policy, when no OdhDashboardConfig instance exists GET shows
+        the defaults but PUT returns 404: it does not write against a configuration it could not
+        read.
       requestBody:
         content:
           application/json:
@@ -865,6 +923,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/BFFForbidden'
+        '404':
+          $ref: '#/components/responses/BFFNotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -1064,6 +1124,11 @@ paths:
         - ConnectionTypes
       operationId: updateConnectionType
       summary: Replace connection type (admin)
+      description: >-
+        The write is bound to the connection type as validated by this request (its
+        resourceVersion): if it changed in between, or the body carries a different
+        metadata.resourceVersion, the response is 200 with success false; reload it and try
+        again.
       requestBody:
         content:
           application/json:
@@ -1097,6 +1162,10 @@ paths:
         - ConnectionTypes
       operationId: patchConnectionType
       summary: Patch connection type (admin)
+      description: >-
+        The patch is applied only if the stored resourceVersion still matches the one this
+        request validated (a JSON Patch test operation is prepended); otherwise the response
+        is 200 with success false; reload it and try again.
       requestBody:
         content:
           application/json-patch+json:
@@ -1141,6 +1210,10 @@ paths:
         - ConnectionTypes
       operationId: deleteConnectionType
       summary: Delete connection type (admin)
+      description: >-
+        The delete carries a resourceVersion precondition for the connection type this request
+        validated; if it changed in between, the response is 200 with success false and
+        nothing is deleted.
       responses:
         '200':
           description: Delete result
@@ -1500,6 +1573,14 @@ paths:
         Context 3 (RESET) removes both.
         Context 0 (DSG_CREATION) is not supported and returns 400.
         Requires SSAR permission: create on serving.kserve.io/servingruntimes.
+        On OpenShift the dashboard service account then applies the mutation. Under the
+        caller credential policy (xKS) the caller's own credentials apply it, so the caller
+        also needs patch on the Namespace; without it the response is 200 with applied false
+        and nothing is written. Any other failure of the caller's patch (a timeout, an API
+        server error, a namespace that does not exist, an admission rejection with a status other
+        than 403) is returned as that error, not as applied false. Any 403 from the API server,
+        including an admission policy that denies with 403, is a denial (applied false). A caller identity that cannot be resolved, or a token
+        the API server rejects, is 401.
       parameters:
         - name: name
           in: path
@@ -1535,6 +1616,8 @@ paths:
           $ref: '#/components/responses/Unauthorized'
         '403':
           $ref: '#/components/responses/BFFForbidden'
+        '404':
+          $ref: '#/components/responses/BFFNotFound'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -2326,6 +2409,19 @@ components:
         type: string
         format: uuid
         maxLength: 36
+    IdentityVary:
+      description: >-
+        The standard identity headers `Authorization`,
+        `X-Forwarded-Access-Token` and `Cookie`, followed by every other
+        configured credential header (`AUTH_TOKEN_HEADERS`, or a custom
+        `AUTH_TOKEN_HEADER`), without duplicates. Sent on every /api response alongside `Cache-Control:
+        no-cache, no-store, private, max-age=0, must-revalidate`. `no-store` is
+        what forbids a compliant cache from storing the response; `Vary` keys
+        any cache that honours it on these headers, and does not protect
+        against an intermediary that ignores it.
+      schema:
+        type: string
+        example: 'Authorization, X-Forwarded-Access-Token, Cookie'
 
   responses:
     HealthCheckResponse:
@@ -2448,6 +2544,8 @@ components:
           $ref: '#/components/headers/RequestID'
         Audit-ID:
           $ref: '#/components/headers/AuditID'
+        Vary:
+          $ref: '#/components/headers/IdentityVary'
       description: User session status
       content:
         application/json:

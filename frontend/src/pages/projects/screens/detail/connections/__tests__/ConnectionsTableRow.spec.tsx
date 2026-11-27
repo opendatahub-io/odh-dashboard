@@ -42,6 +42,11 @@ describe('ConnectionsTableRow', () => {
     { title: 'Delete', onClick: jest.fn() },
   ];
 
+  const defaultConnectedResourcesProps = {
+    getConnectedResourceLabels: jest.fn(() => []),
+    connectedResourcesLoaded: true,
+  };
+
   it('should render connection name and type', () => {
     const connection = mockConnection({
       displayName: 'My S3 Connection',
@@ -50,6 +55,7 @@ describe('ConnectionsTableRow', () => {
 
     renderRow(
       <ConnectionsTableRow
+        {...defaultConnectedResourcesProps}
         obj={connection}
         connectionTypes={[
           mockConnectionTypeConfigMapObj({ name: 's3', displayName: 'S3 Buckets' }),
@@ -65,7 +71,13 @@ describe('ConnectionsTableRow', () => {
   it('should render status cell with Not tested label by default', () => {
     const connection = mockConnection({ displayName: 'test-conn' });
 
-    renderRow(<ConnectionsTableRow obj={connection} kebabActions={defaultKebabActions} />);
+    renderRow(
+      <ConnectionsTableRow
+        {...defaultConnectedResourcesProps}
+        obj={connection}
+        kebabActions={defaultKebabActions}
+      />,
+    );
 
     expect(screen.getByTestId('connection-test-label-not-tested')).toBeInTheDocument();
   });
@@ -79,7 +91,13 @@ describe('ConnectionsTableRow', () => {
       [CONNECTION_TEST_ANNOTATIONS.MESSAGE]: 'Connection successful',
     };
 
-    renderRow(<ConnectionsTableRow obj={connection} kebabActions={defaultKebabActions} />);
+    renderRow(
+      <ConnectionsTableRow
+        {...defaultConnectedResourcesProps}
+        obj={connection}
+        kebabActions={defaultKebabActions}
+      />,
+    );
 
     expect(screen.getByTestId('connection-test-label-verified')).toBeInTheDocument();
   });
@@ -93,7 +111,13 @@ describe('ConnectionsTableRow', () => {
       [CONNECTION_TEST_ANNOTATIONS.MESSAGE]: 'Connection refused',
     };
 
-    renderRow(<ConnectionsTableRow obj={connection} kebabActions={defaultKebabActions} />);
+    renderRow(
+      <ConnectionsTableRow
+        {...defaultConnectedResourcesProps}
+        obj={connection}
+        kebabActions={defaultKebabActions}
+      />,
+    );
 
     expect(screen.getByTestId('connection-test-label-failed')).toBeInTheDocument();
   });
@@ -106,6 +130,7 @@ describe('ConnectionsTableRow', () => {
 
     renderRow(
       <ConnectionsTableRow
+        {...defaultConnectedResourcesProps}
         obj={connection}
         connectionTypes={[]}
         kebabActions={defaultKebabActions}
@@ -121,7 +146,13 @@ describe('ConnectionsTableRow', () => {
       description: 'A description',
     });
 
-    renderRow(<ConnectionsTableRow obj={connection} kebabActions={defaultKebabActions} />);
+    renderRow(
+      <ConnectionsTableRow
+        {...defaultConnectedResourcesProps}
+        obj={connection}
+        kebabActions={defaultKebabActions}
+      />,
+    );
 
     // The TableRowTitleDescription component renders resource info
     expect(screen.getByText('test-conn')).toBeInTheDocument();
@@ -132,7 +163,12 @@ describe('ConnectionsTableRow', () => {
     const connection = mockConnection({ displayName: 'test-conn' });
 
     renderRow(
-      <ConnectionsTableRow obj={connection} kebabActions={defaultKebabActions} showWarningIcon />,
+      <ConnectionsTableRow
+        {...defaultConnectedResourcesProps}
+        obj={connection}
+        kebabActions={defaultKebabActions}
+        showWarningIcon
+      />,
     );
 
     expect(screen.getByText('test-conn')).toBeInTheDocument();
@@ -143,6 +179,7 @@ describe('ConnectionsTableRow', () => {
 
     renderRow(
       <ConnectionsTableRow
+        {...defaultConnectedResourcesProps}
         obj={connection}
         kebabActions={defaultKebabActions}
         showCompatibilityCell={false}
@@ -159,6 +196,7 @@ describe('ConnectionsTableRow', () => {
 
     renderRow(
       <ConnectionsTableRow
+        {...defaultConnectedResourcesProps}
         obj={connection}
         kebabActions={defaultKebabActions}
         showConnectedResourcesCell={false}
@@ -176,6 +214,7 @@ describe('ConnectionsTableRow', () => {
 
     renderRow(
       <ConnectionsTableRow
+        {...defaultConnectedResourcesProps}
         obj={connection}
         kebabActions={[
           { title: 'Edit', onClick: editFn },
@@ -197,7 +236,12 @@ describe('ConnectionsTableRow', () => {
     };
 
     renderRow(
-      <ConnectionsTableRow obj={connection} kebabActions={defaultKebabActions} isTesting />,
+      <ConnectionsTableRow
+        {...defaultConnectedResourcesProps}
+        obj={connection}
+        kebabActions={defaultKebabActions}
+        isTesting
+      />,
     );
 
     expect(screen.getByTestId('connection-test-label-testing')).toBeInTheDocument();
@@ -210,6 +254,7 @@ describe('ConnectionsTableRow', () => {
 
     renderRow(
       <ConnectionsTableRow
+        {...defaultConnectedResourcesProps}
         obj={connection}
         kebabActions={defaultKebabActions}
         onEditConnection={onEditConnection}
@@ -228,7 +273,13 @@ describe('ConnectionsTableRow', () => {
       [CONNECTION_TEST_ANNOTATIONS.STATUS]: 'invalid-status',
     };
 
-    renderRow(<ConnectionsTableRow obj={connection} kebabActions={defaultKebabActions} />);
+    renderRow(
+      <ConnectionsTableRow
+        {...defaultConnectedResourcesProps}
+        obj={connection}
+        kebabActions={defaultKebabActions}
+      />,
+    );
 
     expect(screen.getByTestId('connection-test-label-not-tested')).toBeInTheDocument();
   });

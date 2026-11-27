@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -20,9 +21,10 @@ type Connection struct {
 		UpdatedAt string `json:"updated_at"`
 	} `json:"metadata"`
 	Resource struct {
-		Name                 string `json:"name"`
-		DataConnectionTypeID string `json:"data_connection_type_id"`
-		Format               string `json:"format"`
+		Name                 string  `json:"name"`
+		Description          *string `json:"description,omitempty"`
+		DataConnectionTypeID string  `json:"data_connection_type_id"`
+		Format               string  `json:"format"`
 		CredentialsRef       struct {
 			Secret string `json:"secret"`
 		} `json:"credentials_ref"`
@@ -43,6 +45,59 @@ type ConnectionsEnvelope Envelope[[]Connection, None]
 
 const ConnectionsPath = ApiPathPrefix + "/connections"
 const ConnectionPath = ApiPathPrefix + "/connections/:id"
+const ConnectionNameAvailabilityPath = ApiPathPrefix + "/connection-name-availability"
+
+type ConnectionNameAvailability struct {
+	Available     bool     `json:"available"`
+	ConflictsWith []string `json:"conflicts_with"`
+}
+
+type ConnectionNameAvailabilityEnvelope Envelope[ConnectionNameAvailability, None]
+
+func (app *App) listConnections(
+	ctx context.Context,
+	identity *k8s.RequestIdentity,
+	namespace string,
+) ([]Connection, error) {
+	if app.config.MockHTTPClient {
+		return mockConnections(namespace), nil
+	}
+
+	apiURL := app.config.DataConnectHubAPIURL
+	if app.dataConnectHubAPIURL != nil {
+		apiURL = app.dataConnectHubAPIURL.Get()
+	}
+	if apiURL == "" {
+		return nil, fmt.Errorf("data connect hub API URL is not configured")
+	}
+
+	headers, err := app.dataConnectHubHeaders(ctx, identity, namespace)
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := app.newDataConnectHubHTTPClient(apiURL, headers)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Data Connect Hub client: %w", err)
+	}
+	body, err := client.GET("/api/v1alpha1/data/connections")
+	if err != nil {
+		return nil, err
+	}
+
+	var response upstreamConnectionList
+	if err := json.Unmarshal(body, &response); err != nil {
+		return nil, fmt.Errorf("failed to decode data connections: %w", err)
+	}
+	connections := response.Items
+	for i := range connections {
+		normalizeConnectionProperties(&connections[i])
+	}
+	if connections == nil {
+		connections = []Connection{}
+	}
+	return connections, nil
+}
 
 func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	namespace := r.URL.Query().Get(string(constants.NamespaceHeaderParameterKey))
@@ -60,51 +115,13 @@ func (app *App) GetConnectionsHandler(w http.ResponseWriter, r *http.Request, _ 
 		return
 	}
 
-	var connections []Connection
-	if app.config.MockHTTPClient {
-		connections = mockConnections(namespace)
-	} else {
-		apiURL := app.config.DataConnectHubAPIURL
-		if app.dataConnectHubAPIURL != nil {
-			apiURL = app.dataConnectHubAPIURL.Get()
-		}
-		if apiURL == "" {
-			app.serverErrorResponse(w, r, fmt.Errorf("data connect hub API URL is not configured"))
+	connections, err := app.listConnections(r.Context(), identity, namespace)
+	if err != nil {
+		if app.upstreamErrorResponse(w, r, err) {
 			return
 		}
-
-		headers, err := app.dataConnectHubHeaders(r.Context(), identity, namespace)
-		if err != nil {
-			app.serverErrorResponse(w, r, err)
-			return
-		}
-
-		client, err := app.newDataConnectHubHTTPClient(apiURL, headers)
-		if err != nil {
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to create Data Connect Hub client: %w", err))
-			return
-		}
-		body, err := client.GET("/api/v1alpha1/data/connections")
-		if err != nil {
-			if app.upstreamErrorResponse(w, r, err) {
-				return
-			}
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to list data connections: %w", err))
-			return
-		}
-
-		var response upstreamConnectionList
-		if err := json.Unmarshal(body, &response); err != nil {
-			app.serverErrorResponse(w, r, fmt.Errorf("failed to decode data connections: %w", err))
-			return
-		}
-		connections = response.Items
-		for i := range connections {
-			normalizeConnectionProperties(&connections[i])
-		}
-		if connections == nil {
-			connections = []Connection{}
-		}
+		app.serverErrorResponse(w, r, fmt.Errorf("failed to list data connections: %w", err))
+		return
 	}
 
 	if err := app.WriteJSON(w, http.StatusOK, ConnectionsEnvelope{Data: connections}, nil); err != nil {
@@ -208,11 +225,13 @@ func normalizeConnectionProperties(connection *Connection) {
 
 func mockConnections(namespace string) []Connection {
 	connections := make([]Connection, 2)
+	warehouseDescription := "Sales data warehouse"
 	connections[0].Metadata.ID = "550e8400-e29b-41d4-a716-446655440001"
 	connections[0].Metadata.TenantID = namespace
 	connections[0].Metadata.CreatedAt = "2026-09-07T16:00:00Z"
 	connections[0].Metadata.UpdatedAt = "2026-09-08T16:00:00Z"
 	connections[0].Resource.Name = "warehouse"
+	connections[0].Resource.Description = &warehouseDescription
 	connections[0].Resource.DataConnectionTypeID = "550e8400-e29b-41d4-a716-446655440003"
 	connections[0].Resource.Format = "tabular"
 	connections[0].Resource.CredentialsRef.Secret = "warehouse"

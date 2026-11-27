@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ChatbotSettingsPanel } from '~/app/Chatbot/components/ChatbotSettingsPanel';
 import { UseSourceManagementReturn } from '~/app/Chatbot/hooks/useSourceManagement';
@@ -1010,6 +1010,51 @@ describe('ChatbotSettingsPanel', () => {
       });
       // Still mounted, just hidden
       expect(screen.getByTestId('chatbot-settings-page-tab-content-model')).toBeInTheDocument();
+    });
+
+    it('should focus the Prompt tab after activating the troubleshooting link with Enter', async () => {
+      const user = userEvent.setup();
+      useChatbotConfigStore.getState().updateRagEnabled(DEFAULT_CONFIG_ID, true);
+      render(
+        <ChatbotSettingsPanel
+          {...defaultProps}
+          defaultActiveTabKey={2}
+          fileManagement={createMockFileManagement({
+            files: [
+              {
+                id: 'file-1',
+                filename: 'example.txt',
+                bytes: 10,
+                object: 'file',
+                purpose: 'assistants',
+                status: 'completed',
+                /* eslint-disable camelcase */
+                created_at: 0,
+                expires_at: 0,
+                status_details: '',
+                /* eslint-enable camelcase */
+              },
+            ],
+          })}
+        />,
+      );
+
+      screen.getByTestId('rag-troubleshooting-button').focus();
+      await user.keyboard('{Enter}');
+
+      const dialog = await screen.findByRole('dialog', { name: 'RAG troubleshooting' });
+      const closeButton = within(dialog).getByRole('button', { name: 'Close troubleshooting' });
+      await waitFor(() => expect(closeButton).toHaveFocus());
+      await user.tab();
+      expect(screen.getByTestId('go-to-prompt-tab')).toHaveFocus();
+      await user.keyboard('{Enter}');
+
+      const promptTab = screen.getByTestId('chatbot-settings-page-tab-prompt');
+      await waitFor(() => {
+        expect(dialog).not.toBeInTheDocument();
+        expect(promptTab).toHaveAttribute('aria-selected', 'true');
+        expect(promptTab).toHaveFocus();
+      });
     });
 
     it('should switch visibility to the Knowledge tab content when its toggle is selected', async () => {

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { Link } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { getAuthPolicyCreateUrl } from '~/app/utilities/maasGovernanceNavigation';
 import { MaaSAuthPolicy } from '~/app/types/subscriptions';
 import TypeaheadFilterField, { toSelectOptions } from '~/app/components/TypeaheadFilterField';
@@ -42,6 +42,7 @@ const AuthPoliciesToolbar: React.FC<AuthPoliciesToolbarProps> = ({
   authPolicies,
   returnTo,
 }) => {
+  const trackEvent = useTrackEvent();
   const { modelOptions, groupOptions, policyOptions } = React.useMemo(() => {
     const modelLabels = new Map<string, string>();
     const groupLabels = new Map<string, string>();
@@ -66,7 +67,7 @@ const AuthPoliciesToolbar: React.FC<AuthPoliciesToolbarProps> = ({
   }, [authPolicies]);
 
   const fireFiltered = (filterAttribute: EventTrackingFilterAttribute) =>
-    fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
+    trackEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
       resourceType: EventTrackingResourceType.AUTHPOLICY,
       filterAttribute,
     } satisfies MaaSSettingsListFilteredProperties);

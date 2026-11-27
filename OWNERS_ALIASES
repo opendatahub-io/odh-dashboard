@@ -41,6 +41,17 @@ aliases:
     - jessiehuff
     - tamdavid-git
 
+  # Dependency manifest approvers (CVE and dependency-bump PRs)
+  # Can approve ONLY dependency manifests (package.json, go.mod, go.sum, and the
+  # root pnpm-lock.yaml / pnpm-workspace.yaml) in every package, so a
+  # cross-package CVE bump needs one approval instead of one per package.
+  # Code, Dockerfiles and workflows still need the owning team.
+  # See docs/adding-owners-and-reviewers.md#dependency-approvers
+  dependency-approvers:
+    - dpanshug
+    - YuliaKrimerman
+    - manaswinidas
+
   # AI Grid (temp groups -- maybe)
   # (2026-11-19) AI Grid Scrum
   ai-grid-approvers:
@@ -142,14 +153,18 @@ aliases:
   # General Dashboard infrastructure
   # (2026-11-19) Pewter Scrum
   platform-approvers:
+    - caponetto
     - christianvogt
     - liday-rh
     - lucferbux
+    - paulovmr
   platform-reviewers:
+    - caponetto
     - christianvogt
     - jenny-s51
     - liday-rh
     - lucferbux
+    - paulovmr
 
   # Quality / E2E testing
   # (2026-11-19) General test ownership (not scrum based)

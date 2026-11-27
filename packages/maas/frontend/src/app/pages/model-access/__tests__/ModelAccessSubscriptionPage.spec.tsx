@@ -3,6 +3,7 @@ import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { restGET } from 'mod-arch-core';
+import { NoopAnalyticsTrackingProvider } from '@odh-dashboard/analytics/react';
 import '@testing-library/jest-dom';
 import ModelAccessSubscriptionPage from '~/app/pages/model-access/ModelAccessSubscriptionPage';
 import type { UserSubscription } from '~/app/types/subscriptions';
@@ -50,10 +51,6 @@ jest.mock('@odh-dashboard/internal/components/table/TableRowTitleDescription', (
       <p>{description}</p>
     </div>
   ),
-}));
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-  fireFormTrackingEvent: jest.fn(),
 }));
 
 const mockRestGET = jest.mocked(restGET);
@@ -103,14 +100,16 @@ const subscription = (): UserSubscription => ({
 
 const renderPage = (name = 'premium-team-sub') =>
   render(
-    <MemoryRouter initialEntries={[`/maas/model-access/view/${name}`]}>
-      <Routes>
-        <Route
-          path="/maas/model-access/view/:subscriptionName"
-          element={<ModelAccessSubscriptionPage />}
-        />
-      </Routes>
-    </MemoryRouter>,
+    <NoopAnalyticsTrackingProvider>
+      <MemoryRouter initialEntries={[`/maas/model-access/view/${name}`]}>
+        <Routes>
+          <Route
+            path="/maas/model-access/view/:subscriptionName"
+            element={<ModelAccessSubscriptionPage />}
+          />
+        </Routes>
+      </MemoryRouter>
+    </NoopAnalyticsTrackingProvider>,
   );
 
 describe('ModelAccessSubscriptionPage', () => {

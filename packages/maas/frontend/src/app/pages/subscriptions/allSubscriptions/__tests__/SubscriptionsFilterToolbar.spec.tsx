@@ -3,6 +3,7 @@ import { act, render } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import SubscriptionsFilterToolbar from '~/app/pages/subscriptions/allSubscriptions/SubscriptionsFilterToolbar';
 import { MaaSSubscription } from '~/app/types/subscriptions';
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
 import {
   SubscriptionsFilterDataType,
   SubscriptionsFilterOptions,
@@ -15,6 +16,8 @@ type TypeaheadSelectProps = {
     options: { value: string; content: string }[],
   ) => unknown[];
   onInputChange?: (newValue: string) => void;
+  onToggle?: (open: boolean) => void;
+  onSelect?: (event: unknown, selection: string | number | undefined) => void;
 };
 
 let typeaheadProps: TypeaheadSelectProps;
@@ -73,13 +76,15 @@ const subscriptions = [
   } as unknown as MaaSSubscription,
 ];
 
-const renderToolbar = (filterData: SubscriptionsFilterDataType) =>
+const renderToolbar = (filterData: SubscriptionsFilterDataType, trackEvent = jest.fn()) =>
   render(
-    <SubscriptionsFilterToolbar
-      subscriptions={subscriptions}
-      filterData={filterData}
-      onFilterUpdate={jest.fn()}
-    />,
+    <TrackingProvider trackEvent={trackEvent}>
+      <SubscriptionsFilterToolbar
+        subscriptions={subscriptions}
+        filterData={filterData}
+        onFilterUpdate={jest.fn()}
+      />
+    </TrackingProvider>,
   );
 
 describe('SubscriptionsFilterToolbar', () => {
@@ -144,5 +149,18 @@ describe('SubscriptionsFilterToolbar', () => {
     expect(withFragment[1]).toEqual(
       expect.objectContaining({ content: 'Filter by "granite-8b"', isCreateOption: true }),
     );
+  });
+
+  it('forwards the filter selection to the host-supplied callback', () => {
+    const trackEvent = jest.fn();
+    renderToolbar({ subscription: '', group: '', model: '' }, trackEvent);
+
+    expect(trackEvent).not.toHaveBeenCalled();
+    act(() => typeaheadProps.onSelect!(null, 'granite-8b'));
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('MaaS Settings List Filtered', {
+      resourceType: 'subscription',
+      filterAttribute: 'model',
+    });
   });
 });

@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Button, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { Link } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { URL_PREFIX } from '~/app/utilities/const';
 import { ModelOverviewItem } from '~/app/types/subscriptions';
 import TypeaheadFilterField, { toSelectOptions } from '~/app/components/TypeaheadFilterField';
@@ -31,6 +31,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
   rows,
   returnTo,
 }) => {
+  const trackEvent = useTrackEvent();
   const { modelOptions, projectOptions, groupOptions, subscriptionOptions, authPolicyOptions } =
     React.useMemo(() => {
       // Keyed by `${name}/${namespace}`: the same model name can be registered in
@@ -81,7 +82,7 @@ const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
     }, [rows]);
 
   const fireFiltered = (filterAttribute: EventTrackingFilterAttribute) =>
-    fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {
+    trackEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {
       filterAttribute,
     } satisfies MaaSGovernanceOverviewFilteredProperties);
 

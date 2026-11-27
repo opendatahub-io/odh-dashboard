@@ -214,6 +214,7 @@ func (app *App) Routes() http.Handler {
 	apiRouter.GET(UserPath, app.UserHandler)
 	apiRouter.GET(NamespacePath, app.GetNamespacesHandler)
 	apiRouter.GET(ConnectionsPath, app.GetConnectionsHandler)
+	apiRouter.GET(ConnectionNameAvailabilityPath, app.ConnectionNameAvailabilityHandler)
 	apiRouter.GET(ConnectionTypesPath, app.GetConnectionTypesHandler)
 	apiRouter.POST(ConnectionsPath, app.CreateConnectionHandler)
 	apiRouter.GET(ConnectionTypePath, app.GetConnectionTypeHandler)

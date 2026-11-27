@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   Button,
@@ -10,7 +11,6 @@ import {
   ModalHeader,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon, InProgressIcon } from '@patternfly/react-icons';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
 import { Link } from 'react-router-dom';
 import { AgentDeploymentSummary } from '~/app/agentProfile/types';
@@ -62,6 +62,7 @@ const AgentProfileEndpointsModal: React.FC<AgentProfileEndpointsModalProps> = ({
   deployments,
   onClose,
 }) => {
+  const trackEvent = useTrackEvent();
   const sortedDeployments = React.useMemo(
     () => sortDeploymentsByMostRecent(deployments),
     [deployments],
@@ -133,7 +134,7 @@ const AgentProfileEndpointsModal: React.FC<AgentProfileEndpointsModalProps> = ({
                       variant="link"
                       component={(props) => <Link {...props} to={detailsPath} />}
                       onClick={() =>
-                        fireMiscTrackingEvent(
+                        trackEvent(
                           PLAYGROUND_AGENT_EVENTS.DEPLOYMENT_DETAILS_VIEWED,
                           DEPLOYMENT_DETAILS_VIEWED_PROPERTIES,
                         )

@@ -1,6 +1,6 @@
 import * as React from 'react';
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 import TypeaheadFilterField, {
   toSelectOptions,
@@ -44,6 +44,7 @@ const SubscriptionsFilterToolbar: React.FC<SubscriptionsFilterToolbarProps> = ({
   // On Model access, the caller's organization's groups are listed by its name; the value stays
   // the group's full name, so the filter matches as before.
   const organization = React.useContext(CallerOrganizationContext);
+  const trackEvent = useTrackEvent();
   const { subscriptionOptions, groupOptions, modelOptions } = React.useMemo(() => {
     const subscriptionLabels = new Map<string, string>();
     const groupLabels = new Map<string, string>();
@@ -81,7 +82,7 @@ const SubscriptionsFilterToolbar: React.FC<SubscriptionsFilterToolbarProps> = ({
   }, [subscriptions, organization]);
 
   const fireFiltered = (filterAttribute: EventTrackingFilterAttribute) =>
-    fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
+    trackEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
       resourceType: EventTrackingResourceType.SUBSCRIPTION,
       filterAttribute,
     } satisfies MaaSSettingsListFilteredProperties);

@@ -2,16 +2,14 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import ModelDetailsDropdown from '~/app/Chatbot/components/ModelDetailsDropdown';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { AAModelResponse, AIModel, LlamaModel } from '~/app/types';
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const trackEvent = jest.fn();
 
-const mockFireMiscTrackingEvent = jest.mocked(fireMiscTrackingEvent);
+const mockFireMiscTrackingEvent = jest.mocked(trackEvent);
 
 const createMockAIModel = (overrides: Partial<AIModel>): AIModel => ({
   model_name: 'test-model',
@@ -108,6 +106,7 @@ describe('ModelDetailsDropdown', () => {
       <TestWrapper contextValue={contextValue}>
         <ModelDetailsDropdown {...defaultProps} />
       </TestWrapper>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByRole('button')).toHaveTextContent('provider/Test Model 1');
@@ -119,6 +118,7 @@ describe('ModelDetailsDropdown', () => {
       <TestWrapper contextValue={contextValue}>
         <ModelDetailsDropdown {...defaultProps} selectedModel="" onModelChange={jest.fn()} />
       </TestWrapper>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByRole('button')).toHaveTextContent('No models available');
@@ -134,6 +134,7 @@ describe('ModelDetailsDropdown', () => {
       <TestWrapper contextValue={contextValue}>
         <ModelDetailsDropdown {...defaultProps} />
       </TestWrapper>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     await user.click(screen.getByRole('button'));
@@ -154,6 +155,7 @@ describe('ModelDetailsDropdown', () => {
       <TestWrapper contextValue={contextValue}>
         <ModelDetailsDropdown {...defaultProps} onModelChange={mockOnModelChange} />
       </TestWrapper>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     await user.click(screen.getByRole('button'));
@@ -179,6 +181,7 @@ describe('ModelDetailsDropdown', () => {
       <TestWrapper contextValue={contextValue}>
         <ModelDetailsDropdown {...defaultProps} />
       </TestWrapper>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     await user.click(screen.getByRole('button'));
@@ -196,6 +199,7 @@ describe('ModelDetailsDropdown', () => {
       <TestWrapper contextValue={contextValue}>
         <ModelDetailsDropdown {...defaultProps} isDisabled />
       </TestWrapper>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     expect(screen.getByRole('button')).toBeDisabled();
@@ -211,6 +215,7 @@ describe('ModelDetailsDropdown', () => {
       <TestWrapper contextValue={contextValue}>
         <ModelDetailsDropdown {...defaultProps} onModelChange={mockOnModelChange} />
       </TestWrapper>,
+      { wrapper: createTrackingWrapper(trackEvent) },
     );
 
     await user.click(screen.getByRole('button'));

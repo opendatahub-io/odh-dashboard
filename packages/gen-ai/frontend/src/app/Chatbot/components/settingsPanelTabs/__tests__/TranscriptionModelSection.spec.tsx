@@ -3,13 +3,15 @@ import * as React from 'react';
 import { render, screen, act, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import TranscriptionModelSection from '~/app/Chatbot/components/settingsPanelTabs/TranscriptionModelSection';
 import { useChatbotConfigStore, DEFAULT_CONFIG_ID } from '~/app/Chatbot/store';
 import { DEFAULT_CONFIGURATION } from '~/app/Chatbot/store/types';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { PLAYGROUND_MULTIMODAL_EVENTS } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 import { type AAModelResponse, AIModel } from '~/app/types';
+
+const trackEvent = jest.fn();
 
 jest.mock('@odh-dashboard/plugin-core', () => ({
   useExtensions: (predicate: (extension: { type: string }) => boolean) =>
@@ -39,11 +41,7 @@ jest.mock('@patternfly/react-core', () => {
   };
 });
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
-
-const mockFireMisc = jest.mocked(fireMiscTrackingEvent);
+const mockFireMisc = jest.mocked(trackEvent);
 
 const mockAsrModel = {
   model_id: 'whisper-large-v3',
@@ -144,6 +142,7 @@ const renderWithContext = (
         <TranscriptionModelSection configId={configId} />
       </ChatbotContext.Provider>
     </MemoryRouter>,
+    { wrapper: createTrackingWrapper(trackEvent) },
   );
 
 describe('TranscriptionModelSection', () => {

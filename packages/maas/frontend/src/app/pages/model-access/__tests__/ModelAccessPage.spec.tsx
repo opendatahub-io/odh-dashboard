@@ -3,6 +3,7 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { restGET } from 'mod-arch-core';
+import { NoopAnalyticsTrackingProvider } from '@odh-dashboard/analytics/react';
 import '@testing-library/jest-dom';
 import ModelAccessPage from '~/app/pages/model-access/ModelAccessPage';
 import SubscriptionsTab from '~/app/pages/maas-governance/SubscriptionsTab';
@@ -39,10 +40,6 @@ jest.mock('@odh-dashboard/internal/components/table/TableRowTitleDescription', (
       <p>{description}</p>
     </div>
   ),
-}));
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-  fireFormTrackingEvent: jest.fn(),
 }));
 
 const mockRestGET = jest.mocked(restGET);
@@ -103,9 +100,11 @@ const basicSubscription = (): MaaSSubscription => ({
 
 const renderPage = () =>
   render(
-    <MemoryRouter>
-      <ModelAccessPage />
-    </MemoryRouter>,
+    <NoopAnalyticsTrackingProvider>
+      <MemoryRouter>
+        <ModelAccessPage />
+      </MemoryRouter>
+    </NoopAnalyticsTrackingProvider>,
   );
 
 const renderTwoSubscriptions = () => {
@@ -262,11 +261,13 @@ describe('ModelAccessPage', () => {
     const user = userEvent.setup();
     mockAPI([subscription(), basicSubscription()]);
     render(
-      <MemoryRouter>
-        <MaaSGovernanceProvider subscriptionsOnly>
-          <SubscriptionsTab />
-        </MaaSGovernanceProvider>
-      </MemoryRouter>,
+      <NoopAnalyticsTrackingProvider>
+        <MemoryRouter>
+          <MaaSGovernanceProvider subscriptionsOnly>
+            <SubscriptionsTab />
+          </MaaSGovernanceProvider>
+        </MemoryRouter>
+      </NoopAnalyticsTrackingProvider>,
     );
     await screen.findByRole('link', { name: 'Premium Team' });
     expect(screen.getByTestId('create-subscription-button')).toBeInTheDocument();

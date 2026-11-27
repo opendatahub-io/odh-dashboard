@@ -11,6 +11,10 @@ import SDKInitialize from './SDKInitialize';
 import ErrorBoundary from './components/error/ErrorBoundary';
 import RouteErrorElement from './components/error/RouteErrorElement';
 import { ReduxContext } from './redux/context';
+import { installMonacoLoader } from './concepts/dashboard/codeEditor/monacoLoader';
+
+// Configure the one shared Monaco loader before any host or remote code editor can mount.
+installMonacoLoader();
 
 // Creates a data router using createBrowserRouter
 const router = createBrowserRouter([

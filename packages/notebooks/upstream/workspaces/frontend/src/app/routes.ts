@@ -7,7 +7,6 @@ export const AppRoutePaths = {
   workspaceKindSummary: '/workspacekinds/:kind/summary',
   workspaceKindCreate: '/workspacekinds/create',
   workspaceKindEdit: '/workspacekinds/:kind/edit',
-  notebookDebugSettings: '/notebookDebugSettings',
 } satisfies Record<string, `/${string}`>;
 
 export type AppRoute = (typeof AppRoutePaths)[keyof typeof AppRoutePaths];
@@ -36,7 +35,6 @@ export type RouteParamsMap = {
   workspaceKindEdit: {
     kind: string;
   };
-  notebookDebugSettings: undefined;
 };
 
 /**
@@ -72,7 +70,6 @@ export type RouteStateMap = {
   workspaceKindEdit: {
     workspaceKindName: string;
   };
-  notebookDebugSettings: undefined;
 };
 
 /**
@@ -94,5 +91,4 @@ export type RouteSearchParamsMap = {
   workspaceKindSummary: undefined;
   workspaceKindCreate: undefined;
   workspaceKindEdit: undefined;
-  notebookDebugSettings: undefined;
 };

@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   Dropdown,
@@ -9,7 +10,6 @@ import {
   Tooltip,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { getLlamaModelDisplayName, isLlamaModelEnabled, splitLlamaModelId } from '~/app/utilities';
 import { convertMaaSModelToAIModel, isPlaygroundModelMatchForAIModel } from '~/app/utilities/utils';
@@ -31,6 +31,7 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
   testId = 'model-selector-toggle',
   isDisabled = false,
 }) => {
+  const trackEvent = useTrackEvent();
   const { models, aiModels, maasModels } = React.useContext(ChatbotContext);
   const { data: bffConfig } = useFetchBFFConfig();
   const [isOpen, setIsOpen] = React.useState(false);
@@ -46,7 +47,7 @@ const ModelDetailsDropdown: React.FunctionComponent<ModelDetailsDropdownProps> =
     onModelChange(value);
     const { id: baseId } = splitLlamaModelId(value);
     const selectedAIModel = aiModels.find((m) => m.model_id === baseId);
-    fireMiscTrackingEvent('Playground Model Dropdown Option Selected', {
+    trackEvent('Playground Model Dropdown Option Selected', {
       selectedModel: getLlamaModelDisplayName(value, aiModels),
       capabilities: JSON.stringify(selectedAIModel?.capabilities ?? []),
     });

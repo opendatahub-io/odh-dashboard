@@ -12,6 +12,7 @@ import {
   verifyEvaluationProgressModal,
   waitForEvaluationRunComplete,
 } from '../../../utils/evalHubTestFlows';
+import type { EvalHubCleanupContext } from '../../../utils/evalHubTestFlows';
 import { LDAP_ADMIN_USER } from '../../../utils/e2eUsers';
 import { addUserToProject } from '../../../utils/oc_commands/project';
 import { ensureAdminOcSession } from '../../../utils/oc_commands/baseCommands';
@@ -204,15 +205,18 @@ describe('Eval Hub E2E — Kueue hardware profile', () => {
         ? [
             {
               description: `Delete Queue HardwareProfile ${config.hardwareProfileName}`,
-              run: () => cleanupEvalHubHardwareProfile(config.hardwareProfileName),
+              run: (context: EvalHubCleanupContext) =>
+                cleanupEvalHubHardwareProfile(config.hardwareProfileName, context.reportFailure),
             },
             {
               description: `Delete ClusterQueue ${config.clusterQueueName}`,
-              run: () => deleteEvalHubClusterQueue(config.clusterQueueName),
+              run: (context: EvalHubCleanupContext) =>
+                deleteEvalHubClusterQueue(config.clusterQueueName, context.reportFailure),
             },
             {
               description: `Delete ResourceFlavor ${config.flavorName}`,
-              run: () => deleteEvalHubResourceFlavor(config.flavorName),
+              run: (context: EvalHubCleanupContext) =>
+                deleteEvalHubResourceFlavor(config.flavorName, context.reportFailure),
             },
           ]
         : []),
@@ -236,6 +240,7 @@ describe('Eval Hub E2E — Kueue hardware profile', () => {
         inferenceServiceName: testData.inferenceServiceName,
         mlflowExperimentName,
         hardwareProfileName: config.hardwareProfileName,
+        numExamples: testData.numExamples,
         additionalBenchmarkParams: testData.additionalBenchmarkParams,
       });
 

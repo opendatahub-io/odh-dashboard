@@ -1,5 +1,5 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -14,6 +14,7 @@ type DeletePlaygroundModalProps = {
 const DELETE_PLAYGROUND_EVENT_NAME = 'Playground Delete';
 
 const DeletePlaygroundModal: React.FC<DeletePlaygroundModalProps> = ({ onCancel }) => {
+  const trackEvent = useTrackEvent();
   const { namespace } = React.useContext(GenAiContext);
   const { lsdStatus, refresh } = React.useContext(ChatbotContext);
   const [isDeleting, setDeleting] = React.useState(false);
@@ -26,7 +27,7 @@ const DeletePlaygroundModal: React.FC<DeletePlaygroundModalProps> = ({ onCancel 
       testId="delete-playground-modal"
       onClose={() => {
         onCancel();
-        fireFormTrackingEvent(DELETE_PLAYGROUND_EVENT_NAME, {
+        trackEvent(DELETE_PLAYGROUND_EVENT_NAME, {
           outcome: TrackingOutcome.cancel,
           namespace: namespace?.name,
         });
@@ -42,7 +43,7 @@ const DeletePlaygroundModal: React.FC<DeletePlaygroundModalProps> = ({ onCancel 
             })
             .then(() => {
               onCancel();
-              fireFormTrackingEvent(DELETE_PLAYGROUND_EVENT_NAME, {
+              trackEvent(DELETE_PLAYGROUND_EVENT_NAME, {
                 outcome: TrackingOutcome.submit,
                 success: true,
                 namespace: namespace?.name,
@@ -50,7 +51,7 @@ const DeletePlaygroundModal: React.FC<DeletePlaygroundModalProps> = ({ onCancel 
               refresh();
             })
             .catch((e) => {
-              fireFormTrackingEvent(DELETE_PLAYGROUND_EVENT_NAME, {
+              trackEvent(DELETE_PLAYGROUND_EVENT_NAME, {
                 outcome: TrackingOutcome.submit,
                 success: false,
                 namespace: namespace?.name,

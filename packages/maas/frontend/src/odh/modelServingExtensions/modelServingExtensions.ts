@@ -1,5 +1,5 @@
 import type { LLMdDeployment } from '@odh-dashboard/llmd-serving/types';
-import { LLMD_SERVING_ID } from '@odh-dashboard/llmd-serving/extensions';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import {
   WizardFieldApplyExtension,
   WizardFieldDeploymentFunctionsExtension,
@@ -36,11 +36,11 @@ const MODEL_SERVING_EXTENSIONS: ModelServingExtensions[] = [
   {
     type: 'model-serving.deployment/wizard-field-apply',
     flags: {
-      required: [MODEL_AS_SERVICE_ID, LLMD_SERVING_ID],
+      required: [MODEL_AS_SERVICE_ID, SupportedArea.LLMD_SERVING],
     },
     properties: {
       fieldId: MAAS_ENDPOINT_FIELD_ID,
-      platform: LLMD_SERVING_ID,
+      platform: SupportedArea.LLMD_SERVING,
       apply: () =>
         import('./modelDeploymentWizard/maasDeploymentTransformer').then(
           (m) => m.applyMaaSEndpointData,
@@ -50,11 +50,11 @@ const MODEL_SERVING_EXTENSIONS: ModelServingExtensions[] = [
   {
     type: 'model-serving.deployment/wizard-field-extractor',
     flags: {
-      required: [MODEL_AS_SERVICE_ID, LLMD_SERVING_ID],
+      required: [MODEL_AS_SERVICE_ID, SupportedArea.LLMD_SERVING],
     },
     properties: {
       fieldId: MAAS_ENDPOINT_FIELD_ID,
-      platform: LLMD_SERVING_ID,
+      platform: SupportedArea.LLMD_SERVING,
       extract: () =>
         import('./modelDeploymentWizard/maasDeploymentTransformer').then(
           (m) => m.extractMaaSEndpointData,
@@ -64,11 +64,11 @@ const MODEL_SERVING_EXTENSIONS: ModelServingExtensions[] = [
   {
     type: 'model-serving.deployment/wizard-field-deployment-functions',
     flags: {
-      required: [MODEL_AS_SERVICE_ID, LLMD_SERVING_ID],
+      required: [MODEL_AS_SERVICE_ID, SupportedArea.LLMD_SERVING],
     },
     properties: {
       fieldId: MAAS_ENDPOINT_FIELD_ID,
-      platform: LLMD_SERVING_ID,
+      platform: SupportedArea.LLMD_SERVING,
       preDeploy: () =>
         import('./modelDeploymentWizard/maas-model-ref').then((m) => m.preDeployMaaSModelRef),
       postDeploy: () =>

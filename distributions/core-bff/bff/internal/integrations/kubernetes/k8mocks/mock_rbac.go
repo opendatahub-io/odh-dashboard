@@ -202,3 +202,29 @@ func createGroupNamespaceAccessRBAC(ctx context.Context, k8sClient k8sclient.Int
 
 	return nil
 }
+
+// createServingRuntimeEditorRBAC lets a user create ServingRuntimes in one
+// namespace and nothing else: in particular no patch on the cluster-scoped
+// Namespace object.
+func createServingRuntimeEditorRBAC(ctx context.Context, k8sClient k8sclient.Interface, username, namespace string) error {
+	role := &rbacv1.Role{
+		ObjectMeta: metav1.ObjectMeta{Name: "serving-runtime-editor", Namespace: namespace},
+		Rules: []rbacv1.PolicyRule{{
+			APIGroups: []string{"serving.kserve.io"},
+			Resources: []string{"servingruntimes"},
+			Verbs:     []string{"get", "list", "create"},
+		}},
+	}
+	if _, err := k8sClient.RbacV1().Roles(namespace).Create(ctx, role, metav1.CreateOptions{}); err != nil {
+		return fmt.Errorf("failed to create Role: %w", err)
+	}
+	binding := &rbacv1.RoleBinding{
+		ObjectMeta: metav1.ObjectMeta{Name: "serving-runtime-editor", Namespace: namespace},
+		Subjects:   []rbacv1.Subject{{Kind: "User", Name: username}},
+		RoleRef:    rbacv1.RoleRef{Kind: "Role", Name: "serving-runtime-editor", APIGroup: "rbac.authorization.k8s.io"},
+	}
+	if _, err := k8sClient.RbacV1().RoleBindings(namespace).Create(ctx, binding, metav1.CreateOptions{}); err != nil {
+		return fmt.Errorf("failed to create RoleBinding: %w", err)
+	}
+	return nil
+}

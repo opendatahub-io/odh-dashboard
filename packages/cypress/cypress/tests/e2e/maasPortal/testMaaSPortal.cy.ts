@@ -224,7 +224,13 @@ describe('MaaS Portal role access and API-key lifecycle', () => {
       copyApiKeyModal.expandAccessDetails();
       copyApiKeyModal.findBaseURL().invoke('val').should('not.be.empty');
       copyApiKeyModal.findModelID().invoke('val').should('not.be.empty');
-      copyApiKeyModal.findUsageExample().should('contain.text', '/v1/chat/completions');
+      // Assert in a callback: a failure then prints true/false, not the text (it can hold the key).
+      copyApiKeyModal.findUsageExample().should(($usageExample) => {
+        expect(
+          $usageExample.text().includes('/v1/chat/completions'),
+          'usage example contains /v1/chat/completions',
+        ).to.equal(true);
+      });
       copyApiKeyModal
         .findEndpointCompatibilityAlert()
         .scrollIntoView()

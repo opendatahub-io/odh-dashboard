@@ -14,6 +14,7 @@ const URL_PREFIX = '/maas';
 const API_URL_PREFIX = `${process.env.BASE_PATH || ''}${URL_PREFIX}`;
 const BFF_API_VERSION = 'v1';
 const COMPANY_URI = process.env.COMPANY_URI || 'oci://odh.io';
+const APP_VERSION = process.env.INTERNAL_DASHBOARD_VERSION || '';
 
 export {
   STYLE_THEME,
@@ -29,6 +30,7 @@ export {
   MANDATORY_NAMESPACE,
   MAAS_MANDATORY_NAMESPACE,
   COMPANY_URI,
+  APP_VERSION,
 };
 
 export const FindAdministratorOptions = [

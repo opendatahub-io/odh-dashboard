@@ -10,7 +10,7 @@ import {
   Title,
   Button,
 } from '@patternfly/react-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import { MaaSModelRefSummary, MaaSSubscription } from '~/app/types/subscriptions';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
@@ -40,6 +40,7 @@ const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
   modelRefs,
   showStatus = true,
 }) => {
+  const trackEvent = useTrackEvent();
   const isInferencePriorityFieldEnabled = useIsAreaAvailable(
     SupportedArea.INFERENCE_PRIORITY_FIELD,
   ).status;
@@ -76,7 +77,7 @@ const SubscriptionDetailsSection: React.FC<SubscriptionDetailsSectionProps> = ({
                   resourceName={subscription.displayName ?? subscription.name}
                   affectedModels={getAffectedModels(modelRefs)}
                   onClick={() => {
-                    fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
+                    trackEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
                       popoverType: EventTrackingPopoverType.STATUS,
                       status: convertStringToPopoverViewedStatus(subscription.phase),
                       location: PhaseLabelLocation.DETAIL_PAGE,

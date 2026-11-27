@@ -24,5 +24,10 @@ patches:
         spec:
           containers:
             - name: rhaii-dashboard
+              # Select xKS explicitly, as the production RHAII bundle does. The
+              # Tilt cluster is a Kind xKS testbed, and auto-detection falls
+              # back to the conservative OpenShift admission contract when the
+              # ClusterVersion probe is forbidden.
               args:
                 - --dev-mode
+                - --platform-type=XKS

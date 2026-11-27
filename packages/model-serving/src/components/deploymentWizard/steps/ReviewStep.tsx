@@ -347,7 +347,7 @@ const getStatusSections = (
         },
         {
           key: 'tokenAuthentication-serviceAccounts',
-          label: 'Service accounts',
+          label: 'Token Secrets',
           comp: (state) => {
             const tokens = state.tokenAuthentication.data;
             if (!tokens || tokens.length === 0) {

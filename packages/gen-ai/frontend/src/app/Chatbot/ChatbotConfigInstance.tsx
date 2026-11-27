@@ -1,6 +1,6 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import { ChatbotWelcomePrompt, WelcomePrompt } from '@patternfly/chatbot';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { DocumentAttachment, MCPServerFromAPI, TokenInfo } from '~/app/types';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import useIsProfileDirty from '~/app/agentProfile/useIsProfileDirty';
@@ -78,6 +78,7 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
   onViewDocument,
   documentAttachments,
 }) => {
+  const trackEvent = useTrackEvent();
   const systemInstruction = useChatbotConfigStore(selectSystemInstruction(configId));
   const variableValues = useChatbotConfigStore(selectVariableValues(configId));
   const resolvedInstruction = React.useMemo(
@@ -211,14 +212,14 @@ export const ChatbotConfigInstance: React.FC<ChatbotConfigInstanceProps> = ({
             onClick: () => {
               if (prompt.message) {
                 onWelcomePromptClick(prompt.message);
-                fireMiscTrackingEvent('Playground Welcome Prompt Selected', {
+                trackEvent('Playground Welcome Prompt Selected', {
                   promptTitle: prompt.title,
                 });
               }
             },
           }))
         : sampleWelcomePrompts,
-    [onWelcomePromptClick],
+    [onWelcomePromptClick, trackEvent],
   );
 
   return (

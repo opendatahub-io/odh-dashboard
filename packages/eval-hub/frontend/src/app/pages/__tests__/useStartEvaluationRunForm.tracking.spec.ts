@@ -197,6 +197,61 @@ describe('useStartEvaluationRunForm - Tracking Events', () => {
     expect(renderResult.result.current.isValid).toBe(false);
   });
 
+  it.each([-1, 1.5])(
+    'should block submission when a dedicated benchmark parameter is invalid (%s)',
+    async (value) => {
+      const renderResult = renderForm({
+        benchmarkParameterValues: { num_examples: value },
+        benchmarkParameterKeys: ['num_examples'],
+      });
+
+      act(() => {
+        renderResult.result.current.handleModelDropdownSelect('model-a', mockInferenceServices);
+        renderResult.result.current.setExperimentMode('new');
+        renderResult.result.current.setNewExperimentName('EvalHub');
+      });
+
+      await waitFor(() => {
+        expect(renderResult.result.current.benchmarkParameterErrors).toEqual({
+          num_examples: 'Enter a non-negative whole number.',
+        });
+      });
+      expect(renderResult.result.current.isValid).toBe(false);
+
+      await act(async () => {
+        await renderResult.result.current.handleSubmit();
+      });
+
+      expect(mockCreateEvaluationJob).not.toHaveBeenCalled();
+    },
+  );
+
+  it('should reject advanced JSON that duplicates a dedicated benchmark parameter', async () => {
+    const renderResult = renderForm({ benchmarkParameterKeys: ['num_examples'] });
+
+    act(() => {
+      renderResult.result.current.handleModelDropdownSelect('model-a', mockInferenceServices);
+      renderResult.result.current.setShowAdditionalArgs(true);
+      renderResult.result.current.handleAdditionalArgsTextChange(
+        {} as React.ChangeEvent<HTMLTextAreaElement>,
+        '{"num_examples": 5}',
+      );
+    });
+
+    await act(async () => {
+      await renderResult.result.current.handleSubmit();
+    });
+
+    expect(mockNotificationError).toHaveBeenCalledWith(
+      'Conflicting benchmark parameters',
+      'Use the dedicated fields for num_examples. Remove them from the advanced JSON.',
+    );
+    expectTracked(EVAL_HUB_EVENTS.JOB_CREATE_VALIDATION_FAILED, {
+      validation_error_category: 'duplicate_benchmark_parameter_keys',
+    });
+    expect(mockCreateEvaluationJob).not.toHaveBeenCalled();
+  });
+
   it('allows submission without a HardwareProfile in a Kueue-managed namespace', async () => {
     mockHardwareProfiles = [mockCompatibleHardwareProfile];
     mockKueueAvailability = mockKueueEnabled;

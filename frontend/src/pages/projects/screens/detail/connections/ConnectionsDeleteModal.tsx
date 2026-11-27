@@ -1,30 +1,36 @@
 import React from 'react';
 import { getDisplayNameFromK8sResource } from '@odh-dashboard/k8s-core';
 import { deleteSecret } from '@odh-dashboard/k8s-core/api/secrets';
+import type { ConnectedResourceLabel } from '@odh-dashboard/plugin-core/extension-points';
 import { Connection } from '#~/concepts/connectionTypes/types';
 import DeleteModal from '#~/pages/projects/components/DeleteModal';
 import {
   useRelatedNotebooks,
   ConnectedNotebookContext,
 } from '#~/pages/projects/notebook/useRelatedNotebooks';
-import { useInferenceServicesForConnection } from '#~/pages/projects/useInferenceServicesForConnection';
 import { removeNotebookSecret } from '#~/api';
 import ConnectedResourcesDeleteModal from '#~/pages/projects/components/ConnectedResourcesDeleteModal';
 
 type Props = {
   namespace: string;
   deleteConnection: Connection;
+  connectedResources: ConnectedResourceLabel[];
+  connectedResourcesLoaded: boolean;
   onClose: (deleted?: boolean) => void;
 };
 
-export const ConnectionsDeleteModal: React.FC<Props> = ({ deleteConnection, onClose }) => {
+export const ConnectionsDeleteModal: React.FC<Props> = ({
+  deleteConnection,
+  connectedResources,
+  connectedResourcesLoaded,
+  onClose,
+}) => {
   const [isDeleting, setIsDeleting] = React.useState(false);
   const [error, setError] = React.useState<Error>();
   const { notebooks: connectedNotebooks, loaded } = useRelatedNotebooks(
     ConnectedNotebookContext.EXISTING_DATA_CONNECTION,
     deleteConnection.metadata.name,
   );
-  const connectedModels = useInferenceServicesForConnection(deleteConnection);
 
   return (
     <DeleteModal
@@ -62,8 +68,8 @@ export const ConnectionsDeleteModal: React.FC<Props> = ({ deleteConnection, onCl
       its dependent resources will stop working.
       <ConnectedResourcesDeleteModal
         connectedNotebooks={connectedNotebooks}
-        connectedModels={connectedModels}
-        loaded={loaded}
+        connectedResources={connectedResources}
+        loaded={loaded && connectedResourcesLoaded}
         namespace={deleteConnection.metadata.namespace}
       />
     </DeleteModal>

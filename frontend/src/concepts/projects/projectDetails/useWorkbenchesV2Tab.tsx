@@ -20,7 +20,7 @@ export const useWorkbenchesV2Tab = (): SectionDefinition[] => {
   return [
     {
       id: ProjectSectionID.WORKBENCHES_V2,
-      title: 'Workbenches v2',
+      title: 'Workspaces',
       label: (
         <Label color="orange" variant="outline">
           Dev Preview

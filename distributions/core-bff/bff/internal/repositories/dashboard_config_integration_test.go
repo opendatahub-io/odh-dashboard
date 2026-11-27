@@ -157,7 +157,7 @@ func TestGetDashboardConfig_IndependentCRDHandling(t *testing.T) {
 	require.NotNil(t, config)
 
 	// Auth CRD absent should not affect config
-	authRepo := NewAuthRepository(newFakeDynClientCRDAbsent())
+	authRepo := NewAuthRepository(newFakeDynClientCRDAbsent(), emptyDiscovery())
 	auth, err := authRepo.GetAuth(context.Background())
 	require.NoError(t, err)
 	assert.Nil(t, auth)

@@ -1,5 +1,79 @@
 import { mockLLMInferenceServiceK8sResource } from '@odh-dashboard/llmd-serving/__mocks__/mockLLMInferenceServiceK8sResource';
-import { applyConfigBaseRef } from '../server';
+import { mockLLMInferenceServiceConfigK8sResource } from '../../__mocks__/mockLLMInferenceServiceConfigK8sResource';
+import type { LLMdDeployment } from '../../types';
+import { applyConfigBaseRef, extractModelServerTemplate } from '../server';
+
+describe('extractModelServerTemplate', () => {
+  it.each([true, false])('should select the resolved config when isLLMd is %s', (isLLMd) => {
+    const server = mockLLMInferenceServiceConfigK8sResource({
+      name: 'my-config',
+      namespace: 'test-project',
+      displayName: 'My config',
+      runtimeVersion: 'v0.9.1',
+    });
+    const deployment: LLMdDeployment = {
+      modelServingPlatformId: 'llmd-serving',
+      model: mockLLMInferenceServiceK8sResource({ isLLMd }),
+      server,
+    };
+
+    expect(extractModelServerTemplate(deployment)).toEqual({
+      data: {
+        selection: {
+          name: 'my-config',
+          namespace: 'test-project',
+          label: 'My config',
+          template: server,
+          version: 'v0.9.1',
+        },
+      },
+    });
+  });
+
+  it('should select llm-d when no config resolves and a scheduler is present', () => {
+    const deployment: LLMdDeployment = {
+      modelServingPlatformId: 'llmd-serving',
+      model: mockLLMInferenceServiceK8sResource({}),
+    };
+
+    expect(extractModelServerTemplate(deployment)).toEqual({
+      data: {
+        selection: { name: 'llmd-serving', label: 'Distributed inference with llm-d' },
+      },
+    });
+  });
+
+  it('should select llm-d when the scheduler is empty', () => {
+    const deployment: LLMdDeployment = {
+      modelServingPlatformId: 'llmd-serving',
+      model: mockLLMInferenceServiceK8sResource({}),
+    };
+    deployment.model.spec.router = { scheduler: {} };
+
+    expect(extractModelServerTemplate(deployment).data.selection?.label).toBe(
+      'Distributed inference with llm-d',
+    );
+  });
+
+  it.each([false, true])(
+    'should select a template-less custom default without a scheduler (router absent: %s)',
+    (noRouter) => {
+      const deployment: LLMdDeployment = {
+        modelServingPlatformId: 'llmd-serving',
+        model: mockLLMInferenceServiceK8sResource({ isLLMd: false }),
+      };
+      if (noRouter) {
+        delete deployment.model.spec.router;
+      }
+
+      const { selection } = extractModelServerTemplate(deployment).data;
+      expect(selection?.label).toBe('Custom LLMInferenceService');
+      expect(selection?.name).not.toBe('llmd-serving');
+      expect(selection?.template).toBeUndefined();
+      expect(selection?.version).toBeUndefined();
+    },
+  );
+});
 
 describe('applyConfigBaseRef', () => {
   it('adds a baseRef when none exist', () => {

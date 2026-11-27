@@ -2,6 +2,8 @@ import { mockDashboardConfig } from '@odh-dashboard/k8s-core/__mocks__/mockDashb
 import { mockDscStatus } from '@odh-dashboard/plugin-core/__mocks__/mockDscStatus';
 import { MODELS_AS_A_SERVICE_READY } from '@odh-dashboard/k8s-core';
 import { DataScienceStackComponent } from '@odh-dashboard/plugin-core/areas';
+import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
+import { mockK8sResourceList } from '@odh-dashboard/k8s-core/__mocks__/mockK8sResourceList';
 import { asProductAdminUser } from '../../../utils/mockUsers';
 import {
   createSubscriptionPage,
@@ -28,6 +30,9 @@ import {
 import type { CapturedDownload } from '../../../utils/downloadUtils';
 import { getDownloadedContent, stubDownload } from '../../../utils/downloadUtils';
 import { getClipboardContent, stubClipboard } from '../../../utils/clipboardUtils';
+import { shouldUseBundledMonaco } from '../../../utils/monacoUtils';
+import { ProjectModel } from '../../../utils/models';
+import { projectListPage } from '../../../pages/projects';
 
 const setupCommonIntercepts = () => {
   asProductAdminUser();
@@ -382,6 +387,24 @@ describe('View Subscription Page', () => {
       expect(downloads[0].content).to.include('apiVersion: maas.opendatahub.io/v1alpha1');
       expect(downloads[0].content).to.include('kind: MaaSSubscription');
     });
+  });
+
+  it('should render the YAML editor with the bundled Monaco and still open Projects (RHAI-20772)', () => {
+    cy.interceptOdh('GET /maas/api/v1/yaml', {
+      content:
+        'apiVersion: maas.opendatahub.io/v1alpha1\nkind: MaaSSubscription\nmetadata:\n  name: premium-team-sub\n',
+    });
+    cy.interceptK8sList(ProjectModel, mockK8sResourceList([mockProjectK8sResource({})]));
+
+    // The MaaS YAML tab is the first code editor on the page, so nothing else configured Monaco.
+    viewSubscriptionPage.visit(subscriptionName);
+    viewSubscriptionPage.findYamlTab().click();
+    viewSubscriptionPage.findYamlContent().should('contain.text', 'MaaSSubscription');
+    shouldUseBundledMonaco();
+
+    projectListPage.navigate();
+    projectListPage.findProjectLink('Test Project').should('exist');
+    shouldUseBundledMonaco();
   });
 
   it('should display inference priority status in the details section', () => {

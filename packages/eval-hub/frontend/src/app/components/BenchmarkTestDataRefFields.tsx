@@ -11,6 +11,7 @@ import {
   Stack,
   StackItem,
   TextInput,
+  Content,
 } from '@patternfly/react-core';
 import {
   isTestDataRefSource,
@@ -25,6 +26,8 @@ type BenchmarkTestDataRefFieldsProps = {
   value: TestDataRefFormValues;
   idPrefix: string;
   testIdPrefix: string;
+  sectionTitle?: string;
+  sourceLabel?: string;
   isDisabled?: boolean;
   isRequired?: boolean;
   errors?: Partial<Record<TestDataRefFormField, string>>;
@@ -153,6 +156,8 @@ const BenchmarkTestDataRefFields: React.FC<BenchmarkTestDataRefFieldsProps> = ({
   value,
   idPrefix,
   testIdPrefix,
+  sectionTitle,
+  sourceLabel = 'Test data source',
   isDisabled = false,
   isRequired = false,
   errors,
@@ -204,9 +209,20 @@ const BenchmarkTestDataRefFields: React.FC<BenchmarkTestDataRefFieldsProps> = ({
 
   return (
     <Stack hasGutter>
+      {sectionTitle ? (
+        <StackItem>
+          <Content
+            component="h3"
+            className="pf-v6-u-font-size-md"
+            data-testid={`${testIdPrefix}-heading`}
+          >
+            {sectionTitle}
+          </Content>
+        </StackItem>
+      ) : null}
       <StackItem>
         <FormGroup
-          label="Test data source"
+          label={sourceLabel}
           fieldId={`${idPrefix}-test-data-ref`}
           isRequired={isRequired}
         >

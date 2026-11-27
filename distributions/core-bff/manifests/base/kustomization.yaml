@@ -1,6 +1,11 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+# Consume this base through an overlay that sets `namespace:` (as
+# distributions/rhaii/developing/manifests does). The ClusterRoleBinding
+# subject leaves its namespace to that transformer; `kubectl apply -n` alone
+# does not fill it.
+
 resources:
   - deployment.yaml
   - service.yaml
