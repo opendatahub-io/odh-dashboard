@@ -188,7 +188,9 @@ func TestGatewayDiscovery_UnreadableNamespaceSkipsSelectorListeners(t *testing.T
 		t.Run(name, func(t *testing.T) {
 			dyn := newGatewayDyn(testGateway("gw-ns", "gw", []any{
 				testListener("all", map[string]any{"from": "All"}),
-				testListener("selector-everything", map[string]any{"from": "Selector", "selector": map[string]any{}}),
+				testListener("selector-team", map[string]any{"from": "Selector", "selector": map[string]any{
+					"matchLabels": map[string]any{"team": "a"},
+				}}),
 			}, nil, nil))
 			typed := fake.NewSimpleClientset()
 			typed.PrependReactor("get", "namespaces", func(k8stesting.Action) (bool, runtime.Object, error) {
@@ -200,6 +202,48 @@ func TestGatewayDiscovery_UnreadableNamespaceSkipsSelectorListeners(t *testing.T
 			assert.Equal(t, "all", refs[0].Listener)
 		})
 	}
+}
+
+// Without the namespace read, kubernetes.io/metadata.name is still known (the
+// API server sets it to the name), so selectors that use only that label, or
+// select everything, are still decided.
+func TestGatewayDiscovery_UnreadableNamespaceStillDecidesNameSelectors(t *testing.T) {
+	sel := func(selector map[string]any) map[string]any {
+		return map[string]any{"from": "Selector", "selector": selector}
+	}
+	dyn := newGatewayDyn(testGateway("gw-ns", "gw", []any{
+		testListener("everything", sel(map[string]any{})),
+		testListener("name-match", sel(map[string]any{"matchLabels": map[string]any{corev1.LabelMetadataName: "project"}})),
+		testListener("name-miss", sel(map[string]any{"matchLabels": map[string]any{corev1.LabelMetadataName: "other"}})),
+		testListener("name-in", sel(map[string]any{"matchExpressions": []any{map[string]any{
+			"key": corev1.LabelMetadataName, "operator": "In", "values": []any{"project", "x"},
+		}}})),
+		testListener("name-and-team", sel(map[string]any{"matchLabels": map[string]any{
+			corev1.LabelMetadataName: "project", "team": "a",
+		}})),
+		testListener("nil-selector", map[string]any{"from": "Selector"}),
+	}, nil, nil))
+	typed := fake.NewSimpleClientset()
+	typed.PrependReactor("get", "namespaces", func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, k8serrors.NewForbidden(schema.GroupResource{Resource: "namespaces"}, "project", errors.New("denied"))
+	})
+	refs, err := callerRepo(t, typed, dyn).Discover(context.Background(), "project")
+	require.NoError(t, err)
+	var got []string
+	for _, r := range refs {
+		got = append(got, r.Listener)
+	}
+	assert.Equal(t, []string{"everything", "name-match", "name-in"}, got)
+}
+
+// A Selector listener with no selector admits nothing and needs no read.
+func TestGatewayDiscovery_NilSelectorNeedsNoNamespaceRead(t *testing.T) {
+	dyn := newGatewayDyn(testGateway("gw-ns", "gw", []any{testListener("nil", map[string]any{"from": "Selector"})}, nil, nil))
+	typed := fake.NewSimpleClientset()
+	refs, err := callerRepo(t, typed, dyn).Discover(context.Background(), "project")
+	require.NoError(t, err)
+	assert.Empty(t, refs)
+	assert.Empty(t, typed.Actions())
 }
 
 func TestGatewayDiscovery_NamespaceReadFailureIsAnError(t *testing.T) {
@@ -312,16 +356,17 @@ func TestGatewayDiscovery_HasADeadline(t *testing.T) {
 	}}
 	_, err := callerRepo(t, fake.NewSimpleClientset(), dyn).Discover(context.Background(), "project")
 	require.NoError(t, err)
-	assert.LessOrEqual(t, remaining, gatewayDiscoveryTimeout)
-	assert.Greater(t, remaining, time.Duration(0))
+	assert.LessOrEqual(t, remaining, GatewayDiscoveryTimeout)
+	assert.Greater(t, remaining, GatewayDiscoveryTimeout-time.Second, "the budget must be the documented one, not a shorter one")
 }
 
 func TestGatewayDiscovery_LogsSkippedSelectorListeners(t *testing.T) {
 	selectorGateway := func() *unstructured.Unstructured {
 		return testGateway("gw-ns", "gw", []any{
 			testListener("all", map[string]any{"from": "All"}),
-			testListener("sel-1", map[string]any{"from": "Selector", "selector": map[string]any{}}),
-			testListener("sel-2", map[string]any{"from": "Selector", "selector": map[string]any{}}),
+			testListener("sel-1", map[string]any{"from": "Selector", "selector": map[string]any{"matchLabels": map[string]any{"team": "a"}}}),
+			testListener("sel-2", map[string]any{"from": "Selector", "selector": map[string]any{"matchLabels": map[string]any{"team": "b"}}}),
+			testListener("sel-name", map[string]any{"from": "Selector", "selector": map[string]any{}}),
 		}, nil, nil)
 	}
 	discoverWithLog := func(t *testing.T, typed *fake.Clientset) string {
@@ -342,6 +387,15 @@ func TestGatewayDiscovery_LogsSkippedSelectorListeners(t *testing.T) {
 	assert.Contains(t, out, "namespace=project")
 	assert.Contains(t, out, "code=NAMESPACE_FORBIDDEN")
 	assert.Contains(t, out, "skippedListeners=2")
+	assert.Contains(t, out, "the caller cannot read the namespace")
+
+	gone := fake.NewSimpleClientset()
+	gone.PrependReactor("get", "namespaces", func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, k8serrors.NewNotFound(schema.GroupResource{Resource: "namespaces"}, "project")
+	})
+	out = discoverWithLog(t, gone)
+	assert.Contains(t, out, "code=NAMESPACE_NOT_FOUND")
+	assert.Contains(t, out, "the namespace does not exist")
 
 	assert.Empty(t, discoverWithLog(t, fake.NewSimpleClientset(namespaceWithLabels("project", nil))),
 		"a readable namespace skips nothing and logs nothing")

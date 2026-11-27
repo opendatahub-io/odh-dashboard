@@ -39,6 +39,7 @@ describe('Core BFF Model Serving gateway discovery - XKS Platform', () => {
   it('should list every listener that admits the namespace for a cluster admin', async () => {
     expect(await expectGateways(admin, 'test-ns-a')).toEqual([
       'opendatahub/selector-gateway/https/NotReady',
+      'opendatahub/selector-gateway/tenants/NotReady',
       'opendatahub/shared-gateway/http/Ready',
       'test-ns-a/project-gateway/default/Unknown',
     ]);
@@ -46,6 +47,7 @@ describe('Core BFF Model Serving gateway discovery - XKS Platform', () => {
 
   it('should leave out listeners that do not admit the namespace', async () => {
     expect(await expectGateways(admin, 'test-ns-b')).toEqual([
+      'opendatahub/selector-gateway/tenants/NotReady',
       'opendatahub/shared-gateway/http/Ready',
     ]);
   });
@@ -54,6 +56,12 @@ describe('Core BFF Model Serving gateway discovery - XKS Platform', () => {
     const result = expectSuccess(await admin.get(gatewaysFor('test-ns-b')));
     expect(result.response.data).toEqual({
       gateways: [
+        {
+          name: 'selector-gateway',
+          namespace: 'opendatahub',
+          listener: 'tenants',
+          status: 'NotReady',
+        },
         {
           name: 'shared-gateway',
           namespace: 'opendatahub',
@@ -66,8 +74,11 @@ describe('Core BFF Model Serving gateway discovery - XKS Platform', () => {
     });
   });
 
-  it('should leave out label-selector listeners when the caller cannot read the namespace', async () => {
+  it('should leave out label-selector listeners it cannot decide when the caller cannot read the namespace', async () => {
+    // "https" selects by kubernetes.io/metadata.name and is still decided;
+    // "tenants" needs the namespace's other labels and is left out.
     expect(await expectGateways(gatewayDeployer, 'test-ns-a')).toEqual([
+      'opendatahub/selector-gateway/https/NotReady',
       'opendatahub/shared-gateway/http/Ready',
       'test-ns-a/project-gateway/default/Unknown',
     ]);

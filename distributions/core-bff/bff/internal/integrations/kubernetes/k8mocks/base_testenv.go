@@ -123,6 +123,15 @@ func SetupEnvTest(input TestEnvInput) (*envtest.Environment, k8sclient.Interface
 	return testEnv, clientset, dynClient, nil
 }
 
+func findUserByName(users []TestUser, name string) *TestUser {
+	for i := range users {
+		if users[i].UserName == name {
+			return &users[i]
+		}
+	}
+	return nil
+}
+
 func setupMock(ctx context.Context, mockK8sClient k8sclient.Interface, dynClient dynamic.Interface, users []TestUser) error {
 	if len(users) == 0 {
 		users = DefaultTestUsers
@@ -201,17 +210,18 @@ func setupMock(ctx context.Context, mockK8sClient k8sclient.Interface, dynClient
 		}
 	}
 
-	if len(users) > 4 {
-		if err := createLLMInferenceServiceDeployerRBAC(ctx, mockK8sClient, "gateway-deployer", users[4].UserName, "test-ns-a"); err != nil {
+	// Gateway discovery users (RHAI-50760) are found by name, not position.
+	if u := findUserByName(users, "gatewayDeployer@example.com"); u != nil {
+		if err := createLLMInferenceServiceDeployerRBAC(ctx, mockK8sClient, "gateway-deployer", u.UserName, "test-ns-a"); err != nil {
 			return fmt.Errorf("failed to create gateway deployer RBAC: %w", err)
 		}
-		if err := createGatewayReaderRBAC(ctx, mockK8sClient, "gateway-deployer-gateway-reader", users[4].UserName); err != nil {
+		if err := createGatewayReaderRBAC(ctx, mockK8sClient, "gateway-deployer-gateway-reader", u.UserName); err != nil {
 			return fmt.Errorf("failed to create gateway reader RBAC: %w", err)
 		}
 	}
 
-	if len(users) > 5 {
-		if err := createLLMInferenceServiceDeployerRBAC(ctx, mockK8sClient, "llm-deployer", users[5].UserName, "test-ns-a"); err != nil {
+	if u := findUserByName(users, "llmDeployer@example.com"); u != nil {
+		if err := createLLMInferenceServiceDeployerRBAC(ctx, mockK8sClient, "llm-deployer", u.UserName, "test-ns-a"); err != nil {
 			return fmt.Errorf("failed to create LLM deployer RBAC: %w", err)
 		}
 	}

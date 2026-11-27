@@ -6,8 +6,9 @@
 # groups that may use the dashboard. Without a binding the deployment wizard
 # reports that gateways cannot be fetched.
 #
-# Listeners that admit projects by namespace label (allowedRoutes Selector)
-# also need the caller to `get` their project's Namespace object. The built-in
+# Listeners that admit projects by a namespace label other than
+# kubernetes.io/metadata.name (allowedRoutes Selector) also need the caller to
+# `get` their project's Namespace object. The built-in
 # view, edit and admin roles bound in the project grant it; a custom deploy
 # role must add it. Without it those listeners are left out and the BFF logs a
 # warning. See distributions/core-bff/docs/bootstrap-contract.md,
@@ -22,5 +23,4 @@ rules:
     resources:
       - gateways
     verbs:
-      - get
       - list

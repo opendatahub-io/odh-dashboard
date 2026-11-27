@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/repositories"
 	"k8s.io/apimachinery/pkg/util/validation"
 )
 
@@ -42,7 +44,10 @@ func (app *App) GatewayDiscoveryHandler(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	ctx := r.Context()
+	// One budget for the access review and the discovery together, as
+	// model-serving-api bounds its whole discovery.
+	ctx, cancel := context.WithTimeout(r.Context(), repositories.GatewayDiscoveryTimeout)
+	defer cancel()
 	identity, ok := ctx.Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
 	if !ok || identity == nil {
 		app.unauthorizedResponse(w, r, errors.New("missing request identity"))

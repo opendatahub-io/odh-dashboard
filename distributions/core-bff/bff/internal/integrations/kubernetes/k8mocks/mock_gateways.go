@@ -14,8 +14,9 @@ import (
 
 // createGatewayTestData seeds Gateways for the native gateway discovery route
 // (RHAI-50760). Seen from test-ns-a:
-//   - opendatahub/selector-gateway "https" admits it by the
-//     kubernetes.io/metadata.name label (needs a Namespace read), NotReady.
+//   - opendatahub/selector-gateway, NotReady: "https" admits it by the
+//     kubernetes.io/metadata.name label (decidable without a Namespace read);
+//     "tenants" admits every namespace without a "team" label (needs the read).
 //   - opendatahub/shared-gateway "http" admits every namespace, Ready;
 //     its "internal" listener admits only opendatahub.
 //   - test-ns-a/project-gateway "default" has no allowedRoutes (Same), Unknown.
@@ -36,6 +37,12 @@ func createGatewayTestData(ctx context.Context, dynClient dynamic.Interface) err
 				gatewayListener("https", map[string]any{
 					"from":     "Selector",
 					"selector": map[string]any{"matchLabels": map[string]any{"kubernetes.io/metadata.name": "test-ns-a"}},
+				}),
+				gatewayListener("tenants", map[string]any{
+					"from": "Selector",
+					"selector": map[string]any{"matchExpressions": []any{
+						map[string]any{"key": "team", "operator": "DoesNotExist"},
+					}},
 				}),
 			},
 			[]any{gatewayCondition("Accepted", "True"), gatewayCondition("Programmed", "False")}),
@@ -118,7 +125,7 @@ func createGatewayReaderRBAC(ctx context.Context, k8sClient k8sclient.Interface,
 		Rules: []rbacv1.PolicyRule{{
 			APIGroups: []string{"gateway.networking.k8s.io"},
 			Resources: []string{"gateways"},
-			Verbs:     []string{"get", "list"},
+			Verbs:     []string{"list"},
 		}},
 	}
 	if _, err := k8sClient.RbacV1().ClusterRoles().Create(ctx, role, metav1.CreateOptions{}); err != nil {

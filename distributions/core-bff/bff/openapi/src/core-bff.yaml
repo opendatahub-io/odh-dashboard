@@ -1340,9 +1340,9 @@ paths:
         namespace (SelfSubjectAccessReview); without it the response is 200 with an empty list.
         The caller then lists gateway.networking.k8s.io/v1 Gateways in all namespaces, and gets
         the namespace only when a listener selects namespaces by label. A denied Gateway list is
-        the API server's 403. When the namespace cannot be read, label-selector listeners are
-        left out and a warning is logged. The list is paged; a continue token that expires
-        mid-list is the API server's 410. Discovery is bounded to 10 seconds (504 on timeout). A cluster without the Gateway API returns an empty list. Each listener whose
+        the API server's 403. When the namespace cannot be read, label-selector listeners that
+        need labels other than kubernetes.io/metadata.name are left out and a warning is logged. The list is paged; a continue token that expires
+        mid-list is the API server's 410. The access review and the discovery share a 10-second budget (504 on timeout). A cluster without the Gateway API returns an empty list. Each listener whose
         allowedRoutes admits the namespace (Same, All or a matching Selector; unset means Same)
         becomes one entry. Status is Ready when the Gateway's Accepted and Programmed conditions
         are True, NotReady when either is False, and Unknown otherwise.

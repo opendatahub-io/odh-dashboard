@@ -4,10 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/config"
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
@@ -15,6 +17,7 @@ import (
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/repositories"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
@@ -93,6 +96,7 @@ func TestGatewayDiscoveryHandler_CallerCredentials(t *testing.T) {
 			status: http.StatusOK,
 			want: []string{
 				"opendatahub/selector-gateway/https/NotReady",
+				"opendatahub/selector-gateway/tenants/NotReady",
 				"opendatahub/shared-gateway/http/Ready",
 				"test-ns-a/project-gateway/default/Unknown",
 			},
@@ -100,12 +104,13 @@ func TestGatewayDiscoveryHandler_CallerCredentials(t *testing.T) {
 		{
 			name: "listeners for another namespace are filtered", token: adminToken, namespace: "test-ns-b",
 			status: http.StatusOK,
-			want:   []string{"opendatahub/shared-gateway/http/Ready"},
+			want:   []string{"opendatahub/selector-gateway/tenants/NotReady", "opendatahub/shared-gateway/http/Ready"},
 		},
 		{
-			name: "a gateway reader without namespace read gets no selector listeners", token: gatewayDeployerToken, namespace: "test-ns-a",
+			name: "a gateway reader without namespace read gets no team-selector listeners", token: gatewayDeployerToken, namespace: "test-ns-a",
 			status: http.StatusOK,
 			want: []string{
+				"opendatahub/selector-gateway/https/NotReady",
 				"opendatahub/shared-gateway/http/Ready",
 				"test-ns-a/project-gateway/default/Unknown",
 			},
@@ -203,6 +208,47 @@ func TestGatewayDiscoveryHandler_AccessReviewFailureIs500(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, rr.Code)
 }
 
+// unauthorizedAccessClient's access review is rejected by the API server.
+type unauthorizedAccessClient struct{ stubDynClient }
+
+func (unauthorizedAccessClient) CheckAccess(context.Context, *k8s.RequestIdentity, string, string, string, string) (bool, error) {
+	return false, fmt.Errorf("failed to check access: %w", k8serrors.NewUnauthorized("token expired"))
+}
+
+// An access review the API server rejects keeps the API server's status.
+func TestGatewayDiscoveryHandler_AccessReviewKeepsTheAPIServerStatus(t *testing.T) {
+	app := newXKSGatewayApp(t)
+	app.kubernetesClientFactory = &staticClientFactory{client: &unauthorizedAccessClient{}}
+	rr := httptest.NewRecorder()
+	app.GatewayDiscoveryHandler(rr, gatewayRequest(adminToken, "?namespace=test-ns-a"), nil)
+	assert.Equal(t, http.StatusUnauthorized, rr.Code, rr.Body.String())
+}
+
+// deadlineAccessClient records whether the access review ran under a deadline.
+type deadlineAccessClient struct {
+	stubDynClient
+	remaining time.Duration
+}
+
+func (c *deadlineAccessClient) CheckAccess(ctx context.Context, _ *k8s.RequestIdentity, _, _, _, _ string) (bool, error) {
+	if deadline, ok := ctx.Deadline(); ok {
+		c.remaining = time.Until(deadline)
+	}
+	return false, nil
+}
+
+// The access review and the discovery share one budget.
+func TestGatewayDiscoveryHandler_AccessReviewRunsUnderTheBudget(t *testing.T) {
+	client := &deadlineAccessClient{}
+	app := newXKSGatewayApp(t)
+	app.kubernetesClientFactory = &staticClientFactory{client: client}
+	rr := httptest.NewRecorder()
+	app.GatewayDiscoveryHandler(rr, gatewayRequest(adminToken, "?namespace=test-ns-a"), nil)
+	require.Equal(t, http.StatusOK, rr.Code)
+	assert.Greater(t, client.remaining, repositories.GatewayDiscoveryTimeout-time.Second)
+	assert.LessOrEqual(t, client.remaining, repositories.GatewayDiscoveryTimeout)
+}
+
 // The access review is the one model-serving-api runs.
 type recordingAccessClient struct {
 	stubDynClient
@@ -252,7 +298,7 @@ func TestModelServingRoutes_XKSServesGatewaysNatively(t *testing.T) {
 
 	rr := serve(http.MethodGet, GatewayDiscoveryPath+"?namespace=test-ns-b")
 	require.Equal(t, http.StatusOK, rr.Code, rr.Body.String())
-	assert.Equal(t, []string{"opendatahub/shared-gateway/http/Ready"}, gatewayKeys(t, rr))
+	assert.Equal(t, []string{"opendatahub/selector-gateway/tenants/NotReady", "opendatahub/shared-gateway/http/Ready"}, gatewayKeys(t, rr))
 
 	rr = serve(http.MethodGet, PathPrefix+GatewayDiscoveryPath+"?namespace=test-ns-b")
 	assert.Equal(t, http.StatusOK, rr.Code, "the BFF-prefixed path serves the same route")
@@ -340,7 +386,7 @@ func TestModelServingRoutes_XKSNeverMountsAProxy(t *testing.T) {
 	rr := httptest.NewRecorder()
 	mux.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusOK, rr.Code)
-	assert.Equal(t, []string{"opendatahub/shared-gateway/http/Ready"}, gatewayKeys(t, rr))
+	assert.Equal(t, []string{"opendatahub/selector-gateway/tenants/NotReady", "opendatahub/shared-gateway/http/Ready"}, gatewayKeys(t, rr))
 }
 
 // The repository the xKS app wires uses the caller's clients.

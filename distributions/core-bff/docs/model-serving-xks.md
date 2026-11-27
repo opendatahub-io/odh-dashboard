@@ -44,11 +44,13 @@ bundle. OpenShift keeps the proxy unchanged.**
      `{gateways: []}`, as upstream does.
    - `list gateway.networking.k8s.io/v1 gateways` across namespaces as the caller.
    - `get namespaces/<ns>` as the caller only when a listener uses a selector. If that is forbidden
-     or the namespace is gone, selector listeners are skipped (fail closed), the rest are returned,
-     and the BFF logs a warning with the namespace and the number of skipped listeners. The
-     built-in `view`, `edit` and `admin` roles bound in the project grant this read; a custom
-     deploy role must add it.
-   - The whole discovery is bounded to 10 seconds.
+     or the namespace is gone, only `kubernetes.io/metadata.name` is known (the API server sets it
+     to the name): selectors that use only that label, or select everything, are still decided;
+     the others are skipped (fail closed), the rest are returned, and the BFF logs a warning with
+     the namespace and the number of skipped listeners. The built-in `view`, `edit` and `admin`
+     roles bound in the project grant this read; a custom deploy role must add it.
+   - The access review and the discovery share one 10-second budget. The identity lookup that
+     every authenticated route makes first (`secureRoute`) has its own.
 2. On xKS, nothing else under `/api/service/model-serving/` is routed: the proxy is not registered
    and other paths return the standard 404 error envelope instead of a 502 to a host that doesn't
    exist. The samples route is not part of the RHAII journey.
@@ -57,7 +59,7 @@ bundle. OpenShift keeps the proxy unchanged.**
    an inconclusive probe also keeps the proxy, because it may be OpenShift: the native route needs
    a confirmed xKS platform, like the cluster-TLS-profile decision (`ServeTLSWithoutClusterProfile`).
 4. The RHAII bundle ships a ClusterRole `rhaii-dashboard-gateway-reader`
-   (`gateway.networking.k8s.io/gateways: get, list`), unbound, documented next to the dashboard
+   (`gateway.networking.k8s.io/gateways: list`), unbound, documented next to the dashboard
    access role: the installer binds it to the same users or groups that may use the dashboard.
    Without the binding, the route returns the 403 error envelope and the wizard shows its existing
    "Unable to fetch resources" message.
@@ -119,19 +121,21 @@ user role) before switching. Response shape and frontend stay the same.
 
 Behaviour that differs from model-serving-api, on purpose:
 
-- A failed access review is a 500 instead of an empty list, so "no gateways" and "the check did not
-  run" stay distinguishable.
+- A failed access review is an error instead of an empty list, so "no gateways" and "the check did
+  not run" stay distinguishable: the API server's status when it answered (401 for a rejected
+  token, 403, 429), 504 on timeout, otherwise 500.
 - A Gateway list the caller may not perform is the API server's 403 (Kubernetes `v1.Status`).
   Upstream never sees it, because its ServiceAccount lists.
 - A cluster without the Gateway API returns an empty list instead of a 500.
 - Errors use the Core BFF error contract (`{"error":{code,message,requestId}}` or a sanitized
   `v1.Status`) instead of `{"error":"..."}`. The frontend only checks `res.ok`.
-- A namespace the caller cannot read drops only the label-selector listeners (with a warning log)
-  instead of failing the request. Upstream reads it with its ServiceAccount, so it never hits this.
+- A namespace the caller cannot read drops only the label-selector listeners it cannot decide (with
+  a warning log) instead of failing the request. Upstream reads it with its ServiceAccount, so it never hits this.
 - There is no `GATEWAY_LABEL_SELECTOR` equivalent: every Gateway is listed. Upstream's default is
   empty, so the default behaviour matches.
 - The caller's list is paged (500 per page). A continue token that expires mid-list returns the API
-  server's 410; upstream lists from a cache in one call.
+  server's 410; upstream lists from a cache in one call. `k8s.io/client-go/tools/pager`, which falls
+  back to a full list, would remove that; it needs more than 500 Gateways to matter.
 
 Like every `/api` response, this one carries `Cache-Control: no-store` and `Vary` on the credential
 headers (bootstrap-contract.md, "Response caching"): the list depends on the caller's permissions.
