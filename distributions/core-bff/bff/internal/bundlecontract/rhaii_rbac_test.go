@@ -777,7 +777,7 @@ targets:
 		assert.Contains(t, strings.Join(profileViolations(b.deployment(t)), "\n"), "init containers")
 	})
 
-	for name, patch := range map[string]string{
+	for name, patch := range map[string]string{ //nolint:gosec // G101: JSON patches naming secret volumes, not credentials
 		"kubeconfig env": `- op: add
   path: /spec/template/spec/containers/0/env/-
   value: {name: KUBECONFIG, value: /creds/config}`,
