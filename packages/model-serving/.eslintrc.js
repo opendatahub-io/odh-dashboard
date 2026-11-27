@@ -5,10 +5,6 @@ module.exports = eslintConfig
     ignorePatterns: ['cypress/'],
     overrides: [
       {
-        files: ['{src,modelRegistry}/**/*.{ts,tsx}'],
-        ...eslintConfig.featureAnalytics,
-      },
-      {
         files: ['src/shared/index.ts', 'src/shared/components/index.ts'],
         rules: {
           'no-barrel-files/no-barrel-files': 'off',

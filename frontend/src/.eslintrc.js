@@ -73,6 +73,14 @@ module.exports = require('@odh-dashboard/eslint-config')
     },
     overrides: [
       {
+        // Host-owned analytics implementation — concrete delivery and legacy wrappers.
+        files: [
+          '**/concepts/analyticsTracking/**/*.{ts,tsx}',
+          '**/HostApiProvider.tracking.spec.tsx',
+        ],
+        rules: { '@odh-dashboard/no-direct-analytics': 'off' },
+      },
+      {
         files: ['./components/modals/ContentModal.tsx'],
         rules: {
           '@odh-dashboard/no-restricted-imports': 'off',

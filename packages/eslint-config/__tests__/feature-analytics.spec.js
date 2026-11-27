@@ -52,7 +52,7 @@ describe('feature analytics config', () => {
     for (const file of files) {
       const filePath = path.join(directory, file);
       const before = await original.calculateConfigForFile(filePath);
-      expect(before.rules[ruleId]).toBeUndefined();
+      expect(before.rules[ruleId]).toEqual(['error']);
       const after = await guarded.calculateConfigForFile(filePath);
       for (const name of Object.keys(before.rules)) {
         expect(after.rules[name]).toEqual(before.rules[name]);

@@ -4,9 +4,16 @@ import {
   AnalyticsTrackingProvider,
   NoopAnalyticsTrackingProvider,
   useTrackEvent,
+  useTrackFormEvent,
   useTrackPageEvent,
 } from '../index';
-import type { TrackEvent, TrackPageEvent } from '../../types';
+import { TrackingOutcome } from '../../types';
+import type {
+  TrackEvent,
+  TrackEventOptions,
+  TrackPageEvent,
+  TrackingPageContext,
+} from '../../types';
 
 // Importing the React entry point must never load an SDK or concrete adapter.
 jest.mock('@segment/analytics-page-tools', () => {
@@ -54,6 +61,40 @@ describe('AnalyticsTrackingProvider', () => {
     rendered.result.current.page();
     expect(trackPageEvent.mock.calls).toStrictEqual([[]]);
     expect(trackEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('should forward form-event properties and page-context policy unchanged', () => {
+    const trackEvent = jest.fn();
+    const trackPageEvent = jest.fn();
+    const pageContextPolicy = jest.fn((page: Readonly<TrackingPageContext>) => ({
+      ...page,
+      search: '',
+    }));
+    const options: TrackEventOptions = { pageContextPolicy };
+    const properties = { outcome: TrackingOutcome.submit, success: true };
+    const rendered = renderHook(useTrackFormEvent, {
+      wrapper: ({ children }) => (
+        <AnalyticsTrackingProvider value={{ trackEvent, trackPageEvent }}>
+          {children}
+        </AnalyticsTrackingProvider>
+      ),
+    });
+    expect(rendered).hookToHaveUpdateCount(1);
+    expect(trackEvent).not.toHaveBeenCalled();
+
+    rendered.result.current('Form Submitted', properties, options);
+
+    expect(trackEvent).toHaveBeenCalledTimes(1);
+    expect(trackEvent).toHaveBeenCalledWith('Form Submitted', properties, options);
+    expect(trackEvent.mock.calls[0][1]).toBe(properties);
+    expect(trackEvent.mock.calls[0][2]).toBe(options);
+    expect(trackEvent.mock.calls[0][2].pageContextPolicy).toBe(pageContextPolicy);
+    expect(pageContextPolicy).not.toHaveBeenCalled();
+    expect(trackPageEvent).not.toHaveBeenCalled();
+
+    rendered.result.current('Form Submitted', properties);
+    expect(trackEvent).toHaveBeenCalledTimes(2);
+    expect(trackEvent.mock.calls[1]).toEqual(['Form Submitted', properties]);
   });
 
   it('should replace either callback independently without emitting on updates', () => {

@@ -1,4 +1,4 @@
-import { useTrackEvent } from '@odh-dashboard/analytics/react';
+import { useTrackFormEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
@@ -42,7 +42,7 @@ const convertVectorStoreFileToFileModel = (vectorStoreFile: VectorStoreFile): Fi
 export const DELETE_EVENT_NAME = 'Playground RAG Delete File';
 
 const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagementReturn => {
-  const trackEvent = useTrackEvent();
+  const trackFormEvent = useTrackFormEvent();
   const { onShowDeleteSuccessAlert, onShowErrorAlert } = props;
   const { namespace } = React.useContext(GenAiContext);
   const { username } = useUserContext();
@@ -132,7 +132,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
         );
         // Remove the deleted file from the local state
         setFiles((prevFiles) => prevFiles.filter((file) => file.id !== fileId));
-        trackEvent(DELETE_EVENT_NAME, {
+        trackFormEvent(DELETE_EVENT_NAME, {
           outcome: TrackingOutcome.submit,
           success: true,
         });
@@ -140,7 +140,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to delete file';
         setError(errorMessage);
-        trackEvent(DELETE_EVENT_NAME, {
+        trackFormEvent(DELETE_EVENT_NAME, {
           outcome: TrackingOutcome.submit,
           success: false,
           error: errorCategory(err),
@@ -154,7 +154,7 @@ const useFileManagement = (props: UseFileManagementProps = {}): UseFileManagemen
       apiAvailable,
       currentVectorStoreId,
       api,
-      trackEvent,
+      trackFormEvent,
       onShowDeleteSuccessAlert,
       onShowErrorAlert,
     ],

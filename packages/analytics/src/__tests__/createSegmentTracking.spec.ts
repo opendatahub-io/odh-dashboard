@@ -86,4 +86,42 @@ describe('createSegmentTracking', () => {
     expect(() => tracking.trackEvent('custom-event', {})).not.toThrow();
     expect(() => tracking.trackPageEvent()).not.toThrow();
   });
+
+  it.each(['trackEvent', 'trackPageEvent'] as const)(
+    'should contain synchronous SDK failures from %s and allow later delivery',
+    (operation) => {
+      const delivery = operation === 'trackEvent' ? track : page;
+      delivery.mockImplementationOnce(() => {
+        throw new Error('SDK delivery failed');
+      });
+      const tracking = createSegmentTracking(() => options);
+      const send = () =>
+        operation === 'trackEvent'
+          ? tracking.trackEvent('custom-event', { success: true })
+          : tracking.trackPageEvent();
+
+      expect(send).not.toThrow();
+      expect(send).not.toThrow();
+      expect(delivery).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it.each(['trackEvent', 'trackPageEvent'] as const)(
+    'should handle rejected SDK delivery from %s without blocking later delivery',
+    async (operation) => {
+      const delivery = operation === 'trackEvent' ? track : page;
+      delivery.mockRejectedValueOnce(new Error('SDK delivery failed'));
+      const tracking = createSegmentTracking(() => options);
+      const send = () =>
+        operation === 'trackEvent'
+          ? tracking.trackEvent('custom-event', { success: true })
+          : tracking.trackPageEvent();
+
+      expect(send()).toBeUndefined();
+      // Let the adapter handle the rejected delivery without returning a promise to its caller.
+      await Promise.resolve();
+      expect(send).not.toThrow();
+      expect(delivery).toHaveBeenCalledTimes(2);
+    },
+  );
 });

@@ -37,6 +37,14 @@ const isCompletePageContext = (
 ): page is TrackingPageContext =>
   !!page && PAGE_CONTEXT_KEYS.every((key) => typeof page[key] === 'string');
 
+const deliverEvent = (send: () => unknown): void => {
+  try {
+    void Promise.resolve(send()).catch(() => undefined);
+  } catch {
+    // SDK delivery is best effort and must not interrupt the user's action.
+  }
+};
+
 export const fireTrackingEvent = (
   eventName: string,
   properties: BaseTrackingEventProperties,
@@ -59,13 +67,15 @@ export const fireTrackingEvent = (
     if (options?.pageContextPolicy && !isCompletePageContext(page)) {
       throw new Error('Page-context policies must return all page fields as strings');
     }
-    window.analytics.track(
-      eventName,
-      { ...properties, clusterID },
-      {
-        app: { version },
-        ...(page ? { page } : {}),
-      },
+    deliverEvent(() =>
+      window.analytics.track(
+        eventName,
+        { ...properties, clusterID },
+        {
+          app: { version },
+          ...(page ? { page } : {}),
+        },
+      ),
     );
   }
 };
@@ -80,14 +90,16 @@ export const firePageEvent = (params: {
     /* eslint-disable-next-line no-console */
     console.log(`Page event triggered for version ${version} : ${window.location.pathname}`);
   } else if (window.analytics) {
-    window.analytics.page(
-      undefined,
-      { clusterID },
-      {
-        app: {
-          version,
+    deliverEvent(() =>
+      window.analytics.page(
+        undefined,
+        { clusterID },
+        {
+          app: {
+            version,
+          },
         },
-      },
+      ),
     );
   }
 };
