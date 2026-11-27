@@ -240,18 +240,19 @@ describe('EmbeddableConnectionWizard', () => {
     const ThrowingWizard = () => {
       throw new Error('remote render failed');
     };
-    mockLoadRemote.mockResolvedValue({ default: ThrowingWizard });
+    const HealthyWizard = () => <div data-testid="healthy-remote-wizard" />;
+    mockLoadRemote
+      .mockResolvedValueOnce({ default: ThrowingWizard })
+      .mockResolvedValueOnce({ default: HealthyWizard });
     const consoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    const props = {
+      namespace: 'test-project',
+      unavailableFallback: <div data-testid="legacy-connection-modal" />,
+      onAvailabilityChange,
+    };
 
     try {
-      render(
-        <EmbeddableConnectionWizard
-          isOpen
-          namespace="test-project"
-          unavailableFallback={<div data-testid="legacy-connection-modal" />}
-          onAvailabilityChange={onAvailabilityChange}
-        />,
-      );
+      const { rerender } = render(<EmbeddableConnectionWizard {...props} isOpen />);
 
       expect(await screen.findByTestId('legacy-connection-modal')).toBeInTheDocument();
       await waitFor(() =>
@@ -260,6 +261,12 @@ describe('EmbeddableConnectionWizard', () => {
           reason: 'remote',
         }),
       );
+
+      rerender(<EmbeddableConnectionWizard {...props} isOpen={false} />);
+      expect(screen.queryByTestId('legacy-connection-modal')).toBeNull();
+
+      rerender(<EmbeddableConnectionWizard {...props} isOpen />);
+      expect(await screen.findByTestId('healthy-remote-wizard')).toBeInTheDocument();
     } finally {
       consoleError.mockRestore();
     }

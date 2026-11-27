@@ -22,6 +22,8 @@ const ConnectionWizardUnavailableFallback: React.FC = () => (
 );
 
 type RemoteConnectionWizardErrorBoundaryProps = {
+  isOpen: boolean;
+  resetSession: number;
   unavailableFallback?: React.ReactNode;
   onAvailabilityChange?: EmbeddableConnectionWizardProps['onAvailabilityChange'];
   children: React.ReactNode;
@@ -29,9 +31,19 @@ type RemoteConnectionWizardErrorBoundaryProps = {
 
 class RemoteConnectionWizardErrorBoundary extends React.Component<
   RemoteConnectionWizardErrorBoundaryProps,
-  { hasError: boolean }
+  { hasError: boolean; resetSession: number }
 > {
-  state = { hasError: false };
+  state = { hasError: false, resetSession: 0 };
+
+  static getDerivedStateFromProps(
+    props: RemoteConnectionWizardErrorBoundaryProps,
+    state: { hasError: boolean; resetSession: number },
+  ) {
+    if (props.resetSession !== state.resetSession) {
+      return { hasError: false, resetSession: props.resetSession };
+    }
+    return null;
+  }
 
   static getDerivedStateFromError() {
     return { hasError: true };
@@ -42,6 +54,9 @@ class RemoteConnectionWizardErrorBoundary extends React.Component<
   }
 
   render() {
+    if (this.state.hasError && !this.props.isOpen) {
+      return null;
+    }
     if (this.state.hasError) {
       return this.props.unavailableFallback ?? <ConnectionWizardUnavailableFallback />;
     }
@@ -89,6 +104,7 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
   const [isRemoteLoading, setIsRemoteLoading] = React.useState(true);
   const [isRemoteUnavailable, setIsRemoteUnavailable] = React.useState(false);
   const [isFeatureUnavailable, setIsFeatureUnavailable] = React.useState(false);
+  const [remoteRenderSession, setRemoteRenderSession] = React.useState(0);
   const onAvailabilityChangeRef = React.useRef(onAvailabilityChange);
 
   React.useEffect(() => {
@@ -134,6 +150,9 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
         }
         const component = module?.default ?? null;
         setRemoteComponent(() => component);
+        if (component) {
+          setRemoteRenderSession((session) => session + 1);
+        }
         setIsRemoteLoading(false);
         setIsRemoteUnavailable(!component);
         if (!component) {
@@ -192,6 +211,8 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
   const Wizard = remoteComponent;
   return (
     <RemoteConnectionWizardErrorBoundary
+      isOpen={isOpen}
+      resetSession={remoteRenderSession}
       unavailableFallback={unavailableFallback}
       onAvailabilityChange={onAvailabilityChange}
     >

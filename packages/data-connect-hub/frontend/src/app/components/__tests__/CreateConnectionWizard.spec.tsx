@@ -333,6 +333,53 @@ describe('CreateConnectionWizard', () => {
     );
   });
 
+  it('should not emit completion after the wizard unmounts', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    const createdConnection: Connection = {
+      metadata: { id: 'connection-id' },
+      resource: {
+        name: 'warehouse',
+        data_connection_type_id: postgresqlConnectionTypeId,
+        format: 'tabular',
+        credentials_ref: { secret: 'warehouse' },
+      },
+      status: { state: 'ready' },
+    };
+    let resolveCreation!: (connection: Connection) => void;
+    const onCreate =
+      jest.fn<(data: CreateConnectionRequest, selectedNamespace: string) => Promise<Connection>>();
+    onCreate.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveCreation = resolve;
+        }),
+    );
+    const { unmount } = render(
+      <CreateConnectionWizard
+        isOpen
+        namespace="test-project"
+        onClose={onClose}
+        onCreate={onCreate}
+        initialFormData={{ data_connection_type_id: postgresqlConnectionTypeId }}
+      />,
+    );
+
+    await user.type(await screen.findByTestId('connection-name-input'), 'warehouse');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.type(screen.getByTestId('credential-URI'), 'postgres://warehouse');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(screen.getByRole('button', { name: 'Create connection' }));
+
+    unmount();
+    await act(async () => {
+      resolveCreation(createdConnection);
+    });
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(mockNotificationSuccess).not.toHaveBeenCalled();
+  });
+
   it('tracks connection type selection in the wizard', async () => {
     render(<CreateConnectionWizard isOpen namespace="test-project" onClose={jest.fn()} />);
 

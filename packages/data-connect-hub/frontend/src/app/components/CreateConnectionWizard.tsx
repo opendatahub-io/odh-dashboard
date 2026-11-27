@@ -1110,6 +1110,13 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     }
     wasOpenRef.current = isOpen;
   }, [initialFormData, isOpen, namespace]);
+
+  React.useEffect(
+    () => () => {
+      openSessionRef.current += 1;
+    },
+    [],
+  );
   React.useEffect(() => {
     if (isOpen && isOpenSessionReady && hasSelectedConnectionType && hasMissingCredentialDefaults) {
       const formDataWithDefaults = (current: CreateConnectionFormData) => ({

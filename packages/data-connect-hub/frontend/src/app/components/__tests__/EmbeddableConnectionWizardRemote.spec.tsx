@@ -14,6 +14,7 @@ import { useConnectionAccess } from '~/app/hooks/useConnectionAccess';
 import { useConnectionNameAvailability } from '~/app/hooks/useConnectionNameAvailability';
 import { createConnection, testCredentials } from '~/app/api/dch';
 import type { Connection, NamespaceKind } from '~/app/types';
+import type { DchConnection } from '~/types';
 
 jest.mock('~/app/hooks/useConnectionTypes');
 jest.mock('~/app/hooks/useNamespaces');
@@ -79,6 +80,7 @@ const createdConnection: Connection = {
   metadata: { id: 'connection-id' },
   resource: {
     name: 'warehouse',
+    description: 'Sales data warehouse',
     data_connection_type_id: connectionTypeId,
     format: 'tabular',
     credentials_ref: { secret: 'warehouse' },
@@ -395,7 +397,9 @@ describe('EmbeddableConnectionWizardRemote', () => {
 
   it('creates through the Data Connect Hub BFF and reports the created connection', async () => {
     const user = userEvent.setup();
-    const onCreated = jest.fn<() => void>();
+    const onCreated = jest.fn((connection: DchConnection) => {
+      expect(connection.resource.description).toBe('Sales data warehouse');
+    });
     const onClose = jest.fn();
     render(
       <EmbeddableConnectionWizardRemote

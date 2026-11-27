@@ -1,55 +1,10 @@
 import type { ReactNode } from 'react';
+import type { Connection } from './connection';
+import type { ConnectionType } from './connection-type';
 
-export type DchConnection = {
-  metadata: {
-    id: string;
-    tenant_id?: string;
-    created_at?: string;
-    updated_at?: string;
-  };
-  resource: {
-    name: string;
-    data_connection_type_id: string;
-    format: 'tabular' | 'binary';
-    credentials_ref: { secret: string };
-    properties?: Record<string, string>;
-  };
-  status: {
-    state: 'ready' | 'ingestion_not_ready' | 'not_ready';
-    message?: string;
-    updated_at?: string;
-  };
-};
+export type DchConnection = Connection;
 
-export type DchConnectionType = {
-  metadata: {
-    id: string;
-    tenant_id?: string;
-    created_at: string;
-    updated_at: string;
-  };
-  resource: {
-    name: string;
-    provider: string;
-    description?: string | null;
-    credentials_fields: Array<{
-      name: string;
-      label: string;
-      description?: string | null;
-      required: boolean;
-      type: string;
-      enum_values?: Array<{ label: string; value: string }> | null;
-      default_value?: string | null;
-    }>;
-    tags?: string[] | null;
-  };
-  status?: {
-    flight_ready: boolean;
-    flight_url?: string;
-    message?: string;
-    updated_at?: string;
-  };
-};
+export type DchConnectionType = ConnectionType;
 
 /**
  * Props for the embeddable connection creation wizard exposed by the
