@@ -43,6 +43,23 @@ var DefaultTestUsers = []TestUser{
 		Token:    "FAKE_SERVING_EDITOR_TOKEN",
 		Groups:   []string{},
 	},
+	// gatewayDeployer may create LLMInferenceServices in test-ns-a and read
+	// Gateways cluster-wide, but may not read Namespace objects. Gateway
+	// discovery returns what it can prove and leaves out label-selector
+	// listeners (RHAI-50760).
+	{
+		UserName: "gatewayDeployer@example.com",
+		Token:    "FAKE_GATEWAY_DEPLOYER_TOKEN",
+		Groups:   []string{},
+	},
+	// llmDeployer may create LLMInferenceServices in test-ns-a but may not read
+	// Gateways: gateway discovery answers with the API server's 403, never the
+	// service account's view (RHAI-50760).
+	{
+		UserName: "llmDeployer@example.com",
+		Token:    "FAKE_LLM_DEPLOYER_TOKEN",
+		Groups:   []string{},
+	},
 }
 
 // TestUser represents a test user with fake token and group memberships.
@@ -184,6 +201,21 @@ func setupMock(ctx context.Context, mockK8sClient k8sclient.Interface, dynClient
 		}
 	}
 
+	if len(users) > 4 {
+		if err := createLLMInferenceServiceDeployerRBAC(ctx, mockK8sClient, "gateway-deployer", users[4].UserName, "test-ns-a"); err != nil {
+			return fmt.Errorf("failed to create gateway deployer RBAC: %w", err)
+		}
+		if err := createGatewayReaderRBAC(ctx, mockK8sClient, "gateway-deployer-gateway-reader", users[4].UserName); err != nil {
+			return fmt.Errorf("failed to create gateway reader RBAC: %w", err)
+		}
+	}
+
+	if len(users) > 5 {
+		if err := createLLMInferenceServiceDeployerRBAC(ctx, mockK8sClient, "llm-deployer", users[5].UserName, "test-ns-a"); err != nil {
+			return fmt.Errorf("failed to create LLM deployer RBAC: %w", err)
+		}
+	}
+
 	if len(users) > 1 && len(users[1].Groups) > 1 {
 		err = createGroupAccessRBAC(ctx, mockK8sClient, users[1].Groups[1], "test-ns-a", "dashboard-ns-a")
 		if err != nil {
@@ -200,6 +232,10 @@ func setupMock(ctx context.Context, mockK8sClient k8sclient.Interface, dynClient
 
 	if err := createNIMTestData(ctx, mockK8sClient, dynClient); err != nil {
 		return fmt.Errorf("failed to create NIM test data: %w", err)
+	}
+
+	if err := createGatewayTestData(ctx, dynClient); err != nil {
+		return fmt.Errorf("failed to create Gateway test data: %w", err)
 	}
 
 	return nil

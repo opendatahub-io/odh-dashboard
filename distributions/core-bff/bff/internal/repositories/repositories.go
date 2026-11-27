@@ -25,6 +25,7 @@ type Repositories struct {
 	NamespaceMutation          *NamespaceMutationRepository
 	Prometheus                 *PrometheusRepository
 	OperatorSubscriptionStatus *OperatorSubscriptionStatusRepository
+	GatewayDiscovery           *GatewayDiscoveryRepository
 }
 
 // RepositoriesConfig holds the dependencies needed to construct all repositories.
@@ -92,5 +93,6 @@ func NewRepositories(cfg RepositoriesConfig) *Repositories {
 		NamespaceMutation:          namespaceMutation,
 		Prometheus:                 NewPrometheusRepository(cfg.Prometheus),
 		OperatorSubscriptionStatus: NewOperatorSubscriptionStatusRepository(cfg.SADynClient, cfg.OperatorNamespace),
+		GatewayDiscovery:           &GatewayDiscoveryRepository{clients: clients},
 	}
 }

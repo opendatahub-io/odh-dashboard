@@ -18,6 +18,11 @@ import {
 } from '@odh-dashboard/k8s-core/api/secrets';
 import { SecretModel } from '@odh-dashboard/k8s-core/api/models';
 import type { K8sResourceCommon, SecretKind } from '@odh-dashboard/k8s-core';
+import { getGatewayOptions } from '@odh-dashboard/model-serving/shared/api/gatewayDiscovery';
+import {
+  ModelServingDataContext,
+  type ModelServingDataServices,
+} from '@odh-dashboard/model-serving/shared/contexts/ModelServingDataContext';
 import { DashboardNamespaceContext } from './DashboardNamespaceContext';
 import { checkAccess } from './checkAccess';
 
@@ -146,6 +151,10 @@ const hostApi: HostApiServices = {
   },
 };
 
+// Core BFF serves gateway discovery natively on xKS (RHAI-50760). Kueue queue
+// positions are not available in RHAII, so getPendingWorkloads stays unset.
+const servingDataServices: ModelServingDataServices = { getGatewayOptions };
+
 type HostApiProviderProps = {
   children: React.ReactNode;
 };
@@ -161,7 +170,11 @@ const HostApiProvider: React.FC<HostApiProviderProps> = ({ children }) => {
     <NoopAnalyticsTrackingProvider>
       <HostApiCoreContext.Provider value={coreApi}>
         <HostApiInfraContext.Provider value={infraApi}>
-          <HostApiContext.Provider value={hostApi}>{children}</HostApiContext.Provider>
+          <HostApiContext.Provider value={hostApi}>
+            <ModelServingDataContext.Provider value={servingDataServices}>
+              {children}
+            </ModelServingDataContext.Provider>
+          </HostApiContext.Provider>
         </HostApiInfraContext.Provider>
       </HostApiCoreContext.Provider>
     </NoopAnalyticsTrackingProvider>

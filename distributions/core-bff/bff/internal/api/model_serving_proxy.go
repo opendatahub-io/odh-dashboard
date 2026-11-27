@@ -19,6 +19,16 @@ const (
 )
 
 func (app *App) initModelServingProxy() error {
+	// xKS deploys no model-serving-api. Its gateway discovery is a native route
+	// (registerModelServingRoutes) and the rest of the prefix is not served, so
+	// no request can be forwarded to a host that does not exist.
+	if app.config.PlatformType.IsXKS() {
+		if app.config.ModelServingServiceHost != "" {
+			app.logger.Warn("MODEL_SERVING_HOST is ignored on xKS: model-serving routes are served natively")
+		}
+		app.modelServingProxy = nil
+		return nil
+	}
 	if app.config.MockK8Client {
 		app.modelServingProxy = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set(constants.HeaderContentType, constants.ContentTypeJSON)

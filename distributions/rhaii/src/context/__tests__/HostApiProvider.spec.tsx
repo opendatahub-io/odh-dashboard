@@ -2,6 +2,7 @@ import { act, renderHook, waitFor } from '@testing-library/react';
 import { setUtilsConfig } from '@openshift/dynamic-plugin-sdk-utils';
 import { useAccessReview, useHostApiCore } from '@odh-dashboard/plugin-core/host-api';
 import type { AccessReviewResourceAttributes } from '@odh-dashboard/k8s-core';
+import { useGetGatewayOptions } from '@odh-dashboard/model-serving/shared/hooks/useGatewayOptions';
 import HostApiProvider from '../HostApiProvider';
 import { k8sFetch } from '../k8sFetch';
 
@@ -185,5 +186,37 @@ describe('RHAII host access reviews through the Kubernetes transport', () => {
     });
     expect(result.current).toEqual([false, false]);
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
+
+// RHAI-50760: Core BFF serves gateway discovery natively on xKS, so the RHAII
+// host supplies the same data service as the ODH host.
+describe('RHAII host gateway discovery', () => {
+  it('should query the Core BFF gateway route for the project', async () => {
+    const gateways = [
+      { name: 'rh-ai-gateway', namespace: 'rh-ai-gateway', listener: 'https', status: 'Ready' },
+    ];
+    fetchMock.mockResolvedValue(response({ gateways }, 200));
+    const { result } = renderHook(() => useGetGatewayOptions('model-project'), {
+      wrapper: HostApiProvider,
+    });
+
+    await waitFor(() => expect(result.current.loaded).toBe(true));
+    expect(result.current.data).toEqual(gateways);
+    expect(result.current.error).toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][0]).toBe(
+      '/api/service/model-serving/api/v1/gateways?namespace=model-project',
+    );
+  });
+
+  it('should surface a denied Gateway list as an error, not as no gateways', async () => {
+    fetchMock.mockResolvedValue(response({ kind: 'Status', code: 403 }, 403));
+    const { result } = renderHook(() => useGetGatewayOptions('model-project'), {
+      wrapper: HostApiProvider,
+    });
+
+    await waitFor(() => expect(result.current.error).toBeDefined());
+    expect(result.current.data).toEqual([]);
   });
 });

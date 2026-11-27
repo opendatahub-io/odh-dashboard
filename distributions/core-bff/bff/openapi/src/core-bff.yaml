@@ -1325,6 +1325,54 @@ paths:
         '500':
           $ref: '#/components/responses/InternalServerError'
 
+  /api/service/model-serving/api/v1/gateways:
+    get:
+      tags:
+        - Model Serving
+      operationId: listGatewayOptions
+      summary: List the Gateway listeners a namespace's deployments may attach to
+      description: >-
+        On xKS Core BFF serves this route natively (RHAI-50760, docs/model-serving-xks.md).
+        On OpenShift it is not a Core BFF route: the model-serving proxy forwards it to
+        model-serving-api, which returns the same shape. Every Kubernetes call runs as the
+        caller. The caller first needs create on serving.kserve.io/llminferenceservices in the
+        namespace (SelfSubjectAccessReview); without it the response is 200 with an empty list.
+        The caller then lists gateway.networking.k8s.io/v1 Gateways in all namespaces, and gets
+        the namespace only when a listener selects namespaces by label. A denied Gateway list is
+        the API server's 403. When the namespace cannot be read, label-selector listeners are
+        left out. A cluster without the Gateway API returns an empty list. Each listener whose
+        allowedRoutes admits the namespace (Same, All or a matching Selector; unset means Same)
+        becomes one entry. Status is Ready when the Gateway's Accepted and Programmed conditions
+        are True, NotReady when either is False, and Unknown otherwise.
+      parameters:
+        - name: namespace
+          in: query
+          required: true
+          schema:
+            type: string
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+            maxLength: 63
+          description: Project namespace that will hold the deployment (RFC 1123 label).
+      responses:
+        '200':
+          $ref: '#/components/responses/GatewaysResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/K8sUnavailable'
+        '504':
+          $ref: '#/components/responses/K8sTimeout'
+
   # =============================================================================
   # MODEL SERVING PROXY
   # =============================================================================
@@ -1332,6 +1380,8 @@ paths:
   /api/service/model-serving/{path}:
     summary: Model serving service proxy
     description: >-
+      OpenShift only. On xKS the BFF registers no proxy: the gateway discovery route above is
+      native and every other path under the prefix is a 404.
       Proxies all HTTP methods to the model-serving-api service. Strips the
       /api/service/model-serving prefix and forwards the remaining path,
       including nested segments (e.g. /api/service/model-serving/a/b/c).
@@ -2292,6 +2342,45 @@ components:
           type: string
           example: ''
 
+    GatewayOption:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - namespace
+        - listener
+        - status
+      properties:
+        name:
+          type: string
+          description: Gateway name
+        namespace:
+          type: string
+          description: Gateway namespace
+        listener:
+          type: string
+          description: Listener name on the Gateway
+        status:
+          type: string
+          enum: [Ready, NotReady, Unknown]
+        displayName:
+          type: string
+          description: The Gateway's openshift.io/display-name annotation, when set
+        description:
+          type: string
+          description: The Gateway's openshift.io/description annotation, when set
+
+    GatewaysResponse:
+      type: object
+      additionalProperties: false
+      required:
+        - gateways
+      properties:
+        gateways:
+          type: array
+          items:
+            $ref: '#/components/schemas/GatewayOption'
+
     NamespaceMutationResponse:
       type: object
       required:
@@ -2637,6 +2726,24 @@ components:
               data:
                 category: 'Object storage'
                 displayName: 'S3-compatible storage'
+
+    GatewaysResponse:
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+        Audit-ID:
+          $ref: '#/components/headers/AuditID'
+      description: Gateway listeners that admit routes from the namespace (possibly none)
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GatewaysResponse'
+          example:
+            gateways:
+              - name: rh-ai-gateway
+                namespace: rh-ai-gateway
+                listener: https
+                status: Ready
 
     NamespaceMutationResponse:
       headers:

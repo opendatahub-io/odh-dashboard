@@ -3,6 +3,7 @@
 [Testing]: ../frontend/docs/testing.md
 [Environment Variables]: ../frontend/docs/env-variables.md
 [Error And Correlation Contract]: error-contract.md
+[Model Serving On xKS]: model-serving-xks.md
 
 # Core Bff UI Documentation
 
@@ -15,3 +16,4 @@ This is the general documentation of the Core Bff UI.
 - [Testing]
 - [Environment Variables]
 - [Error And Correlation Contract]
+- [Model Serving On xKS]
