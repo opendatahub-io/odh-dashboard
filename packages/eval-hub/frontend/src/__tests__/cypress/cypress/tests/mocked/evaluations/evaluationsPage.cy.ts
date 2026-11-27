@@ -76,6 +76,12 @@ const initIntercepts = ({
     { path: API_VERSION },
     mockCollectionsListResponse(collections, collectionsTotalCount),
   );
+
+  cy.interceptApi(
+    'GET /api/:apiVersion/evaluations/collection-imports/access',
+    { path: API_VERSION },
+    { allowed: true },
+  );
 };
 
 describe('Evaluations Page - Tabs', () => {

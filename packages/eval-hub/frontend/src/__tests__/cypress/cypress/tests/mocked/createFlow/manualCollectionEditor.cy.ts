@@ -54,6 +54,11 @@ const initIntercepts = () => {
     mockEvalHubHealth(),
   );
   cy.interceptApi('GET /api/:apiVersion/evaluations/providers', { path: API_VERSION }, [provider]);
+  cy.interceptApi(
+    'GET /api/:apiVersion/evaluations/collection-imports/access',
+    { path: API_VERSION },
+    { allowed: true },
+  );
 };
 
 describe('Manual collection editor benchmark selection', () => {
