@@ -82,6 +82,8 @@ func TestRHAIIBundle_DeploymentKeepsTheContractPreconditions(t *testing.T) {
 	assert.Empty(t, profileViolations(b.deployment(t)))
 }
 
+var nameValueArg = regexp.MustCompile(`^--[a-z0-9-]+=`)
+
 // profileViolations lists how the Deployment departs from the production
 // profile the service-account contract assumes.
 func profileViolations(d appsv1.Deployment) []string {
@@ -123,7 +125,7 @@ func profileViolations(d appsv1.Deployment) []string {
 	// unambiguous "--name=value" form so the reads below are exact.
 	args := c.Args
 	for _, a := range args {
-		if !regexp.MustCompile(`^--[a-z0-9-]+=`).MatchString(a) {
+		if !nameValueArg.MatchString(a) {
 			fail("arg %q is not in --name=value form", a)
 		}
 	}
@@ -712,6 +714,8 @@ func TestKustomizeMatchesTheOperator(t *testing.T) {
 		require.NoError(t, err)
 		m := regexp.MustCompile(`(?m)^\s*sigs\.k8s\.io/kustomize/api (v\S+)`).FindSubmatch(raw)
 		require.NotNil(t, m, "%s does not require sigs.k8s.io/kustomize/api", path)
+		require.NotRegexp(t, `(?m)^\s*(replace\s+)?sigs\.k8s\.io/kustomize/(api|kyaml)\S*\s+(v\S+\s+)?=>`, string(raw),
+			"%s replaces kustomize; compare the effective versions instead", path)
 		return string(m[1])
 	}
 	assert.Equal(t, version("../../../../../dashboard-operator/go.mod"), version("../../go.mod"),
