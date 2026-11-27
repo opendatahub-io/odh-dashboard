@@ -265,7 +265,7 @@ describe('TrainingJobStatusModal', () => {
     [
       WorkloadStatusType.Evicted,
       'PodsReadyTimeout',
-      'Waiting for resources in user-queue (attempt 2)',
+      'Waiting for resources in user-queue (Attempt 2)',
     ],
   ] as const)(
     'should show the Workbench queue message without pods (%s, %s)',
