@@ -38,7 +38,7 @@ host_files:
   - src: .run/collected.json
     dest: /sandbox/workspace/odh-review/collected.json
     optional: true
-  # Images captured from the PR body and issue comments by the host pre-script.
+  # Images captured from the PR body by the host pre-script (never comments).
   # The orchestrator extracts this in step 3d. Absent when the PR has none or
   # capture failed; the review proceeds either way.
   - src: .run/pr-images.tar.gz

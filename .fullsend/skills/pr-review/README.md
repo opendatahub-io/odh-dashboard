@@ -360,9 +360,15 @@ skip-author checks:
   `cancel-in-progress` group, so a newer push cancels them with the review.
 - **PR image capture.** In the same pre-script, and concurrently with the
   adapters, [`fetch-pr-images.sh`](../../scripts/fetch-pr-images.sh) captures
-  the GitHub-hosted images referenced by the PR body and by non-bot issue
-  comments, and stages `pr-images.json` plus `pr-images.tar.gz` for the
-  sandbox (see [`SKILL.md`](SKILL.md) step 3d). Only GitHub media hosts are
+  the GitHub-hosted images referenced by the PR body and stages
+  `pr-images.json` plus `pr-images.tar.gz` for the sandbox (see
+  [`SKILL.md`](SKILL.md) step 3d). PR issue comments are not a media source.
+  Every artifact carries a stable `label` (`Image 1`, `Video 1`, ...) and its
+  body order in `position`, so reviewers cite `[Image 1](source_url)` instead
+  of a UUID. Recordings are catalogued in the manifest's `videos` list
+  (container and declared size) without reading their body: the type comes from the redirect
+  `Content-Type`, with a 4 KB magic-byte probe only when no media type is
+  declared. Nothing is staged for them. Only GitHub media hosts are
   fetched, media requests carry no credentials, and every failure is a skip
   reason or a `::warning::` rather than a failed review. Each bound is an
   environment override read by
