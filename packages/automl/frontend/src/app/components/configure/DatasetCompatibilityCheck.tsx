@@ -71,13 +71,11 @@ function DatasetCompatibilityCheck({
     currentTraining.sampleSize &&
     currentTest.sampleSize,
   );
+  const hasReadySamples = hasCurrentSamples && !isChecking && !isPaused && !hasError;
   // Retain the latest completed pair so a later failed/empty refresh cannot rewind the dialog.
   if (
     openSamples &&
-    hasCurrentSamples &&
-    !isChecking &&
-    !isPaused &&
-    !hasError &&
+    hasReadySamples &&
     currentTraining &&
     currentTest &&
     (openSamples.training !== currentTraining || openSamples.test !== currentTest)
@@ -85,8 +83,8 @@ function DatasetCompatibilityCheck({
     setOpenSamples({ training: currentTraining, test: currentTest });
   }
   // Preserve the open dialog and its child portal if a refetch returns an empty file.
-  const training = hasCurrentSamples ? currentTraining : openSamples?.training;
-  const test = hasCurrentSamples ? currentTest : openSamples?.test;
+  const training = hasReadySamples ? currentTraining : openSamples?.training;
+  const test = hasReadySamples ? currentTest : openSamples?.test;
   const [tab, setTab] = React.useState<string | number>(0);
   if (!trainingFile || !testFile || trainingFile === testFile) {
     return null;
@@ -177,7 +175,7 @@ function DatasetCompatibilityCheck({
           />
           <TearsheetBody>
             <Stack hasGutter>
-              {(hasError || !hasCurrentSamples) && (
+              {!isChecking && !isPaused && (hasError || !hasCurrentSamples) && (
                 <StackItem>
                   <Alert
                     isInline

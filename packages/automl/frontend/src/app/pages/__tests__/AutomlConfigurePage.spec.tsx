@@ -1504,7 +1504,7 @@ describe('AutomlConfigurePage', () => {
         );
       });
 
-      it('should block submission during a replacement upload and preserve the previous test file on failure', async () => {
+      it('should block submission until a failed replacement test upload is replaced successfully', async () => {
         renderWithProviders(
           <AutomlConfigurePage
             initialValues={{
@@ -1549,11 +1549,23 @@ describe('AutomlConfigurePage', () => {
         });
         expect(mockMutateAsync).not.toHaveBeenCalled();
         await act(async () => rejectUpload(new Error('Upload failed')));
+        expect(submit).toBeDisabled();
+        expect(screen.getByTestId('test-data-accordion-toggle')).toHaveTextContent('Incomplete');
+        expect(
+          screen.queryByRole('grid', { name: 'Selected test data file' }),
+        ).not.toBeInTheDocument();
+        await user.click(submit);
+        expect(mockMutateAsync).not.toHaveBeenCalled();
+
+        mockUploadMutateAsync.mockResolvedValueOnce({ uploaded: true, key: 'replacement.csv' });
+        fireEvent.change(screen.getByTestId('test-data-upload-file-input'), {
+          target: { files: [new File(['name\nb\n'], 'replacement.csv', { type: 'text/csv' })] },
+        });
         await waitFor(() => expect(submit).toBeEnabled());
         await user.click(submit);
         await waitFor(() =>
           expect(mockMutateAsync).toHaveBeenCalledWith(
-            expect.objectContaining({ test_data_file_key: 'test.csv' }),
+            expect.objectContaining({ test_data_file_key: 'replacement.csv' }),
           ),
         );
         expect(mockMutateAsync).toHaveBeenCalledTimes(1);

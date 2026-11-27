@@ -478,6 +478,8 @@ function AutomlConfigure({
   const isTrainingRowCountCurrent =
     trainingRowCountSnapshot?.schemaUpdatedAt === trainingSchemaUpdatedAt;
 
+  const isTrainingRowCountStale = Boolean(trainingRowCountSnapshot && !isTrainingRowCountCurrent);
+
   // KFP MySQL rejects non-ASCII column names in PipelineRuntimeManifest — hide them from picks.
   const columns = React.useMemo(
     () => schemaColumns.filter((column) => isASCIIOnly(column.name)),
@@ -698,8 +700,10 @@ function AutomlConfigure({
 
   const startTestDataUpload = useCallback(() => {
     pendingTestDataCollapseRef.current = undefined;
+    setValue('test_data_file_key', '', { shouldValidate: true });
+    setSelectedTestDataFile(undefined);
     setIsTestDataUploadDropdownOpen(false);
-  }, []);
+  }, [setValue]);
 
   const completeTestDataUpload = useCallback(
     (key: string) => {
@@ -1018,25 +1022,36 @@ function AutomlConfigure({
                                 </HelperText>
                               </StackItem>
                             )}
-                          {isFileSelected && rowCountError && !columnsError && (
-                            <StackItem>
-                              <HelperText aria-live="polite">
-                                <HelperTextItem variant="warning">
-                                  Unable to count rows. {rowCountError.message}{' '}
-                                  <Button
-                                    variant="link"
-                                    isInline
-                                    isDisabled={isFetchingRowCount}
-                                    onClick={() => {
-                                      void refetchRowCount();
-                                    }}
-                                  >
-                                    Retry row count
-                                  </Button>
-                                </HelperTextItem>
-                              </HelperText>
-                            </StackItem>
-                          )}
+                          {isFileSelected &&
+                            !columnsError &&
+                            (rowCountError ||
+                              (isTrainingRowCountStale &&
+                                !isFetchingColumns &&
+                                !isTrainingSamplePaused)) && (
+                              <StackItem>
+                                <HelperText aria-live="polite">
+                                  <HelperTextItem variant="warning">
+                                    {rowCountError
+                                      ? `Unable to count rows. ${rowCountError.message}`
+                                      : 'The file preview was refreshed. Refresh the row count to confirm the file details.'}{' '}
+                                    <Button
+                                      variant="link"
+                                      isInline
+                                      isDisabled={
+                                        isFetchingRowCount ||
+                                        isFetchingColumns ||
+                                        isTrainingSamplePaused
+                                      }
+                                      onClick={() => {
+                                        void refetchRowCount();
+                                      }}
+                                    >
+                                      {rowCountError ? 'Retry row count' : 'Refresh row count'}
+                                    </Button>
+                                  </HelperTextItem>
+                                </HelperText>
+                              </StackItem>
+                            )}
                         </>
                       )}
                       {datasetSplitMode === DATASET_SPLIT_SEPARATE && (

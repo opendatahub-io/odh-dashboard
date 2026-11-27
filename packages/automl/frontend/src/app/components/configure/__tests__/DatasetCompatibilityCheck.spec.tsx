@@ -171,6 +171,66 @@ describe('DatasetCompatibilityCheck', () => {
     );
   });
 
+  it.each(['training', 'test'] as const)(
+    'should keep a completed pair while the %s sample refreshes first',
+    (firstDataset) => {
+      const input = props();
+      const { rerender } = render(<DatasetCompatibilityCheck {...input} />);
+      fireEvent.click(screen.getByRole('button', { name: 'View details' }));
+      fireEvent.click(screen.getByRole('tab', { name: 'Data preview' }));
+      const trainingTable = screen.getByRole('grid', { name: 'Training data preview' });
+      const testTable = screen.getByRole('grid', { name: 'Test data preview' });
+      const training = { ...sample(), sampleRows: [['new training']], sampleSize: 1 };
+      const test = { ...sample(), sampleRows: [['new test']], sampleSize: 1 };
+      const partial = firstDataset === 'training' ? { training } : { test };
+      for (const state of [
+        { isChecking: true, isPaused: false, hasError: false },
+        { isChecking: false, isPaused: true, hasError: false },
+        { isChecking: false, isPaused: false, hasError: true },
+        { isChecking: true, isPaused: false, hasError: true },
+      ]) {
+        rerender(<DatasetCompatibilityCheck {...input} {...partial} {...state} />);
+        expect(trainingTable).toHaveTextContent('row-1');
+        expect(testTable).toHaveTextContent('row-1');
+        expect(screen.queryByText('new training')).not.toBeInTheDocument();
+        expect(screen.queryByText('new test')).not.toBeInTheDocument();
+        if (state.hasError && !state.isChecking) {
+          expect(
+            screen.getByText('Compatibility check could not be refreshed'),
+          ).toBeInTheDocument();
+        } else {
+          expect(
+            screen.queryByText('Compatibility check could not be refreshed'),
+          ).not.toBeInTheDocument();
+          expect(screen.getByRole('status')).toBeInTheDocument();
+        }
+      }
+      rerender(<DatasetCompatibilityCheck {...input} training={training} test={test} />);
+      expect(trainingTable).toHaveTextContent('new training');
+      expect(testTable).toHaveTextContent('new test');
+      const empty = { ...training, columns: [], sampleRows: [], sampleSize: 0 };
+      for (const state of [
+        { isChecking: true, isPaused: false },
+        { isChecking: false, isPaused: true },
+      ]) {
+        rerender(<DatasetCompatibilityCheck {...input} training={empty} test={empty} {...state} />);
+        expect(trainingTable).toHaveTextContent('new training');
+        expect(testTable).toHaveTextContent('new test');
+        expect(
+          screen.queryByText('Compatibility check could not be refreshed'),
+        ).not.toBeInTheDocument();
+        expect(screen.getByRole('status')).toBeInTheDocument();
+      }
+      rerender(<DatasetCompatibilityCheck {...input} training={empty} test={empty} />);
+      expect(screen.getByText('Compatibility check could not be refreshed')).toBeInTheDocument();
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+      expect(screen.getByRole('grid', { name: 'Training data preview' })).toBe(trainingTable);
+      expect(screen.getByRole('grid', { name: 'Test data preview' })).toBe(testTable);
+      expect(trainingTable).toHaveTextContent('new training');
+      expect(testTable).toHaveTextContent('new test');
+    },
+  );
+
   it('should preserve the open comparison, focus, and sample page during refresh', () => {
     const input = props();
     const { rerender } = render(<DatasetCompatibilityCheck {...input} />);

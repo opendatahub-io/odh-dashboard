@@ -7,6 +7,7 @@ describe('DatasetSamplingError', () => {
   it('should explain the bounded sample limit without suggesting more rows', () => {
     render(
       <DatasetSamplingError
+        onRetry={jest.fn()}
         error={
           new Error('CSV validation error: could not sample 100 complete data rows within 1 MiB')
         }

@@ -1148,14 +1148,16 @@ describe('AutomlConfigure', () => {
       mockuseS3GetFileSchemaQuery.mockReturnValue(
         schemaQuery as unknown as ReturnType<typeof useS3GetFileSchemaQuery>,
       );
+      const refetch = jest.fn();
       const countQuery = {
+        refetch,
         data: { rowCount: 144, schemaUpdatedAt: 100 },
         isFetching: false,
         error: null,
       };
       jest
         .mocked(useS3GetFileRowCountQuery)
-        .mockReturnValue(countQuery as ReturnType<typeof useS3GetFileRowCountQuery>);
+        .mockReturnValue(countQuery as unknown as ReturnType<typeof useS3GetFileRowCountQuery>);
       const { rerender } = renderComponent();
       fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
       fireEvent.click(screen.getByTestId('browse-bucket-button'));
@@ -1167,12 +1169,24 @@ describe('AutomlConfigure', () => {
       } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
       rerender(<AutomlConfigure />);
       expect(screen.queryByTestId('training-data-load-success')).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Refresh row count' }));
+      expect(refetch).toHaveBeenCalledTimes(1);
+      jest
+        .mocked(useS3GetFileRowCountQuery)
+        .mockReturnValue({ ...countQuery, isFetching: true } as unknown as ReturnType<
+          typeof useS3GetFileRowCountQuery
+        >);
+      rerender(<AutomlConfigure />);
+      expect(screen.getByRole('button', { name: 'Refresh row count' })).toBeDisabled();
+      fireEvent.click(screen.getByRole('button', { name: 'Refresh row count' }));
+      expect(refetch).toHaveBeenCalledTimes(1);
       jest.mocked(useS3GetFileRowCountQuery).mockReturnValue({
         ...countQuery,
         data: { rowCount: 250, schemaUpdatedAt: 200 },
-      } as ReturnType<typeof useS3GetFileRowCountQuery>);
+      } as unknown as ReturnType<typeof useS3GetFileRowCountQuery>);
       rerender(<AutomlConfigure />);
       expect(screen.getByTestId('training-data-load-success')).toHaveTextContent('250 rows');
+      expect(screen.queryByRole('button', { name: 'Refresh row count' })).not.toBeInTheDocument();
     });
 
     it('should close the explorer and preview on scope changes without reopening them on return', () => {
@@ -1876,7 +1890,7 @@ describe('AutomlConfigure', () => {
     });
 
     it.each([false, true])(
-      'should preserve the test file and expanded section after a failed replacement (sample pending: %s)',
+      'should clear the test file and keep the section expanded after a failed replacement (sample pending: %s)',
       async (samplePending) => {
         let isFetchingTest = samplePending;
         mockuseS3GetFileSchemaQuery.mockImplementation(
@@ -1935,8 +1949,9 @@ describe('AutomlConfigure', () => {
             'Upload failed',
           ),
         );
-        expect(screen.getByTestId('test-data-uploaded-file-cell')).toHaveTextContent('test.csv');
-        expect(screen.getByTestId('test-data-accordion-toggle')).toHaveTextContent('test.csv');
+        expect(screen.queryByTestId('test-data-uploaded-file-cell')).not.toBeInTheDocument();
+        expect(screen.getByTestId('test-data-accordion-toggle')).toHaveTextContent('Incomplete');
+        expect(screen.queryByText('test.csv')).not.toBeInTheDocument();
         expect(screen.getByTestId('test-data-accordion-toggle')).toHaveAttribute(
           'aria-expanded',
           'true',
