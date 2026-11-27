@@ -115,9 +115,8 @@ func (app *App) GetConnectionHandler(w http.ResponseWriter, r *http.Request, par
 		var connectionType ConnectionType
 		connectionType, err = repository.GetConnectionType(r.Context(), connection.Resource.DataConnectionTypeID)
 		if err == nil {
-			if !strings.EqualFold(connectionType.Metadata.ID, connection.Resource.DataConnectionTypeID) || connectionType.Resource.Provider == "" {
-				err = fmt.Errorf("invalid resolved connection type for %q", connection.Resource.DataConnectionTypeID)
-			} else {
+			err = validateResolvedConnectionType(&connectionType, connection.Resource.DataConnectionTypeID)
+			if err == nil {
 				connection.Resource.DataConnectionType = &connectionType
 			}
 		}

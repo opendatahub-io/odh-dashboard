@@ -26,6 +26,8 @@ func TestConnectionTypeResolution(t *testing.T) {
 				sharedConnection.Resource.DataConnectionTypeID = strings.ToUpper(sharedConnection.Resource.DataConnectionTypeID)
 				connections = append(connections, sharedConnection)
 				types := mockConnectionTypes("test-project")[:2]
+				// Credential-free types must retain an empty array rather than null.
+				types[0].Resource.CredentialsFields = []ConnectionTypeCredentialField{}
 				calls := []string{}
 				upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					calls = append(calls, r.URL.Path)
@@ -83,6 +85,8 @@ func TestConnectionTypeResolution(t *testing.T) {
 						}
 						require.Equal(t, expectedType.Resource.Provider, connection.Resource.DataConnectionType.Resource.Provider)
 						require.Equal(t, expectedType.Resource.Name, connection.Resource.DataConnectionType.Resource.Name)
+						require.NotNil(t, connection.Resource.DataConnectionType.Resource.CredentialsFields)
+						require.Equal(t, expectedType.Resource.CredentialsFields, connection.Resource.DataConnectionType.Resource.CredentialsFields)
 					} else {
 						require.Nil(t, connection.Resource.DataConnectionType)
 						require.NotContains(t, response.Body.String(), `"data_connection_type":`)
@@ -106,15 +110,17 @@ func TestConnectionTypeResolutionFailures(t *testing.T) {
 			{"missing type", `{"items":[]}`, 200, 500},
 			{"missing provider", `{"metadata":{"id":"550e8400-e29b-41d4-a716-446655440003"},"resource":{}}`, 200, 500},
 			{"mismatched type", `{"metadata":{"id":"550e8400-e29b-41d4-a716-446655440099"},"resource":{"provider":"s3"}}`, 200, 500},
+			{"missing credentials fields", `{"metadata":{"id":"550e8400-e29b-41d4-a716-446655440003","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"},"resource":{"name":"PostgreSQL","provider":"postgres"}}`, 200, 500},
+			{"null credentials fields", `{"metadata":{"id":"550e8400-e29b-41d4-a716-446655440003","created_at":"2026-01-01T00:00:00Z","updated_at":"2026-01-01T00:00:00Z"},"resource":{"name":"PostgreSQL","provider":"postgres","credentials_fields":null}}`, 200, 500},
 		} {
 			t.Run(map[bool]string{false: "list/", true: "single/"}[single]+tc.name, func(t *testing.T) {
-				connections := mockConnections("test-project")
+				connections := mockConnections("test-project")[:1]
 				upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					w.Header().Set("Content-Type", "application/json")
 					if strings.Contains(r.URL.Path, "connection-types") {
 						w.WriteHeader(tc.status)
 						body := tc.body
-						if !single && (tc.name == "mismatched type" || tc.name == "missing provider") {
+						if !single && strings.HasPrefix(body, `{"metadata":`) {
 							body = "{\"items\":[" + body + "]}"
 						}
 						_, err := w.Write([]byte(body))

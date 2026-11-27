@@ -1125,6 +1125,7 @@ components:
       description: >-
         Include the referenced connection type in each connection's resource.data_connection_type.
         Requires get access to data-connection-types in the selected namespace.
+        Resolved types must include a non-null credentials_fields array, which may be empty.
         An unresolved type or invalid upstream response fails the request with 500;
         upstream HTTP errors are forwarded. No partial response is returned.
       schema:

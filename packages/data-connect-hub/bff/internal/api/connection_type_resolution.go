@@ -39,10 +39,21 @@ func resolveConnectionTypes(ctx context.Context, repository dataConnectHubReader
 	for i := range connections {
 		id := connections[i].Resource.DataConnectionTypeID
 		connectionType := byID[strings.ToLower(id)]
-		if connectionType == nil || connectionType.Resource.Provider == "" {
-			return fmt.Errorf("could not resolve connection type %q", id)
+		if err := validateResolvedConnectionType(connectionType, id); err != nil {
+			return err
 		}
 		connections[i].Resource.DataConnectionType = connectionType
+	}
+	return nil
+}
+
+func validateResolvedConnectionType(connectionType *ConnectionType, id string) error {
+	if connectionType == nil || !strings.EqualFold(connectionType.Metadata.ID, id) || connectionType.Resource.Provider == "" {
+		return fmt.Errorf("invalid resolved connection type for %q", id)
+	}
+	// The response contract requires an array: [] is valid, but omitted or null is not.
+	if connectionType.Resource.CredentialsFields == nil {
+		return fmt.Errorf("resolved connection type %q is missing credentials_fields", id)
 	}
 	return nil
 }
