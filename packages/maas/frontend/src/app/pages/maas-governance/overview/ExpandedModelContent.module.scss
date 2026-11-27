@@ -1,12 +1,14 @@
-.maas-expandable-item {
+.maas-expanded-content {
   border-style: solid;
   border-width: 1px;
   border-color: var(--pf-t--global--border--color--default);
   border-radius: var(--pf-t--global--border--radius--medium);
-  margin-bottom: var(--pf-t--global--spacer--sm);
+  padding: var(--pf-t--global--spacer--md);
+}
 
+.maas-expandable-item {
   &.m-highlighted {
-    border-color: var(--pf-t--global--border--color--brand--default);
-    border-width: 2px;
+    border-left: 2px solid var(--pf-t--global--border--color--brand--default);
+    padding-left: var(--pf-t--global--spacer--sm);
   }
 }

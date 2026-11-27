@@ -191,6 +191,7 @@ export type RateLimit = {
 
 export type ModelOverviewSubscription = {
   name: string;
+  namespace: string;
   displayName?: string;
   phase?: string;
   statusMessage?: string;
@@ -200,10 +201,12 @@ export type ModelOverviewSubscription = {
   lastTransitionTime?: string;
   groups?: string[];
   tokenRateLimits?: TokenRateLimit[];
+  deletionTimestamp?: string;
 };
 
 export type ModelOverviewPolicy = {
   name: string;
+  namespace: string;
   displayName?: string;
   phase?: string;
   statusMessage?: string;
@@ -212,6 +215,7 @@ export type ModelOverviewPolicy = {
   conditionType?: string;
   lastTransitionTime?: string;
   groups?: string[];
+  deletionTimestamp?: string;
 };
 
 export type ModelOverviewDetails = {

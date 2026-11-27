@@ -28,8 +28,8 @@ const mockOverviewItem = (id: string): ModelOverviewItem => ({
     displayName: `Model ${id}`,
     phase: 'Ready',
   },
-  subscriptions: [{ name: 'sub-1' }],
-  authPolicies: [{ name: 'policy-1' }],
+  subscriptions: [{ name: 'sub-1', namespace: 'test-namespace' }],
+  authPolicies: [{ name: 'policy-1', namespace: 'test-namespace' }],
 });
 
 describe('OverviewTable', () => {

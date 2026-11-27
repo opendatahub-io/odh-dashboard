@@ -35,6 +35,7 @@ export const buildOverviewRows = (
       const key = modelKey(ref.namespace, ref.name);
       const entry: ModelOverviewSubscription = {
         name: sub.name,
+        namespace: sub.namespace,
         displayName: sub.displayName,
         phase: sub.phase,
         statusMessage: sub.statusMessage,
@@ -44,6 +45,7 @@ export const buildOverviewRows = (
         lastTransitionTime: sub.lastTransitionTime,
         groups,
         tokenRateLimits: rateLimits,
+        deletionTimestamp: sub.deletionTimestamp,
       };
       const existing = subsByModel.get(key);
       if (existing) {
@@ -61,6 +63,7 @@ export const buildOverviewRows = (
       const key = modelKey(ref.namespace, ref.name);
       const entry: ModelOverviewPolicy = {
         name: policy.name,
+        namespace: policy.namespace,
         displayName: policy.displayName,
         phase: policy.phase,
         statusMessage: policy.statusMessage,
@@ -69,6 +72,7 @@ export const buildOverviewRows = (
         conditionType: policy.conditionType,
         lastTransitionTime: policy.lastTransitionTime,
         groups,
+        deletionTimestamp: policy.deletionTimestamp,
       };
       const existing = policiesByModel.get(key);
       if (existing) {

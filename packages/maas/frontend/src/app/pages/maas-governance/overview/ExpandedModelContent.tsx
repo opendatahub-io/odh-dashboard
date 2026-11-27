@@ -1,16 +1,32 @@
 import * as React from 'react';
-import { Button, Content, Flex, FlexItem, Grid, GridItem } from '@patternfly/react-core';
-import { ExpandableRowContent, Table, Tbody, Tr, Td } from '@patternfly/react-table';
-import { Link } from 'react-router-dom';
+import {
+  Button,
+  Content,
+  Divider,
+  Flex,
+  FlexItem,
+  Grid,
+  GridItem,
+  Title,
+  Tooltip,
+} from '@patternfly/react-core';
+import { RhMicronsCaretDownIcon, RhMicronsCaretUpIcon } from '@patternfly/react-icons';
+import { ActionsColumn, ExpandableRowContent, Table, Tbody, Tr, Td } from '@patternfly/react-table';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTrackEvent } from '@odh-dashboard/analytics/react';
+import { TrackingOutcome } from '@odh-dashboard/analytics/types';
+import { useAccessReview } from '@odh-dashboard/plugin-core/host-api';
 import { ModelOverviewSubscription, ModelOverviewPolicy } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
+import { useMaaSGovernanceContext } from '~/app/context/MaaSGovernanceContext';
 import { useGovernanceResourceAffectedModels } from '~/app/hooks/useGovernanceAffectedModels';
 import PhaseLabel from '~/app/shared/Phase/PhaseLabel';
 import { PhaseLabelLocation, PhaseResourceType } from '~/app/utilities/phaseLabelUtils';
 import { formatTokenLimits } from '~/app/utilities/rateLimits';
 import {
+  getAuthPolicyEditUrl,
   getAuthPolicyViewUrl,
+  getSubscriptionEditUrl,
   getSubscriptionViewUrl,
 } from '~/app/utilities/maasGovernanceNavigation';
 import {
@@ -22,7 +38,11 @@ import {
   convertStringToPopoverViewedStatus,
   MaaSGovernanceGroupLabelSelectedProperties,
   MaaSSettingsDetailsViewedProperties,
+  MaaSResourceDeletedProperties,
+  EventTrackingEditSource,
 } from '~/app/types/event-tracking';
+import DeleteSubscriptionModal from '~/app/pages/subscriptions/DeleteSubscriptionModal';
+import DeleteAuthPolicyModal from '~/app/pages/auth-policies/DeleteAuthPolicyModal';
 import { hasHighlightedGroup } from './utils';
 import GroupChips from './GroupChips';
 import styles from './ExpandedModelContent.module.scss';
@@ -70,6 +90,7 @@ type ExpandableItemProps = {
   status?: string;
   conditionType?: string;
   lastTransitionTime?: string;
+  actions?: React.ReactNode;
 };
 
 const ExpandableItem: React.FC<ExpandableItemProps> = ({
@@ -93,6 +114,7 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
   status,
   conditionType,
   lastTransitionTime,
+  actions,
 }) => {
   const trackEvent = useTrackEvent();
   const { affectedModels, overviewLoaded } = useGovernanceResourceAffectedModels(
@@ -112,7 +134,10 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
           <Tr>
             <Td expand={{ rowIndex, isExpanded, onToggle }} />
             <Td>
-              <Flex justifyContent={{ default: 'justifyContentSpaceBetween' }}>
+              <Flex
+                justifyContent={{ default: 'justifyContentSpaceBetween' }}
+                alignItems={{ default: 'alignItemsCenter' }}
+              >
                 <FlexItem>
                   <Link
                     to={linkTo}
@@ -125,28 +150,36 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
                   </Link>
                 </FlexItem>
                 <FlexItem>
-                  <PhaseLabel
-                    phase={phase}
-                    resourceType={resourceType}
-                    statusMessage={statusMessage}
-                    status={status}
-                    conditionType={conditionType}
-                    lastTransitionTime={lastTransitionTime}
-                    reason={reason}
-                    resourceName={displayName ?? name}
-                    affectedModels={affectedModels}
-                    overviewLoaded={overviewLoaded}
-                    resourceUrl={resourceUrl}
-                    returnTo={returnTo}
-                    hideSubtext
-                    onClick={() => {
-                      trackEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
-                        popoverType: EventTrackingPopoverType.STATUS,
-                        status: convertStringToPopoverViewedStatus(phase),
-                        location: PhaseLabelLocation.OVERVIEW,
-                      } satisfies MaaSGovernanceStatusPopoverViewedProperties);
-                    }}
-                  />
+                  <Flex
+                    spaceItems={{ default: 'spaceItemsSm' }}
+                    alignItems={{ default: 'alignItemsCenter' }}
+                  >
+                    <FlexItem>
+                      <PhaseLabel
+                        phase={phase}
+                        resourceType={resourceType}
+                        statusMessage={statusMessage}
+                        status={status}
+                        conditionType={conditionType}
+                        lastTransitionTime={lastTransitionTime}
+                        reason={reason}
+                        resourceName={displayName ?? name}
+                        affectedModels={affectedModels}
+                        overviewLoaded={overviewLoaded}
+                        resourceUrl={resourceUrl}
+                        returnTo={returnTo}
+                        hideSubtext
+                        onClick={() => {
+                          trackEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
+                            popoverType: EventTrackingPopoverType.STATUS,
+                            status: convertStringToPopoverViewedStatus(phase),
+                            location: PhaseLabelLocation.OVERVIEW,
+                          } satisfies MaaSGovernanceStatusPopoverViewedProperties);
+                        }}
+                      />
+                    </FlexItem>
+                    {actions && <FlexItem>{actions}</FlexItem>}
+                  </Flex>
                 </FlexItem>
               </Flex>
             </Td>
@@ -159,6 +192,61 @@ const ExpandableItem: React.FC<ExpandableItemProps> = ({
         </Tbody>
       </Table>
     </div>
+  );
+};
+
+type EntryActionsProps = {
+  testId: string;
+  resource: 'maassubscriptions' | 'maasauthpolicies';
+  name: string;
+  namespace: string;
+  isDisabled?: boolean;
+  onViewDetails: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+};
+
+const EntryActions: React.FC<EntryActionsProps> = ({
+  testId,
+  resource,
+  name,
+  namespace,
+  isDisabled,
+  onViewDetails,
+  onEdit,
+  onDelete,
+}) => {
+  // Route-level admin access does not establish update/delete access to these
+  // resources, so each mutation action is gated by its own access review.
+  const [updateAllowed] = useAccessReview({
+    group: 'maas.opendatahub.io',
+    resource,
+    name,
+    namespace,
+    verb: 'update',
+  });
+  const [deleteAllowed] = useAccessReview({
+    group: 'maas.opendatahub.io',
+    resource,
+    name,
+    namespace,
+    verb: 'delete',
+  });
+
+  const items = [
+    { title: 'View details', onClick: onViewDetails },
+    ...(updateAllowed ? [{ title: 'Edit', onClick: onEdit, isDisabled }] : []),
+    ...(deleteAllowed
+      ? [{ isSeparator: true }, { title: 'Delete', onClick: onDelete, isDisabled }]
+      : []),
+  ];
+
+  // ActionsColumn does not forward data-testid to the DOM, so the wrapper span
+  // carries it for test selectors.
+  return (
+    <span data-testid={testId}>
+      <ActionsColumn items={items} />
+    </span>
   );
 };
 
@@ -178,26 +266,35 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
   testId,
 }) => (
   <Flex
-    justifyContent={{ default: 'justifyContentSpaceBetween' }}
     alignItems={{ default: 'alignItemsCenter' }}
+    gap={{ default: 'gapMd' }}
     className="pf-v6-u-mb-sm"
   >
-    <FlexItem>
-      <Content>{title}</Content>
-    </FlexItem>
     {showToggle && (
       <FlexItem>
-        <Button
-          variant="link"
-          isInline
-          onClick={onToggleAll}
-          style={{ textDecoration: 'none' }}
-          data-testid={testId}
-        >
-          {allExpanded ? 'Collapse all' : 'Expand all'}
-        </Button>
+        <Tooltip content={allExpanded ? 'Collapse all' : 'Expand all'}>
+          <Button
+            variant="plain"
+            size="sm"
+            aria-label={allExpanded ? 'Collapse all' : 'Expand all'}
+            aria-expanded={allExpanded}
+            onClick={onToggleAll}
+            data-testid={testId}
+            className="pf-v6-u-ml-md"
+            icon={
+              <div className="pf-v6-c-table__toggle-icon">
+                {allExpanded ? <RhMicronsCaretUpIcon /> : <RhMicronsCaretDownIcon />}
+              </div>
+            }
+          />
+        </Tooltip>
       </FlexItem>
     )}
+    <FlexItem>
+      <Title headingLevel="h4" size="md">
+        {title}
+      </Title>
+    </FlexItem>
   </Flex>
 );
 
@@ -224,6 +321,7 @@ type SubscriptionsSectionProps = {
   setHighlightedGroup: (group: string | null) => void;
   returnTo: string;
   onGroupSelect: (group: string) => void;
+  setDeleteSubscription: (subscription: ModelOverviewSubscription) => void;
 };
 
 const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
@@ -235,7 +333,9 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
   setHighlightedGroup,
   returnTo,
   onGroupSelect,
+  setDeleteSubscription,
 }) => {
+  const navigate = useNavigate();
   const trackEvent = useTrackEvent();
   const allExpanded =
     subscriptions.length > 0 &&
@@ -247,7 +347,7 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
     <>
       <SectionHeader
         title="Subscriptions"
-        showToggle={subscriptions.length > 1}
+        showToggle={subscriptions.length > 0}
         allExpanded={allExpanded}
         onToggleAll={onToggleAll}
         testId="expand-all-subscriptions"
@@ -261,50 +361,73 @@ const SubscriptionsSection: React.FC<SubscriptionsSectionProps> = ({
         subscriptions.map((sub, index) => {
           const isHighlighted = hasHighlightedGroup(sub.groups ?? [], highlightedGroup);
           return (
-            <ExpandableItem
-              key={sub.name}
-              ariaLabel={`Subscription ${sub.displayName ?? sub.name}`}
-              name={sub.name}
-              displayName={sub.displayName}
-              linkTo={`${URL_PREFIX}/maas-governance/subscriptions/view/${sub.name}`}
-              onLinkClick={() =>
-                trackEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
-                  resourceType: EventTrackingResourceType.SUBSCRIPTION,
-                  source: EventTrackingSource.OVERVIEW_MODEL,
-                  resourceStatus: sub.phase ?? '',
-                } satisfies MaaSSettingsDetailsViewedProperties)
-              }
-              linkState={OVERVIEW_LINK_STATE}
-              returnTo={returnTo}
-              phase={sub.phase}
-              resourceType={PhaseResourceType.SUBSCRIPTION}
-              rowIndex={index}
-              isExpanded={isEffectivelyExpanded(
-                sub.name,
-                sub.groups,
-                expandedSubs,
-                highlightedGroup,
-              )}
-              isHighlighted={isHighlighted}
-              onToggle={() => onToggleSub(sub.name)}
-              statusMessage={sub.statusMessage}
-              reason={sub.reason}
-              status={sub.status}
-              conditionType={sub.conditionType}
-              lastTransitionTime={sub.lastTransitionTime}
-              resourceUrl={getSubscriptionViewUrl(sub.name)}
-            >
-              <Content className="pf-v6-u-mb-sm" data-testid="expandable-item-token-limits">
-                <strong className="pf-v6-u-mr-md">Token limits</strong>
-                {formatTokenLimits(sub.tokenRateLimits ?? [])}
-              </Content>
-              <GroupChips
-                groups={sub.groups ?? []}
-                highlightedGroup={highlightedGroup}
-                setHighlightedGroup={setHighlightedGroup}
-                onGroupSelect={onGroupSelect}
-              />
-            </ExpandableItem>
+            <React.Fragment key={sub.name}>
+              {index > 0 && <Divider />}
+              <ExpandableItem
+                ariaLabel={`Subscription ${sub.displayName ?? sub.name}`}
+                name={sub.name}
+                displayName={sub.displayName}
+                linkTo={`${URL_PREFIX}/maas-governance/subscriptions/view/${sub.name}`}
+                onLinkClick={() =>
+                  trackEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+                    resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                    source: EventTrackingSource.OVERVIEW_MODEL,
+                    resourceStatus: sub.phase ?? '',
+                  } satisfies MaaSSettingsDetailsViewedProperties)
+                }
+                linkState={OVERVIEW_LINK_STATE}
+                returnTo={returnTo}
+                phase={sub.phase}
+                resourceType={PhaseResourceType.SUBSCRIPTION}
+                rowIndex={index}
+                isExpanded={isEffectivelyExpanded(
+                  sub.name,
+                  sub.groups,
+                  expandedSubs,
+                  highlightedGroup,
+                )}
+                isHighlighted={isHighlighted}
+                onToggle={() => onToggleSub(sub.name)}
+                statusMessage={sub.statusMessage}
+                reason={sub.reason}
+                status={sub.status}
+                conditionType={sub.conditionType}
+                lastTransitionTime={sub.lastTransitionTime}
+                resourceUrl={getSubscriptionViewUrl(sub.name)}
+                actions={
+                  <EntryActions
+                    testId={`overview-subscription-actions-${sub.name}`}
+                    resource="maassubscriptions"
+                    name={sub.name}
+                    namespace={sub.namespace}
+                    isDisabled={!!sub.deletionTimestamp}
+                    onViewDetails={() =>
+                      navigate(getSubscriptionViewUrl(sub.name), { state: OVERVIEW_LINK_STATE })
+                    }
+                    onEdit={() =>
+                      navigate(getSubscriptionEditUrl(sub.name), {
+                        state: {
+                          ...OVERVIEW_LINK_STATE,
+                          editSource: EventTrackingEditSource.LIST_KEBAB,
+                        },
+                      })
+                    }
+                    onDelete={() => setDeleteSubscription(sub)}
+                  />
+                }
+              >
+                <Content className="pf-v6-u-mb-sm" data-testid="expandable-item-token-limits">
+                  <strong className="pf-v6-u-mr-md">Token limits</strong>
+                  {formatTokenLimits(sub.tokenRateLimits ?? [])}
+                </Content>
+                <GroupChips
+                  groups={sub.groups ?? []}
+                  highlightedGroup={highlightedGroup}
+                  setHighlightedGroup={setHighlightedGroup}
+                  onGroupSelect={onGroupSelect}
+                />
+              </ExpandableItem>
+            </React.Fragment>
           );
         })
       )}
@@ -321,6 +444,7 @@ type PoliciesSectionProps = {
   setHighlightedGroup: (group: string | null) => void;
   returnTo: string;
   onGroupSelect: (group: string) => void;
+  setDeletePolicy: (policy: ModelOverviewPolicy) => void;
 };
 
 const PoliciesSection: React.FC<PoliciesSectionProps> = ({
@@ -332,7 +456,9 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
   setHighlightedGroup,
   returnTo,
   onGroupSelect,
+  setDeletePolicy,
 }) => {
+  const navigate = useNavigate();
   const trackEvent = useTrackEvent();
   const allExpanded =
     policies.length > 0 &&
@@ -344,7 +470,7 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
     <>
       <SectionHeader
         title="Authorization policies"
-        showToggle={policies.length > 1}
+        showToggle={policies.length > 0}
         allExpanded={allExpanded}
         onToggleAll={onToggleAll}
         testId="expand-all-policies"
@@ -358,46 +484,69 @@ const PoliciesSection: React.FC<PoliciesSectionProps> = ({
         policies.map((policy, index) => {
           const isHighlighted = hasHighlightedGroup(policy.groups ?? [], highlightedGroup);
           return (
-            <ExpandableItem
-              key={policy.name}
-              ariaLabel={`Policy ${policy.displayName ?? policy.name}`}
-              name={policy.name}
-              displayName={policy.displayName}
-              linkTo={`${URL_PREFIX}/maas-governance/auth-policies/view/${policy.name}`}
-              onLinkClick={() =>
-                trackEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
-                  resourceType: EventTrackingResourceType.AUTHPOLICY,
-                  source: EventTrackingSource.OVERVIEW_MODEL,
-                  resourceStatus: policy.phase ?? '',
-                } satisfies MaaSSettingsDetailsViewedProperties)
-              }
-              linkState={OVERVIEW_LINK_STATE}
-              phase={policy.phase}
-              resourceType={PhaseResourceType.AUTHPOLICY}
-              rowIndex={index}
-              resourceUrl={getAuthPolicyViewUrl(policy.name)}
-              returnTo={returnTo}
-              isExpanded={isEffectivelyExpanded(
-                policy.name,
-                policy.groups,
-                expandedPolicies,
-                highlightedGroup,
-              )}
-              isHighlighted={isHighlighted}
-              onToggle={() => onTogglePolicy(policy.name)}
-              statusMessage={policy.statusMessage}
-              reason={policy.reason}
-              status={policy.status}
-              conditionType={policy.conditionType}
-              lastTransitionTime={policy.lastTransitionTime}
-            >
-              <GroupChips
-                groups={policy.groups ?? []}
-                highlightedGroup={highlightedGroup}
-                setHighlightedGroup={setHighlightedGroup}
-                onGroupSelect={onGroupSelect}
-              />
-            </ExpandableItem>
+            <React.Fragment key={policy.name}>
+              {index > 0 && <Divider />}
+              <ExpandableItem
+                ariaLabel={`Policy ${policy.displayName ?? policy.name}`}
+                name={policy.name}
+                displayName={policy.displayName}
+                linkTo={`${URL_PREFIX}/maas-governance/auth-policies/view/${policy.name}`}
+                onLinkClick={() =>
+                  trackEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+                    resourceType: EventTrackingResourceType.AUTHPOLICY,
+                    source: EventTrackingSource.OVERVIEW_MODEL,
+                    resourceStatus: policy.phase ?? '',
+                  } satisfies MaaSSettingsDetailsViewedProperties)
+                }
+                linkState={OVERVIEW_LINK_STATE}
+                phase={policy.phase}
+                resourceType={PhaseResourceType.AUTHPOLICY}
+                rowIndex={index}
+                resourceUrl={getAuthPolicyViewUrl(policy.name)}
+                returnTo={returnTo}
+                isExpanded={isEffectivelyExpanded(
+                  policy.name,
+                  policy.groups,
+                  expandedPolicies,
+                  highlightedGroup,
+                )}
+                isHighlighted={isHighlighted}
+                onToggle={() => onTogglePolicy(policy.name)}
+                statusMessage={policy.statusMessage}
+                reason={policy.reason}
+                status={policy.status}
+                conditionType={policy.conditionType}
+                lastTransitionTime={policy.lastTransitionTime}
+                actions={
+                  <EntryActions
+                    testId={`overview-policy-actions-${policy.name}`}
+                    resource="maasauthpolicies"
+                    name={policy.name}
+                    namespace={policy.namespace}
+                    isDisabled={!!policy.deletionTimestamp}
+                    onViewDetails={() =>
+                      navigate(getAuthPolicyViewUrl(policy.name), { state: OVERVIEW_LINK_STATE })
+                    }
+                    onEdit={() =>
+                      navigate(getAuthPolicyEditUrl(policy.name), {
+                        state: {
+                          ...OVERVIEW_LINK_STATE,
+                          editSource: EventTrackingEditSource.LIST_KEBAB,
+                        },
+                      })
+                    }
+                    onDelete={() => setDeletePolicy(policy)}
+                  />
+                }
+              >
+                <GroupChips
+                  groups={policy.groups ?? []}
+                  highlightedGroup={highlightedGroup}
+                  setHighlightedGroup={setHighlightedGroup}
+                  onGroupSelect={onGroupSelect}
+                />
+              </ExpandableItem>
+            </React.Fragment>
           );
         })
       )}
@@ -416,10 +565,13 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
   policies,
   returnTo,
 }) => {
+  const { refresh } = useMaaSGovernanceContext();
   const trackEvent = useTrackEvent();
   const [expandedSubs, setExpandedSubs] = React.useState<Set<string>>(new Set());
   const [expandedPolicies, setExpandedPolicies] = React.useState<Set<string>>(new Set());
   const [highlightedGroup, setHighlightedGroup] = React.useState<string | null>(null);
+  const [deleteSubscription, setDeleteSubscription] = React.useState<ModelOverviewSubscription>();
+  const [deletePolicy, setDeletePolicy] = React.useState<ModelOverviewPolicy>();
 
   const toggleSub = React.useCallback(
     (name: string) => setExpandedSubs((prev) => toggleExpandedItem(prev, name)),
@@ -475,38 +627,76 @@ const ExpandedModelContent: React.FC<ExpandedModelContentProps> = ({
   }, [policies, expandedPolicies, highlightedGroup]);
 
   return (
-    <Grid hasGutter>
-      <GridItem
-        span={6}
-        style={{
-          borderRight: '1px solid var(--pf-t--global--border--color--default)',
-          paddingRight: 'var(--pf-t--global--spacer--lg)',
-        }}
-      >
-        <SubscriptionsSection
-          subscriptions={subscriptions}
-          expandedSubs={expandedSubs}
-          onToggleSub={toggleSub}
-          onToggleAll={toggleAllSubs}
-          highlightedGroup={highlightedGroup}
-          setHighlightedGroup={setHighlightedGroup}
-          returnTo={returnTo}
-          onGroupSelect={onGroupSelect}
-        />
-      </GridItem>
-      <GridItem span={6}>
-        <PoliciesSection
-          policies={policies}
-          expandedPolicies={expandedPolicies}
-          onTogglePolicy={togglePolicy}
-          onToggleAll={toggleAllPolicies}
-          highlightedGroup={highlightedGroup}
-          setHighlightedGroup={setHighlightedGroup}
-          returnTo={returnTo}
-          onGroupSelect={onGroupSelect}
-        />
-      </GridItem>
-    </Grid>
+    <div className={styles['maas-expanded-content']}>
+      <Grid hasGutter>
+        <GridItem
+          span={6}
+          style={{
+            borderRight: '1px solid var(--pf-t--global--border--color--default)',
+            paddingRight: 'var(--pf-t--global--spacer--lg)',
+          }}
+        >
+          <SubscriptionsSection
+            subscriptions={subscriptions}
+            expandedSubs={expandedSubs}
+            onToggleSub={toggleSub}
+            onToggleAll={toggleAllSubs}
+            highlightedGroup={highlightedGroup}
+            setHighlightedGroup={setHighlightedGroup}
+            returnTo={returnTo}
+            onGroupSelect={onGroupSelect}
+            setDeleteSubscription={setDeleteSubscription}
+          />
+        </GridItem>
+        <GridItem span={6}>
+          <PoliciesSection
+            policies={policies}
+            expandedPolicies={expandedPolicies}
+            onTogglePolicy={togglePolicy}
+            onToggleAll={toggleAllPolicies}
+            highlightedGroup={highlightedGroup}
+            setHighlightedGroup={setHighlightedGroup}
+            returnTo={returnTo}
+            onGroupSelect={onGroupSelect}
+            setDeletePolicy={setDeletePolicy}
+          />
+        </GridItem>
+        {deleteSubscription && (
+          <DeleteSubscriptionModal
+            subscription={deleteSubscription}
+            onClose={(deleted) => {
+              setDeleteSubscription(undefined);
+              if (deleted) {
+                trackEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                  resourceType: EventTrackingResourceType.SUBSCRIPTION,
+                  source: EventTrackingSource.LIST_KEBAB,
+                  resourceStatus: deleteSubscription.phase ?? '',
+                  outcome: TrackingOutcome.submit,
+                } satisfies MaaSResourceDeletedProperties);
+                refresh();
+              }
+            }}
+          />
+        )}
+        {deletePolicy && (
+          <DeleteAuthPolicyModal
+            authPolicy={deletePolicy}
+            onClose={(deleted) => {
+              setDeletePolicy(undefined);
+              if (deleted) {
+                trackEvent(MaaSEvents.MAAS_RESOURCE_DELETED, {
+                  resourceType: EventTrackingResourceType.AUTHPOLICY,
+                  source: EventTrackingSource.LIST_KEBAB,
+                  resourceStatus: deletePolicy.phase ?? '',
+                  outcome: TrackingOutcome.submit,
+                } satisfies MaaSResourceDeletedProperties);
+                refresh();
+              }
+            }}
+          />
+        )}
+      </Grid>
+    </div>
   );
 };
 

@@ -1,9 +1,12 @@
 import * as React from 'react';
-import { Button, SearchInput, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
+import { Button, ToolbarGroup, ToolbarItem } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
 import { Link } from 'react-router-dom';
 import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { URL_PREFIX } from '~/app/utilities/const';
+import { ModelOverviewItem } from '~/app/types/subscriptions';
+import TypeaheadFilterField, { toSelectOptions } from '~/app/components/TypeaheadFilterField';
+import type { TypeaheadFilterOption } from '~/app/components/TypeaheadFilterField';
 import {
   EventTrackingFilterAttribute,
   MaaSEvents,
@@ -17,103 +20,125 @@ type OverviewToolbarProps = {
     key: OverviewFilterOptions,
     value?: string | { label: string; value: string },
   ) => void;
+  /** Source of the typeahead filter options; values match on resource names. */
+  rows: ModelOverviewItem[];
   returnTo?: string;
 };
 
 const OverviewToolbar: React.FC<OverviewToolbarProps> = ({
   filterData,
   onFilterUpdate,
+  rows,
   returnTo,
 }) => {
   const trackEvent = useTrackEvent();
+  const { modelOptions, projectOptions, groupOptions, subscriptionOptions, authPolicyOptions } =
+    React.useMemo(() => {
+      // Keyed by `${name}/${namespace}`: the same model name can be registered in
+      // multiple projects, and each project's option keeps its own display label
+      const modelLabels = new Map<string, string>();
+      const projectLabels = new Map<string, string>();
+      const groupLabels = new Map<string, string>();
+      const subscriptionLabels = new Map<string, string>();
+      const authPolicyLabels = new Map<string, string>();
+      rows.forEach((row) => {
+        modelLabels.set(`${row.id}/${row.namespace}`, row.modelDetails.displayName ?? row.id);
+        projectLabels.set(row.namespace, row.namespace);
+        row.subscriptions.forEach((sub) => {
+          subscriptionLabels.set(sub.name, sub.displayName ?? sub.name);
+          sub.groups?.forEach((group) => groupLabels.set(group, group));
+        });
+        row.authPolicies.forEach((policy) => {
+          authPolicyLabels.set(policy.name, policy.displayName ?? policy.name);
+          policy.groups?.forEach((group) => groupLabels.set(group, group));
+        });
+      });
+      // The option value is the model name so an exact selection matches every
+      // project that registered it; same-name registrations collapse into one
+      // option whose label is the first label seen, with every other
+      // registration label kept as a search alias so each stays discoverable
+      const toModelOptions = (): TypeaheadFilterOption[] => {
+        const optionsByName = new Map<string, TypeaheadFilterOption>();
+        modelLabels.forEach((label, key) => {
+          const name = key.slice(0, key.lastIndexOf('/'));
+          const existing = optionsByName.get(name);
+          if (!existing) {
+            optionsByName.set(name, { value: name, content: label });
+          } else if (label !== existing.content) {
+            existing.searchAliases = [...(existing.searchAliases ?? []), label];
+          }
+        });
+        return Array.from(optionsByName.values())
+          .toSorted((a, b) => String(a.content).localeCompare(String(b.content)))
+          .map(({ value, content, searchAliases }) => ({ value, content, searchAliases }));
+      };
+      return {
+        modelOptions: toModelOptions(),
+        projectOptions: toSelectOptions(projectLabels),
+        groupOptions: toSelectOptions(groupLabels),
+        subscriptionOptions: toSelectOptions(subscriptionLabels),
+        authPolicyOptions: toSelectOptions(authPolicyLabels),
+      };
+    }, [rows]);
+
+  const fireFiltered = (filterAttribute: EventTrackingFilterAttribute) =>
+    trackEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {
+      filterAttribute,
+    } satisfies MaaSGovernanceOverviewFilteredProperties);
+
   return (
     <FilterToolbar<OverviewFilterOptions>
       testId="overview-table-toolbar"
       filterOptions={overviewFilterOptions}
       filterOptionRenders={{
-        [OverviewFilterOptions.modelName]: ({ onChange, ...props }) => (
-          <SearchInput
-            {...props}
-            style={{ minWidth: '350px' }}
-            aria-label="Filter by model name, ID, or description"
+        [OverviewFilterOptions.modelName]: ({ onChange, value }) => (
+          <TypeaheadFilterField
+            options={modelOptions}
             placeholder="Filter by model name, ID, or description"
-            onChange={(_event, value) => onChange(value)}
-            data-testid="overview-model-name-filter-input"
-            inputProps={{
-              onBlur: () => {
-                trackEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {
-                  filterAttribute: EventTrackingFilterAttribute.MODEL,
-                } satisfies MaaSGovernanceOverviewFilteredProperties);
-              },
-            }}
+            testId="overview-model-name-filter-toggle"
+            onChange={onChange}
+            value={value}
+            onFilterApplied={() => fireFiltered(EventTrackingFilterAttribute.MODEL)}
           />
         ),
-        [OverviewFilterOptions.project]: ({ onChange, ...props }) => (
-          <SearchInput
-            {...props}
-            style={{ minWidth: '350px' }}
-            aria-label="Filter by project"
+        [OverviewFilterOptions.project]: ({ onChange, value }) => (
+          <TypeaheadFilterField
+            options={projectOptions}
             placeholder="Filter by project"
-            onChange={(_event, value) => onChange(value)}
-            data-testid="overview-project-name-filter-input"
-            inputProps={{
-              onBlur: () => {
-                trackEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {
-                  filterAttribute: EventTrackingFilterAttribute.PROJECT,
-                } satisfies MaaSGovernanceOverviewFilteredProperties);
-              },
-            }}
+            testId="overview-project-name-filter-toggle"
+            onChange={onChange}
+            value={value}
+            onFilterApplied={() => fireFiltered(EventTrackingFilterAttribute.PROJECT)}
           />
         ),
-        [OverviewFilterOptions.groupName]: ({ onChange, ...props }) => (
-          <SearchInput
-            {...props}
-            style={{ minWidth: '350px' }}
-            aria-label="Filter by group name"
+        [OverviewFilterOptions.groupName]: ({ onChange, value }) => (
+          <TypeaheadFilterField
+            options={groupOptions}
             placeholder="Filter by group name"
-            onChange={(_event, value) => onChange(value)}
-            data-testid="overview-group-name-filter-input"
-            inputProps={{
-              onBlur: () => {
-                trackEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {
-                  filterAttribute: EventTrackingFilterAttribute.GROUP,
-                } satisfies MaaSGovernanceOverviewFilteredProperties);
-              },
-            }}
+            testId="overview-group-name-filter-toggle"
+            onChange={onChange}
+            value={value}
+            onFilterApplied={() => fireFiltered(EventTrackingFilterAttribute.GROUP)}
           />
         ),
-        [OverviewFilterOptions.subscriptionName]: ({ onChange, ...props }) => (
-          <SearchInput
-            {...props}
-            style={{ minWidth: '350px' }}
-            aria-label="Filter by subscription name"
+        [OverviewFilterOptions.subscriptionName]: ({ onChange, value }) => (
+          <TypeaheadFilterField
+            options={subscriptionOptions}
             placeholder="Filter by subscription name"
-            onChange={(_event, value) => onChange(value)}
-            data-testid="overview-subscription-name-filter-input"
-            inputProps={{
-              onBlur: () => {
-                trackEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {
-                  filterAttribute: EventTrackingFilterAttribute.SUBSCRIPTION,
-                } satisfies MaaSGovernanceOverviewFilteredProperties);
-              },
-            }}
+            testId="overview-subscription-name-filter-toggle"
+            onChange={onChange}
+            value={value}
+            onFilterApplied={() => fireFiltered(EventTrackingFilterAttribute.SUBSCRIPTION)}
           />
         ),
-        [OverviewFilterOptions.authPolicyName]: ({ onChange, ...props }) => (
-          <SearchInput
-            {...props}
-            style={{ minWidth: '350px' }}
-            aria-label="Filter by authorization policy name"
+        [OverviewFilterOptions.authPolicyName]: ({ onChange, value }) => (
+          <TypeaheadFilterField
+            options={authPolicyOptions}
             placeholder="Filter by authorization policy name"
-            onChange={(_event, value) => onChange(value)}
-            data-testid="overview-policy-name-filter-input"
-            inputProps={{
-              onBlur: () => {
-                trackEvent(MaaSEvents.MAAS_GOVERNANCE_OVERVIEW_FILTERED, {
-                  filterAttribute: EventTrackingFilterAttribute.POLICY,
-                } satisfies MaaSGovernanceOverviewFilteredProperties);
-              },
-            }}
+            testId="overview-policy-name-filter-toggle"
+            onChange={onChange}
+            value={value}
+            onFilterApplied={() => fireFiltered(EventTrackingFilterAttribute.POLICY)}
           />
         ),
       }}
