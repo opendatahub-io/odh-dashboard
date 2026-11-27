@@ -8,23 +8,16 @@ Encapsulates rules that cannot be expressed through config alone — e.g., enfor
 
 ## Usage
 
-The shared recommended ESLint profiles enable the analytics rule by default. For a custom
-or standalone config, apply the shared scoped preset to its source and unit-test files:
+The shared recommended ESLint profiles enable the analytics rule by default; no additional
+override is needed:
 
 ```js
-const eslintConfig = require('@odh-dashboard/eslint-config');
-
-module.exports = eslintConfig
-  .extend({
-    overrides: [
-      {
-        files: ['src/**/*.{ts,tsx}'],
-        ...eslintConfig.featureAnalytics,
-      },
-    ],
-  })
-  .recommendedReactTypescript(__dirname);
+module.exports = require('@odh-dashboard/eslint-config').recommendedReactTypescript(__dirname);
 ```
+
+Custom configs that do not use these profiles should add the scoped preset to their existing
+overrides. See [Feature Analytics Guards](../eslint-config/README.md#feature-analytics-guards)
+for the JavaScript/TypeScript override and Cypress exclusion.
 
 ## Rules
 
