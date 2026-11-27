@@ -6,8 +6,6 @@ resources:
   - service-account.yaml
   - role.yaml
   - role-binding.yaml
-  - cluster-role.yaml
-  - cluster-role-binding.yaml
   - deployment.yaml
   - pdb.yaml
   - service.yaml
@@ -96,8 +94,8 @@ replacements:
           name: rhaii-dashboard
         fieldPaths:
           - spec.ingress.0.from.0.podSelector.matchLabels.[gateway.networking.k8s.io/gateway-name]
-  # ClusterRoleBindings are cluster-scoped, so their ServiceAccount subject
-  # must be supplied explicitly rather than inferred from metadata.namespace.
+  # Supply the ServiceAccount subject's namespace explicitly, so the binding
+  # follows the namespace the installer renders the bundle for.
   - source:
       kind: ConfigMap
       name: rhaii-dashboard-params
@@ -107,13 +105,6 @@ replacements:
           group: rbac.authorization.k8s.io
           version: v1
           kind: RoleBinding
-          name: rhaii-dashboard
-        fieldPaths:
-          - subjects.[name=rhaii-dashboard].namespace
-      - select:
-          group: rbac.authorization.k8s.io
-          version: v1
-          kind: ClusterRoleBinding
           name: rhaii-dashboard
         fieldPaths:
           - subjects.[name=rhaii-dashboard].namespace

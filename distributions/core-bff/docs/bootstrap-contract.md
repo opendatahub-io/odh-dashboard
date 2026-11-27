@@ -42,11 +42,11 @@ An explicit value always wins over the platform default, in both directions.
 ### The platform default requires a _confirmed_ platform
 
 The probe reads the `version` singleton with the service account, and the API server authorizes
-that request before it resolves the resource. The auto-detect manifests
-(`distributions/core-bff/manifests/base/cluster-role.yaml`) therefore grant `get` on
-`clusterversions/version`: without it the probe is a 403 on every cluster, so neither "API not
-served" nor a successful read could ever be observed. Deployments that set `ODH_PLATFORM_TYPE`
-(the RHAII bundle sets `--platform-type=XKS`) never probe and need no such rule.
+that request before it resolves the resource. A deployment that leaves the platform to
+auto-detection must therefore grant `get` on `clusterversions/version` (`config.openshift.io`):
+without it the probe is a 403 on every cluster, so neither "API not served" nor a successful read
+could ever be observed. No shipped xKS manifest auto-detects: the RHAII bundle sets
+`--platform-type=XKS`, never probes and grants no such rule.
 
 Startup falls back to `XKS` when the OpenShift `ClusterVersion` probe fails, because XKS is the
 least-privilege answer for deciding which API calls to make. That fallback is a **guess**, and a
@@ -315,12 +315,35 @@ Deployment sets `NAMESPACE` to the pod's own namespace, where the Role is bound.
 are exercised against an API server without the OdhApplication API in
 `bff/internal/api/components_sa_rbac_test.go`.
 
-On a confirmed xKS platform the service account needs **no** write verb on any resource, and no
-permission on `namespaces`, `servingruntimes`, `deployments` or `auths`. An _unconfirmed_ xKS guess
-keeps the `auth-resource` admission mode (see above), which reads `auths/auth` with the service
-account; set `ODH_PLATFORM_TYPE=XKS` so that read never happens. The current
-`manifests/base/cluster-role.yaml` grants more than this; the reduction is for
-[RHOAIENG-96147](https://redhat.atlassian.net/browse/RHOAIENG-96147) to apply in an xKS overlay.
+On a confirmed xKS platform the service account needs **no** write verb on any resource, no
+ClusterRole, and no permission on `namespaces` (not even `list`), `servingruntimes`, `deployments`
+or `auths`. An _unconfirmed_ xKS guess keeps the `auth-resource` admission mode (see above), which
+reads `auths/auth` with the service account; set `ODH_PLATFORM_TYPE=XKS` so that read never happens.
+
+**This table is the shipped RBAC.** The RHAII bundle (`manifests/distributions/rhaii`, the only
+xKS manifest set) grants its service account exactly these rows in a namespaced Role, and nothing
+else: no ClusterRole is bound to it. `bff/internal/bundlecontract` parses this table and fails when
+the bundle grants a verb it does not list, omits one it lists, binds any other role or subject, or
+uses a wildcard, `resourceNames`, a non-resource URL or an aggregated ClusterRole. To change the
+service account's access, change this table first; a row that names `cluster-wide` in its resource
+cell is checked as a cluster-scoped grant. Decided in
+[RHAI-50761](https://redhat.atlassian.net/browse/RHAI-50761):
+
+- ConfigMap `create`, `update`, `patch` and `delete`, `servingruntimes` `create` and `namespaces`
+  `patch` are gone from the bundle. The connection-type, enabled-apps, cluster-settings,
+  ServingRuntime and namespace-label writes they served run as the caller on xKS (see the table of
+  user-initiated operations above).
+- `odhdashboardconfigs` `patch` is gone: `PATCH /api/config` patches as the caller.
+- The service account gets **no `list namespaces`**: namespace discovery runs entirely as the
+  caller.
+
+Hand-off: the dashboard operator's xKS operand
+([RHOAIENG-96147](https://redhat.atlassian.net/browse/RHOAIENG-96147)) renders this bundle and
+must not add service-account rules on top of it; the rhai-on-xks install chart
+([RHOAIENG-96161](https://redhat.atlassian.net/browse/RHOAIENG-96161)) installs it the same way. A
+sidecar that needs its own service-account access (for example a token-reviewing proxy) adds its
+rows here first. The OpenShift (RHOAI/ODH) service-account RBAC in `manifests/base` is out of scope
+and unchanged.
 
 `auths` is **not** in this list. In `authenticated` mode it is never read, which is the point: the
 service-account RBAC can be reduced to the reads above without introducing an undocumented

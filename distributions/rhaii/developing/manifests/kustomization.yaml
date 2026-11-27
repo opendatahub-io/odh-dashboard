@@ -3,31 +3,70 @@ kind: Kustomization
 
 namespace: opendatahub
 
+# The Tilt cluster renders the production RHAII bundle, the single source of
+# truth for its manifests and service-account RBAC. Everything below only
+# adapts it to a local Kind cluster. dev-rbac.yaml grants extra, dev-only
+# permissions for the DEV_MODE fallback identity; it is not the production
+# contract.
 resources:
 - namespace.yaml
-- ../../../core-bff/manifests/base
+- ../../../../manifests/distributions/rhaii
 - api-tester.yaml
 - dev-rbac.yaml
 - hardware-profile.yaml
 
+# Tilt builds and loads the image under this name.
+images:
+- name: quay.io/opendatahub/rhaii-dashboard
+  newName: rhaii-dashboard
+  newTag: latest
+
 patches:
+# Tilt loads the image into the Kind node, so it must not be pulled, and one
+# replica is enough locally. The bundle already selects xKS explicitly
+# (--platform-type=XKS); add only the dev-mode fallback identity.
 - target:
     kind: Deployment
     name: rhaii-dashboard
   patch: |
-    apiVersion: apps/v1
-    kind: Deployment
+    - op: replace
+      path: /spec/replicas
+      value: 1
+    - op: replace
+      path: /spec/template/spec/containers/0/imagePullPolicy
+      value: IfNotPresent
+    - op: add
+      path: /spec/template/spec/containers/0/args/-
+      value: --dev-mode
+# Tilt reaches the dashboard through a port-forward, not the xKS platform
+# Gateway, which this cluster does not run.
+- target:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: rhaii-dashboard
+  patch: |
+    $patch: delete
+    apiVersion: gateway.networking.k8s.io/v1
+    kind: HTTPRoute
     metadata:
       name: rhaii-dashboard
-    spec:
-      template:
-        spec:
-          containers:
-            - name: rhaii-dashboard
-              # Select xKS explicitly, as the production RHAII bundle does. The
-              # Tilt cluster is a Kind xKS testbed, and auto-detection falls
-              # back to the conservative OpenShift admission contract when the
-              # ClusterVersion probe is forbidden.
-              args:
-                - --dev-mode
-                - --platform-type=XKS
+- target:
+    group: networking.k8s.io
+    kind: NetworkPolicy
+    name: rhaii-dashboard
+  patch: |
+    $patch: delete
+    apiVersion: networking.k8s.io/v1
+    kind: NetworkPolicy
+    metadata:
+      name: rhaii-dashboard
+- target:
+    group: policy
+    kind: PodDisruptionBudget
+    name: rhaii-dashboard
+  patch: |
+    $patch: delete
+    apiVersion: policy/v1
+    kind: PodDisruptionBudget
+    metadata:
+      name: rhaii-dashboard

@@ -972,7 +972,7 @@ jobs:
           }
           trap cleanup EXIT
 
-          kubectl port-forward -n opendatahub service/rhaii-dashboard 4000:4000 \
+          kubectl port-forward -n opendatahub service/rhaii-dashboard 4000:8443 \
             > /tmp/rhaii-port-forward.log 2>&1 &
           PORT_FORWARD_PID=$!
 
