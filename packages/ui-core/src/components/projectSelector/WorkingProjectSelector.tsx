@@ -65,6 +65,7 @@ type Props = {
   aiLabel?: React.ReactNode;
   getProjectHref?: (name: string) => string;
   onCreateProject?: () => void;
+  /** Called after immediate selection; not called automatically after handler confirmation. */
   onProjectSelected?: (project: ProjectIdentity) => void;
   onProjectReviewClosed?: () => void;
   projectToReview?: string;
@@ -633,8 +634,8 @@ const WorkingProjectModal: React.FC<
     setSelectionError(undefined);
     try {
       if (hasProjectChangeHandler && requestProjectChange) {
+        await requestProjectChange(selectedProject);
         onClose();
-        requestProjectChange(selectedProject);
       } else {
         await selectProject(selectedProject);
         onProjectSelected?.(selectedProject);

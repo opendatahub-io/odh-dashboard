@@ -220,6 +220,71 @@ describe('WorkingProjectProvider', () => {
     expect(onProjectChange).not.toHaveBeenCalled();
   });
 
+  it('should ignore a stale async confirmation after a newer request replaces it', async () => {
+    let resolveFirst: (() => void) | undefined;
+    const firstOnConfirm = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveFirst = resolve;
+        }),
+    );
+    const secondOnConfirm = jest.fn();
+    let workingProject: WorkingProjectContextType | undefined;
+    let registerHandler: WorkingProjectContextType['registerProjectChangeHandler'];
+
+    const Handler: React.FC = () => {
+      const context = useWorkingProject();
+      const register = context.registerProjectChangeHandler;
+      React.useLayoutEffect(
+        () =>
+          register?.(() => ({
+            description: 'First request',
+            onConfirm: firstOnConfirm,
+          })),
+        [register],
+      );
+      registerHandler = register;
+      workingProject = context;
+      return null;
+    };
+
+    render(
+      <WorkingProjectProvider
+        projects={[firstProject, secondProject]}
+        activeProject={firstProject}
+        onProjectChange={jest.fn()}
+      >
+        <Handler />
+      </WorkingProjectProvider>,
+    );
+
+    act(() => workingProject?.requestProjectChange?.(secondProject));
+    let firstConfirmation: Promise<void> | undefined;
+    act(() => {
+      firstConfirmation = Promise.resolve(workingProject?.confirmProjectChange?.());
+    });
+
+    act(() => {
+      registerHandler?.(() => ({
+        description: 'Second request',
+        onConfirm: secondOnConfirm,
+      }));
+      workingProject?.requestProjectChange?.(secondProject);
+    });
+
+    expect(workingProject?.pendingProjectChange?.description).toBe('Second request');
+
+    await act(async () => {
+      resolveFirst?.();
+      await firstConfirmation;
+    });
+
+    expect(workingProject?.pendingProjectChange?.description).toBe('Second request');
+    expect(workingProject?.projectChangeError).toBeUndefined();
+    expect(workingProject?.isConfirmingProjectChange).toBe(false);
+    expect(secondOnConfirm).not.toHaveBeenCalled();
+  });
+
   it('should keep the project-change handler registered when a request becomes pending', () => {
     const onProjectChange = jest.fn();
     const onConfirm = jest.fn();
@@ -266,18 +331,17 @@ describe('WorkingProjectProvider', () => {
     let secondCleanup: (() => void) | undefined;
     let workingProject: WorkingProjectContextType | undefined;
 
-    const Handlers: React.FC = () => {
+    let registerHandler: WorkingProjectContextType['registerProjectChangeHandler'];
+    const FirstHandler: React.FC = () => {
       const context = useWorkingProject();
+      const register = context.registerProjectChangeHandler;
       React.useLayoutEffect(() => {
-        firstCleanup = context.registerProjectChangeHandler?.(() => ({
+        firstCleanup = register?.(() => ({
           description: 'First handler',
           onConfirm: firstOnConfirm,
         }));
-        secondCleanup = context.registerProjectChangeHandler?.(() => ({
-          description: 'Second handler',
-          onConfirm: secondOnConfirm,
-        }));
-      }, [context]);
+      }, [register]);
+      registerHandler = register;
       workingProject = context;
       return null;
     };
@@ -288,13 +352,27 @@ describe('WorkingProjectProvider', () => {
         activeProject={firstProject}
         onProjectChange={onProjectChange}
       >
-        <Handlers />
+        <FirstHandler />
       </WorkingProjectProvider>,
     );
 
-    act(() => firstCleanup?.());
     act(() => workingProject?.requestProjectChange?.(secondProject));
+    expect(workingProject?.pendingProjectChange?.description).toBe('First handler');
 
+    act(() => {
+      secondCleanup = registerHandler?.(() => ({
+        description: 'Second handler',
+        onConfirm: secondOnConfirm,
+      }));
+    });
+
+    expect(workingProject?.pendingProjectChange).toBeUndefined();
+    expect(workingProject?.isConfirmingProjectChange).toBe(false);
+
+    act(() => firstCleanup?.());
+
+    expect(workingProject?.pendingProjectChange).toBeUndefined();
+    act(() => workingProject?.requestProjectChange?.(secondProject));
     expect(workingProject?.pendingProjectChange?.description).toBe('Second handler');
     expect(secondCleanup).toBeDefined();
     expect(firstOnConfirm).not.toHaveBeenCalled();
@@ -310,6 +388,32 @@ describe('WorkingProjectProvider', () => {
 
     expect(onProjectChange).toHaveBeenCalledWith(secondProject);
     expect(renderResult.result.current.pendingProjectChange).toBeUndefined();
+  });
+
+  it('should return immediate asynchronous project changes to the caller', async () => {
+    let resolveChange: (() => void) | undefined;
+    const onProjectChange = jest.fn(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveChange = resolve;
+        }),
+    );
+    const renderResult = renderHook(() => useWorkingProject(), {
+      wrapper: createWrapper([firstProject, secondProject], firstProject, onProjectChange),
+    });
+
+    let change: void | Promise<void> | null = null;
+    act(() => {
+      change = renderResult.result.current.requestProjectChange?.(secondProject);
+    });
+
+    expect(change).toBeInstanceOf(Promise);
+    expect(onProjectChange).toHaveBeenCalledWith(secondProject);
+
+    await act(async () => {
+      resolveChange?.();
+      await change;
+    });
   });
 
   it('should expose an empty, inactive selection without a provider', () => {
