@@ -27,6 +27,12 @@ reinstall: build push undeploy deploy
 
 ##################################
 
+.PHONY: lint-manifests
+lint-manifests:
+	./hack/lint-manifests.sh
+
+##################################
+
 # BUILD - build image locally using s2i
 
 .PHONY: build

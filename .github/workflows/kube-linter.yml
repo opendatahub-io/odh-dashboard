@@ -1,0 +1,71 @@
+name: Lint manifests with kube-linter
+
+on:
+  push:
+    branches: [main, 'odh-release*', 'rhoai-release*', '*-release', 'v*-fixes', 'v*-hotfix']
+    paths:
+      - 'manifests/**'
+      - 'distributions/**'
+      - 'dashboard-operator/config/**'
+      - 'dashboard-operator/charts/**'
+      - '.kube-linter.yaml'
+      - 'hack/lint-manifests.sh'
+      - '.github/workflows/kube-linter.yml'
+  pull_request:
+    paths:
+      - 'manifests/**'
+      - 'distributions/**'
+      - 'dashboard-operator/config/**'
+      - 'dashboard-operator/charts/**'
+      - '.kube-linter.yaml'
+      - 'hack/lint-manifests.sh'
+      - '.github/workflows/kube-linter.yml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: kube-linter-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  kube-linter:
+    name: Lint manifests
+    runs-on: ubuntu-latest
+    env:
+      # Report-only rollout (RHAI-60105): findings are warnings and the SARIF
+      # upload below retains the evidence. Set to 'true' to enforce.
+      KUBE_LINTER_FAIL_ON_FINDINGS: 'false'
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+          sparse-checkout: |
+            manifests
+            distributions
+            dashboard-operator/config
+            dashboard-operator/charts
+            hack/lint-manifests.sh
+            .kube-linter.yaml
+
+      - name: Set up Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6
+        with:
+          go-version: '1.26.x'
+
+      - name: Lint manifests
+        id: lint
+        env:
+          KUBE_LINTER_SARIF_DIR: ${{ runner.temp }}/kube-linter
+        run: bash ./hack/lint-manifests.sh
+
+      - name: Upload kube-linter SARIF
+        # Fork pull requests cannot grant security-events: write, so the
+        # upload is limited to runs from this repository.
+        if: ${{ !cancelled() && steps.lint.outputs.sarif-ready == 'true' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) }}
+        uses: github/codeql-action/upload-sarif@915412ff23e8b7659517e607487dbeae018f2934 # v4.39.5
+        with:
+          sarif_file: ${{ runner.temp }}/kube-linter/report.sarif
