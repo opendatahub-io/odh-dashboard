@@ -9,6 +9,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/julienschmidt/httprouter"
 	"github.com/opendatahub-io/eval-hub/bff/internal/constants"
 	"github.com/opendatahub-io/eval-hub/bff/internal/integrations/evalhub"
@@ -135,75 +136,20 @@ func validateCollectionGenerationRequest(input evalhub.CreateCollectionGeneratio
 	return nil
 }
 
-func jsonObject(value json.RawMessage) bool {
-	trimmed := strings.TrimSpace(string(value))
-	return strings.HasPrefix(trimmed, "{")
-}
-
-func jsonObjectArray(value json.RawMessage, minimumItems int) bool {
-	trimmed := strings.TrimSpace(string(value))
-	if !strings.HasPrefix(trimmed, "[") {
-		return false
+func validateCollectionGenerationResourceSchema(generation *evalhub.CollectionGenerationResource, schema *openapi3.Schema) error {
+	if schema == nil {
+		return fmt.Errorf("collection generation response schema is unavailable")
 	}
-	var items []json.RawMessage
-	if err := json.Unmarshal(value, &items); err != nil {
-		return false
+	encoded, err := json.Marshal(generation)
+	if err != nil {
+		return fmt.Errorf("could not encode upstream collection generation response for validation: %w", err)
 	}
-	if len(items) < minimumItems {
-		return false
+	var response any
+	if err := json.Unmarshal(encoded, &response); err != nil {
+		return fmt.Errorf("could not decode upstream collection generation response for validation: %w", err)
 	}
-	for _, item := range items {
-		if !jsonObject(item) {
-			return false
-		}
-	}
-	return true
-}
-
-func validateCollectionGenerationResult(result json.RawMessage) error {
-	var parsed struct {
-		Collection  json.RawMessage `json:"collection"`
-		Rationale   string          `json:"rationale"`
-		Explanation json.RawMessage `json:"explanation"`
-	}
-	if err := json.Unmarshal(result, &parsed); err != nil {
-		return fmt.Errorf("upstream returned an invalid completed collection generation result: %w", err)
-	}
-	if !jsonObject(parsed.Collection) {
-		return fmt.Errorf("upstream completed collection generation without a collection object")
-	}
-	var collection struct {
-		Benchmarks json.RawMessage `json:"benchmarks"`
-	}
-	if err := json.Unmarshal(parsed.Collection, &collection); err != nil || !jsonObjectArray(collection.Benchmarks, 1) {
-		return fmt.Errorf("upstream completed collection generation without a non-empty benchmarks array")
-	}
-	if strings.TrimSpace(parsed.Rationale) == "" {
-		return fmt.Errorf("upstream completed collection generation without a rationale")
-	}
-	if !jsonObject(parsed.Explanation) {
-		return fmt.Errorf("upstream completed collection generation without an explanation object")
-	}
-	var explanation struct {
-		SelectedBenchmarks json.RawMessage `json:"selected_benchmarks"`
-		RejectedBenchmarks json.RawMessage `json:"rejected_benchmarks"`
-	}
-	if err := json.Unmarshal(parsed.Explanation, &explanation); err != nil ||
-		!jsonObjectArray(explanation.SelectedBenchmarks, 1) || !jsonObjectArray(explanation.RejectedBenchmarks, 0) {
-		return fmt.Errorf("upstream completed collection generation with invalid benchmark explanations")
-	}
-	return nil
-}
-
-func validateCollectionGenerationError(statusError json.RawMessage) error {
-	if !jsonObject(statusError) {
-		return fmt.Errorf("upstream failed collection generation without an error object")
-	}
-	var parsed struct {
-		Message string `json:"message"`
-	}
-	if err := json.Unmarshal(statusError, &parsed); err != nil || strings.TrimSpace(parsed.Message) == "" {
-		return fmt.Errorf("upstream failed collection generation without an error message")
+	if err := schema.VisitJSON(response); err != nil {
+		return fmt.Errorf("upstream returned a collection generation response that violates the API schema: %w", err)
 	}
 	return nil
 }
@@ -216,7 +162,18 @@ func validateCollectionGenerationID(id string) error {
 	return nil
 }
 
-func validateCollectionGenerationResource(generation *evalhub.CollectionGenerationResource, namespace string) error {
+func (app *App) collectionGenerationResourceSchema() *openapi3.Schema {
+	if app.openAPI == nil || app.openAPI.spec == nil {
+		return nil
+	}
+	schemaRef := app.openAPI.spec.Components.Schemas["CollectionGenerationResource"]
+	if schemaRef == nil {
+		return nil
+	}
+	return schemaRef.Value
+}
+
+func validateCollectionGenerationResource(generation *evalhub.CollectionGenerationResource, namespace string, schema *openapi3.Schema) error {
 	if generation == nil {
 		return fmt.Errorf("upstream returned an empty collection generation")
 	}
@@ -251,21 +208,11 @@ func validateCollectionGenerationResource(generation *evalhub.CollectionGenerati
 	if generation.Status.State == "completed" && !hasResult {
 		return fmt.Errorf("upstream completed collection generation without a result")
 	}
-	if generation.Status.State == "completed" {
-		if err := validateCollectionGenerationResult(generation.Result); err != nil {
-			return err
-		}
-	}
 	if generation.Status.State != "completed" && hasResult {
 		return fmt.Errorf("upstream returned a result for a non-completed collection generation")
 	}
 	if generation.Status.State == "failed" && !hasError {
 		return fmt.Errorf("upstream failed collection generation without an error")
-	}
-	if generation.Status.State == "failed" {
-		if err := validateCollectionGenerationError(generation.Status.Error); err != nil {
-			return err
-		}
 	}
 	if generation.Status.State != "failed" && hasError {
 		return fmt.Errorf("upstream returned an error for a non-failed collection generation")
@@ -273,7 +220,7 @@ func validateCollectionGenerationResource(generation *evalhub.CollectionGenerati
 	if generation.Status.State != "running" && hasProgress {
 		return fmt.Errorf("upstream returned progress for a non-running collection generation")
 	}
-	return nil
+	return validateCollectionGenerationResourceSchema(generation, schema)
 }
 
 func (app *App) CreateCollectionGenerationHandler(w http.ResponseWriter, r *http.Request) {
@@ -300,7 +247,7 @@ func (app *App) CreateCollectionGenerationHandler(w http.ResponseWriter, r *http
 		app.evalHubErrorResponse(w, r, err, "failed to create collection generation")
 		return
 	}
-	if err := validateCollectionGenerationResource(generation, namespace); err != nil {
+	if err := validateCollectionGenerationResource(generation, namespace, app.collectionGenerationResourceSchema()); err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}
@@ -343,7 +290,7 @@ func (app *App) GetCollectionGenerationHandler(w http.ResponseWriter, r *http.Re
 		app.serverErrorResponse(w, r, fmt.Errorf("upstream returned a different collection generation resource"))
 		return
 	}
-	if err := validateCollectionGenerationResource(generation, namespace); err != nil {
+	if err := validateCollectionGenerationResource(generation, namespace, app.collectionGenerationResourceSchema()); err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
 	}

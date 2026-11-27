@@ -196,6 +196,17 @@ const pendingGeneration: CollectionGenerationResource = {
   result: undefined,
 };
 
+const failedGeneration: CollectionGenerationResource = {
+  ...pendingGeneration,
+  status: {
+    state: 'failed',
+    error: {
+      code: 'model_failed',
+      message: 'The recommendation model failed.',
+    },
+  },
+};
+
 const LocationDisplay: React.FC = () => {
   const { pathname } = useLocation();
   return <div data-testid="location-pathname">{pathname}</div>;
@@ -265,7 +276,7 @@ const completeGenerationToReview = async () => {
   return rendered;
 };
 
-const startPendingGeneration = async (): Promise<void> => {
+const submitRecommendationRequest = async (): Promise<void> => {
   await renderPage();
   fireEvent.change(screen.getByTestId('goal-suite-name'), {
     target: { value: 'Answer quality suite' },
@@ -277,6 +288,10 @@ const startPendingGeneration = async (): Promise<void> => {
   });
   await waitFor(() => expect(screen.getByTestId('recommend-benchmarks-with-ai')).toBeEnabled());
   fireEvent.click(screen.getByTestId('recommend-benchmarks-with-ai'));
+};
+
+const startPendingGeneration = async (): Promise<void> => {
+  await submitRecommendationRequest();
   expect(await screen.findByText('Initializing recommendations')).toBeInTheDocument();
 };
 
@@ -1115,6 +1130,62 @@ describe('CreateCollectionFromGoalPage', () => {
     expect(await screen.findByTestId('collection-generation-cancelled')).toBeInTheDocument();
     expect(screen.getByTestId('collection-generation-retry')).toBeEnabled();
     expect(screen.queryByTestId('collection-generation-retry-poll')).not.toBeInTheDocument();
+  });
+
+  it('should clean up a failed generation and allow recommendations to be retried', async () => {
+    mockCreateCollectionGeneration
+      .mockReturnValueOnce(() => Promise.resolve(failedGeneration))
+      .mockReturnValueOnce(() => Promise.resolve(pendingGeneration));
+    mockGetCollectionGeneration.mockReturnValue(() => Promise.resolve(failedGeneration));
+
+    await submitRecommendationRequest();
+
+    expect(await screen.findByTestId('collection-generation-error')).toHaveTextContent(
+      'The recommendation model failed.',
+    );
+    await waitFor(() => expect(mockDeleteCollectionGeneration).toHaveBeenCalledTimes(1));
+    expect(mockDeleteCollectionGeneration).toHaveBeenCalledWith('', 'test-project', 'generation-1');
+    expect(screen.getByTestId('collection-generation-error')).toHaveTextContent(
+      'The recommendation model failed.',
+    );
+    expect(screen.getByTestId('collection-generation-retry')).toBeEnabled();
+
+    mockGetCollectionGeneration.mockReturnValue(() => Promise.resolve(pendingGeneration));
+    fireEvent.click(screen.getByTestId('collection-generation-retry'));
+
+    expect(await screen.findByText('Initializing recommendations')).toBeInTheDocument();
+    expect(mockCreateCollectionGeneration).toHaveBeenCalledTimes(2);
+    expect(mockDeleteCollectionGeneration).toHaveBeenCalledTimes(1);
+  });
+
+  it('should allow retrying failed generation cleanup before requesting recommendations again', async () => {
+    mockCreateCollectionGeneration
+      .mockReturnValueOnce(() => Promise.resolve(failedGeneration))
+      .mockReturnValueOnce(() => Promise.resolve(pendingGeneration));
+    mockGetCollectionGeneration.mockReturnValue(() => Promise.resolve(failedGeneration));
+    mockDeleteCollectionGeneration
+      .mockReturnValueOnce(() =>
+        Promise.reject(new Error('The failed generation could not be deleted.')),
+      )
+      .mockReturnValueOnce(() => Promise.resolve());
+
+    await submitRecommendationRequest();
+
+    expect(await screen.findByTestId('collection-generation-error')).toHaveTextContent(
+      'The recommendation model failed.',
+    );
+    await waitFor(() => expect(mockDeleteCollectionGeneration).toHaveBeenCalledTimes(1));
+    expect(screen.getByTestId('collection-generation-error')).toHaveTextContent(
+      'The recommendation model failed.',
+    );
+    expect(screen.getByTestId('collection-generation-retry')).toBeEnabled();
+
+    mockGetCollectionGeneration.mockReturnValue(() => Promise.resolve(pendingGeneration));
+    fireEvent.click(screen.getByTestId('collection-generation-retry'));
+
+    expect(await screen.findByText('Initializing recommendations')).toBeInTheDocument();
+    expect(mockDeleteCollectionGeneration).toHaveBeenCalledTimes(2);
+    expect(mockCreateCollectionGeneration).toHaveBeenCalledTimes(2);
   });
 
   it('should keep an active generation and allow Stop to retry when DELETE fails', async () => {

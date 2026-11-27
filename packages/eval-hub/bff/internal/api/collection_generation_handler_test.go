@@ -22,15 +22,49 @@ func validCollectionGenerationRequest() evalhub.CreateCollectionGenerationReques
 	}
 }
 
+func validGenerationResultPayload() map[string]any {
+	return map[string]any{
+		"collection": map[string]any{
+			"name":     "Reasoning",
+			"category": "General",
+			"benchmarks": []any{
+				map[string]any{"id": "arc_challenge", "provider_id": "lm_evaluation_harness"},
+			},
+		},
+		"yaml":      "name: Reasoning",
+		"rationale": "Selected for the evaluation goal",
+		"explanation": map[string]any{
+			"selected_benchmarks": []any{
+				map[string]any{"provider_id": "lm_evaluation_harness", "id": "arc_challenge", "reason": "Tests reasoning"},
+			},
+			"rejected_benchmarks": []any{},
+		},
+		"actions": []any{
+			map[string]any{"name": "search_benchmarks", "outcome": "success", "summary": "Searched the benchmark catalog"},
+		},
+	}
+}
+
 type generationResponseOverrideClient struct {
 	evalhub.EvalHubClientInterface
 	generation *evalhub.CollectionGenerationResource
 }
 
-type unavailableCollectionGenerationClient struct{ erroringEHClient }
+type collectionGenerationStatusErrorClient struct {
+	evalhub.EvalHubClientInterface
+	err error
+}
 
-func (c unavailableCollectionGenerationClient) CreateCollectionGeneration(_ context.Context, _ string, _ evalhub.CreateCollectionGenerationRequest) (*evalhub.CollectionGenerationResource, error) {
-	return nil, evalhub.NewServerUnavailableError("generation service is unavailable")
+func (c collectionGenerationStatusErrorClient) CreateCollectionGeneration(_ context.Context, _ string, _ evalhub.CreateCollectionGenerationRequest) (*evalhub.CollectionGenerationResource, error) {
+	return nil, c.err
+}
+
+func (c collectionGenerationStatusErrorClient) GetCollectionGeneration(_ context.Context, _ string, _ string) (*evalhub.CollectionGenerationResource, error) {
+	return nil, c.err
+}
+
+func (c collectionGenerationStatusErrorClient) DeleteCollectionGeneration(_ context.Context, _ string, _ string) error {
+	return c.err
 }
 
 func (c generationResponseOverrideClient) GetCollectionGeneration(_ context.Context, _ string, _ string) (*evalhub.CollectionGenerationResource, error) {
@@ -156,16 +190,45 @@ func TestCreateCollectionGenerationHandlerAcceptsDurableLimits(t *testing.T) {
 	assert.Equal(t, 100, result.Data.Request.MaxBenchmarks)
 }
 
-func TestCreateCollectionGenerationHandlerPreservesUnavailableStatus(t *testing.T) {
+func TestCollectionGenerationHandlersPreserveUpstreamOutageStatuses(t *testing.T) {
 	identity := &kubernetes.RequestIdentity{UserID: "user@example.com"}
-	_, response, err := setupApiTestWithEvalHub[HTTPError](
-		http.MethodPost,
-		ApiPathPrefix+collectionGenerationPath+"?namespace=test-ns",
-		validCollectionGenerationRequest(), nil, identity, &unavailableCollectionGenerationClient{},
-	)
+	routes := []struct {
+		name   string
+		method string
+		path   string
+		body   any
+	}{
+		{name: "create", method: http.MethodPost, path: ApiPathPrefix + collectionGenerationPath + "?namespace=test-ns", body: validCollectionGenerationRequest()},
+		{name: "get", method: http.MethodGet, path: ApiPathPrefix + collectionGenerationPath + "/generation-001?namespace=test-ns"},
+		{name: "delete", method: http.MethodDelete, path: ApiPathPrefix + collectionGenerationPath + "/generation-001?namespace=test-ns"},
+	}
+	outages := []struct {
+		name       string
+		statusCode int
+		clientErr  error
+	}{
+		{name: "upstream connection failure", statusCode: http.StatusBadGateway, clientErr: evalhub.NewConnectionError("generation service could not be reached")},
+		{name: "upstream unavailable", statusCode: http.StatusServiceUnavailable, clientErr: evalhub.NewServerUnavailableError("generation service is unavailable")},
+	}
 
-	require.NoError(t, err)
-	assert.Equal(t, http.StatusServiceUnavailable, response.StatusCode)
+	for _, route := range routes {
+		for _, outage := range outages {
+			t.Run(route.name+"/"+outage.name, func(t *testing.T) {
+				client := collectionGenerationStatusErrorClient{
+					EvalHubClientInterface: ehmocks.NewMockEvalHubClient(),
+					err:                    outage.clientErr,
+				}
+				_, response, err := setupApiTestWithEvalHub[HTTPError](
+					route.method,
+					route.path,
+					route.body, nil, identity, client,
+				)
+
+				require.NoError(t, err)
+				assert.Equal(t, outage.statusCode, response.StatusCode)
+			})
+		}
+	}
 }
 
 func TestCreateCollectionGenerationRejectsCrossTenantResource(t *testing.T) {
@@ -236,7 +299,7 @@ func TestGetCollectionGenerationHandlerCompletedResult(t *testing.T) {
 			Strictness: "moderate", GenerationEffort: "standard",
 		},
 		Status: evalhub.CollectionGenerationStatus{State: "completed"},
-		Result: json.RawMessage(`{"collection":{"name":"Reasoning","benchmarks":[{"id":"arc_challenge","provider_id":"lm_evaluation_harness"}]},"yaml":"name: Reasoning","rationale":"Selected for the goal","explanation":{"selected_benchmarks":[{"provider_id":"lm_evaluation_harness","id":"arc_challenge","reason":"Tests reasoning"}],"rejected_benchmarks":[]},"actions":[]}`),
+		Result: json.RawMessage(`{"collection":{"name":"Reasoning","category":"General","benchmarks":[{"id":"arc_challenge","provider_id":"lm_evaluation_harness"}]},"yaml":"name: Reasoning","rationale":"Selected for the goal","explanation":{"selected_benchmarks":[{"provider_id":"lm_evaluation_harness","id":"arc_challenge","reason":"Tests reasoning"}],"rejected_benchmarks":[]},"actions":[{"name":"search_benchmarks","outcome":"success","summary":"Searched the benchmark catalog"}]}`),
 	})
 
 	result, response, err := setupApiTestWithEvalHub[CollectionGenerationEnvelope](
@@ -257,28 +320,77 @@ func TestGetCollectionGenerationRejectsMalformedCompletedResult(t *testing.T) {
 	invalidResults := []struct {
 		name   string
 		result json.RawMessage
+		mutate func(map[string]any)
 	}{
 		{name: "invalid JSON", result: json.RawMessage(`{"collection":`)},
-		{name: "collection is not an object", result: json.RawMessage(`{"collection":[],"rationale":"Proposal","explanation":{"selected_benchmarks":[{}],"rejected_benchmarks":[]}}`)},
-		{name: "benchmarks are not an array", result: json.RawMessage(`{"collection":{"benchmarks":{}},"rationale":"Proposal","explanation":{"selected_benchmarks":[{}],"rejected_benchmarks":[]}}`)},
-		{name: "benchmarks are empty", result: json.RawMessage(`{"collection":{"benchmarks":[]},"rationale":"Proposal","explanation":{"selected_benchmarks":[{}],"rejected_benchmarks":[]}}`)},
-		{name: "benchmark entry is null", result: json.RawMessage(`{"collection":{"benchmarks":[null]},"rationale":"Proposal","explanation":{"selected_benchmarks":[{}],"rejected_benchmarks":[]}}`)},
-		{name: "benchmark entry is not an object", result: json.RawMessage(`{"collection":{"benchmarks":[1]},"rationale":"Proposal","explanation":{"selected_benchmarks":[{}],"rejected_benchmarks":[]}}`)},
-		{name: "missing rationale", result: json.RawMessage(`{"collection":{"benchmarks":[{}]},"explanation":{"selected_benchmarks":[{}],"rejected_benchmarks":[]}}`)},
-		{name: "explanation is not an object", result: json.RawMessage(`{"collection":{"benchmarks":[{}]},"rationale":"Proposal","explanation":[]}`)},
-		{name: "selected explanations are not an array", result: json.RawMessage(`{"collection":{"benchmarks":[{}]},"rationale":"Proposal","explanation":{"selected_benchmarks":{},"rejected_benchmarks":[]}}`)},
-		{name: "selected explanation entry is null", result: json.RawMessage(`{"collection":{"benchmarks":[{}]},"rationale":"Proposal","explanation":{"selected_benchmarks":[null],"rejected_benchmarks":[]}}`)},
-		{name: "rejected explanation entry is not an object", result: json.RawMessage(`{"collection":{"benchmarks":[{}]},"rationale":"Proposal","explanation":{"selected_benchmarks":[{}],"rejected_benchmarks":["invalid"]}}`)},
-		{name: "rejected explanations are missing", result: json.RawMessage(`{"collection":{"benchmarks":[{}]},"rationale":"Proposal","explanation":{"selected_benchmarks":[{}]}}`)},
+		{name: "missing collection name", mutate: func(result map[string]any) {
+			delete(result["collection"].(map[string]any), "name")
+		}},
+		{name: "collection name contains only whitespace", mutate: func(result map[string]any) {
+			result["collection"].(map[string]any)["name"] = "  \t"
+		}},
+		{name: "collection category and domains are missing", mutate: func(result map[string]any) {
+			delete(result["collection"].(map[string]any), "category")
+		}},
+		{name: "benchmarks are not an array", mutate: func(result map[string]any) {
+			result["collection"].(map[string]any)["benchmarks"] = map[string]any{}
+		}},
+		{name: "benchmarks are empty", mutate: func(result map[string]any) {
+			result["collection"].(map[string]any)["benchmarks"] = []any{}
+		}},
+		{name: "benchmark entry is null", mutate: func(result map[string]any) {
+			result["collection"].(map[string]any)["benchmarks"] = []any{nil}
+		}},
+		{name: "benchmark is missing its required id", mutate: func(result map[string]any) {
+			result["collection"].(map[string]any)["benchmarks"] = []any{map[string]any{"provider_id": "provider"}}
+		}},
+		{name: "benchmark has a negative weight", mutate: func(result map[string]any) {
+			result["collection"].(map[string]any)["benchmarks"] = []any{map[string]any{"id": "arc_challenge", "weight": -0.1}}
+		}},
+		{name: "missing YAML serialization", mutate: func(result map[string]any) {
+			delete(result, "yaml")
+		}},
+		{name: "missing rationale", mutate: func(result map[string]any) {
+			delete(result, "rationale")
+		}},
+		{name: "missing selected explanation id", mutate: func(result map[string]any) {
+			delete(result["explanation"].(map[string]any)["selected_benchmarks"].([]any)[0].(map[string]any), "id")
+		}},
+		{name: "explanation reason is too long", mutate: func(result map[string]any) {
+			result["explanation"].(map[string]any)["selected_benchmarks"].([]any)[0].(map[string]any)["reason"] = strings.Repeat("a", 301)
+		}},
+		{name: "rejected explanations are missing", mutate: func(result map[string]any) {
+			delete(result["explanation"].(map[string]any), "rejected_benchmarks")
+		}},
+		{name: "missing actions", mutate: func(result map[string]any) {
+			delete(result, "actions")
+		}},
+		{name: "action is missing its outcome", mutate: func(result map[string]any) {
+			delete(result["actions"].([]any)[0].(map[string]any), "outcome")
+		}},
+		{name: "action has an unsupported outcome", mutate: func(result map[string]any) {
+			result["actions"].([]any)[0].(map[string]any)["outcome"] = "skipped"
+		}},
+		{name: "unexpected result property", mutate: func(result map[string]any) {
+			result["debug"] = true
+		}},
 	}
 
 	for _, tc := range invalidResults {
 		t.Run(tc.name, func(t *testing.T) {
+			resultJSON := tc.result
+			if tc.mutate != nil {
+				result := validGenerationResultPayload()
+				tc.mutate(result)
+				var err error
+				resultJSON, err = json.Marshal(result)
+				require.NoError(t, err)
+			}
 			client := generationResponseOverrideClient{generation: &evalhub.CollectionGenerationResource{
 				Resource: evalhub.CollectionGenerationResourceMetadata{ID: "generation-001", Tenant: "test-ns", Owner: "user@example.com", CreatedAt: "2026-01-01T00:00:00Z", UpdatedAt: "2026-01-01T00:01:00Z"},
 				Request:  evalhub.CollectionGenerationRequestSummary{EvaluationGoal: request.EvaluationGoal, Model: request.Model, MaxBenchmarks: 12, Strictness: "moderate", GenerationEffort: "standard"},
 				Status:   evalhub.CollectionGenerationStatus{State: "completed"},
-				Result:   tc.result,
+				Result:   resultJSON,
 			}}
 			_, response, err := setupApiTestWithEvalHub[HTTPError](
 				http.MethodGet,

@@ -27,7 +27,10 @@ type OpenAPIHandler struct {
 }
 
 func NewOpenAPIHandler(logger *slog.Logger) (*OpenAPIHandler, error) {
-	specPath := "openapi/src/eval-hub.yaml"
+	return newOpenAPIHandlerAtPath(logger, "openapi/src/eval-hub.yaml", "openapi/src")
+}
+
+func newOpenAPIHandlerAtPath(logger *slog.Logger, specPath, referenceRoot string) (*OpenAPIHandler, error) {
 	specData, err := os.ReadFile(specPath)
 	if err != nil {
 		return nil, err
@@ -38,7 +41,7 @@ func NewOpenAPIHandler(logger *slog.Logger) (*OpenAPIHandler, error) {
 
 	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
 		if url.Scheme == "" && url.Host == "" {
-			filePath := filepath.Join("openapi/src", url.Path)
+			filePath := filepath.Join(referenceRoot, url.Path)
 			return os.ReadFile(filePath)
 		}
 		return nil, fmt.Errorf("unsupported URL scheme: %s", url.Scheme)

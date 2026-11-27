@@ -260,12 +260,14 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
-        '503':
-          $ref: '#/components/responses/ServiceUnavailable'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: createCollectionGeneration
       summary: Generate Collection Proposal
       description: >-
@@ -300,6 +302,10 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: getCollectionGeneration
       summary: Get Collection Generation
       description: >-
@@ -330,10 +336,12 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
-        '503':
-          $ref: '#/components/responses/ServiceUnavailable'
         '500':
           $ref: '#/components/responses/InternalServerError'
+        '502':
+          $ref: '#/components/responses/BadGateway'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
       operationId: deleteCollectionGeneration
       summary: Delete Collection Generation
       description: >-
@@ -3335,6 +3343,13 @@ components:
 
     Conflict:
       description: Conflict - Collection cannot be edited after it has been run
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+
+    BadGateway:
+      description: Bad Gateway - The EvalHub upstream could not be reached
       content:
         application/json:
           schema:

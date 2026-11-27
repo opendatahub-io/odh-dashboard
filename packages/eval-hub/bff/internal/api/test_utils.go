@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 
 	"github.com/opendatahub-io/eval-hub/bff/internal/config"
 	"github.com/opendatahub-io/eval-hub/bff/internal/constants"
@@ -53,6 +54,26 @@ func (f *crStatusK8sFactory) ValidateRequestIdentity(_ *kubernetes.RequestIdenti
 }
 
 var testLogger = slog.New(slog.NewTextHandler(io.Discard, nil))
+
+var (
+	testOpenAPIOnce    sync.Once
+	testOpenAPIHandler *OpenAPIHandler
+	testOpenAPIErr     error
+)
+
+func getTestOpenAPIHandler() *OpenAPIHandler {
+	testOpenAPIOnce.Do(func() {
+		testOpenAPIHandler, testOpenAPIErr = newOpenAPIHandlerAtPath(
+			testLogger,
+			"../../openapi/src/eval-hub.yaml",
+			"../../openapi/src",
+		)
+	})
+	if testOpenAPIErr != nil {
+		panic(fmt.Sprintf("failed to load test OpenAPI schema: %v", testOpenAPIErr))
+	}
+	return testOpenAPIHandler
+}
 
 // setupApiTestWithEvalHub exercises handlers that require an EvalHub client in context.
 func setupApiTestWithEvalHub[T any](method, url string, body interface{}, k8Factory kubernetes.KubernetesClientFactory, identity *kubernetes.RequestIdentity, ehClient evalhub.EvalHubClientInterface) (T, *http.Response, error) {
@@ -113,6 +134,7 @@ func newTestAppWithEvalHub(k8Factory kubernetes.KubernetesClientFactory, ehClien
 	return &App{
 		config:                  config.EnvConfig{AllowedOrigins: []string{"*"}, AuthMethod: config.AuthMethodInternal, MockEvalHubClient: true},
 		logger:                  testLogger,
+		openAPI:                 getTestOpenAPIHandler(),
 		kubernetesClientFactory: k8Factory,
 		evalHubClientFactory:    mockFactory,
 		repositories:            repositories.NewRepositories(),

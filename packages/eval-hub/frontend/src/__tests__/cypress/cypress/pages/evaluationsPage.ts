@@ -120,7 +120,7 @@ class EvaluationsPage {
   }
 
   findBuildSuiteFromGoalTile() {
-    return cy.findByTestId('build-suite-from-goal-tile');
+    return cy.findByTestId('build-collection-from-goal-tile');
   }
 
   findChooseOwnBenchmarksTile() {
