@@ -27,6 +27,9 @@
       "port": 9243
     }
   },
+  "e2eCiTags": [
+    "@DataConnectHubCI"
+  ],
   "scripts": {
     "test:contract": "BFF_MOCK_FLAGS='--mock-k8s-client --mock-http-client --auth-method=user_token' odh-ct-bff-consumer --bff-dir bff",
     "cypress:mock:build": "pnpm run cypress:server:build",

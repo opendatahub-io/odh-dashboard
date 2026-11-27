@@ -48,7 +48,7 @@ even if `legacyRedirects.managementState` is `Managed`.
 |-------|------|---------|
 | `phase` | `Ready\|NotReady` | Overall controller health |
 | `conditions` | `[]Condition` | `Ready`, `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, `MaaSPortalAvailable`, and optional `ModelRegistryConfigValid` |
-| `observedGeneration` | `int64` | Last processed spec generation |
+| `observedGeneration` | `int64` | Last spec generation whose reconcile completed without a returned core/operand operation error. Tracked non-fatal condition failures (for example optional observability or namespaced-RBAC retries) may still advance it; use `phase` and conditions for health. |
 | `url` | `string` | Externally-reachable dashboard URL |
 | `maasPortalUrl` | `string` | Last known good MaaS Portal URL; cleared when the operand is removed |
 | `moduleStatuses` | `map[string]ModuleStatus` | Per-module deployment state |
