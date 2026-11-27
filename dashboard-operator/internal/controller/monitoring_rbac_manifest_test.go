@@ -48,6 +48,39 @@ func TestDashboardManifestsDoNotDependOnClusterMonitoringView(t *testing.T) {
 	}
 }
 
+func TestDashboardClusterRoleDoesNotGrantConfigMapAccess(t *testing.T) {
+	for _, tt := range []struct {
+		overlay  string
+		roleName string
+	}{
+		{"odh", "odh-dashboard"},
+		{"rhoai", "rhods-dashboard"},
+	} {
+		t.Run(tt.overlay, func(t *testing.T) {
+			resources, err := kustomize.NewEngine().Render(filepath.Join("..", "..", "..", "manifests", tt.overlay), kustomize.WithNamespace("dashboard-test"))
+			require.NoError(t, err)
+			for i := range resources {
+				resource := &resources[i]
+				if resource.GetKind() != "ClusterRole" || resource.GetName() != tt.roleName {
+					continue
+				}
+				rules, found, err := unstructured.NestedSlice(resource.Object, "rules")
+				require.NoError(t, err)
+				require.True(t, found)
+				for _, rawRule := range rules {
+					rule, ok := rawRule.(map[string]interface{})
+					require.True(t, ok)
+					resources, _, err := unstructured.NestedStringSlice(rule, "resources")
+					require.NoError(t, err)
+					assert.NotContains(t, resources, "configmaps")
+				}
+				return
+			}
+			require.Fail(t, "dashboard ClusterRole not found")
+		})
+	}
+}
+
 func assertNamespaceAccess(t *testing.T, role *unstructured.Unstructured) {
 	t.Helper()
 	rules, found, err := unstructured.NestedSlice(role.Object, "rules")
