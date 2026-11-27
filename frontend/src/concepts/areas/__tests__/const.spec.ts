@@ -3,7 +3,11 @@ import {
   SupportedArea,
   type SupportedAreaType,
 } from '@odh-dashboard/plugin-core/areas';
-import { SupportedAreasStateMap } from '#~/concepts/areas/const';
+import {
+  SupportedAreasStateMap,
+  advancedAIMLFlags,
+  devTemporaryFeatureFlags,
+} from '#~/concepts/areas/const';
 
 describe('Verify const stability', () => {
   const computeTestFunc = (map: Partial<typeof SupportedAreasStateMap>) => {
@@ -54,6 +58,19 @@ describe('Verify const stability', () => {
         ),
     );
     expect(list.length > 0).toBe(true);
+  });
+
+  it('should keep the graduated disableKueue flag out of the dev-temporary list', () => {
+    // Graduated to a production flag: Kueue is enabled unless an admin opts out.
+    expect(devTemporaryFeatureFlags).not.toHaveProperty('disableKueue');
+    expect(advancedAIMLFlags.disableKueue).toBe(false);
+  });
+
+  it('should still require the Kueue DSC component for the KUEUE area', () => {
+    expect(SupportedAreasStateMap[SupportedArea.KUEUE]).toEqual({
+      featureFlags: ['disableKueue'],
+      requiredComponents: [DataScienceStackComponent.KUEUE],
+    });
   });
 
   it('should define AutoML and AutoRAG area availability requirements', () => {

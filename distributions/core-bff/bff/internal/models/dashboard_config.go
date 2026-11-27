@@ -195,7 +195,7 @@ var BlankDashboardCR = DashboardConfig{
 			InferencePriorityField:           false,
 			AiAssetCustomEndpoints:           false,
 			DisableFineTuning:                true,
-			DisableKueue:                     true,
+			DisableKueue:                     false,
 			DisableLMEval:                    true,
 			Mlflow:                           true,
 			WorkbenchesV2:                    false,

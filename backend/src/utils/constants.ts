@@ -110,7 +110,7 @@ export const blankDashboardCR: DashboardConfig = {
       inferencePriorityField: false,
       aiAssetCustomEndpoints: false,
       disableFineTuning: true,
-      disableKueue: true,
+      disableKueue: false,
       disableLMEval: true,
       mlflow: true,
       workbenchesV2: false,
