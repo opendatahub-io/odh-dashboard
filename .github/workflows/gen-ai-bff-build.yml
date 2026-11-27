@@ -33,7 +33,7 @@ jobs:
       - name: Run lint
         uses: golangci/golangci-lint-action@4afd733a84b1f43292c63897423277bb7f4313a9 # v8
         with:
-          version: v2.12.2
+          version: v2.15.0
           working-directory: packages/gen-ai/bff
 
       - name: Run build
