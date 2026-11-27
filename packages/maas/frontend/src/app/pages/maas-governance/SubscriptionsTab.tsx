@@ -17,7 +17,6 @@ import { SubscriptionsTable } from '~/app/pages/subscriptions/allSubscriptions/S
 import SubscriptionsToolbar from '~/app/pages/subscriptions/allSubscriptions/SubscriptionsToolbar';
 import {
   initialSubscriptionsFilterData,
-  MODEL_TEXT_FILTER_PREFIX,
   SubscriptionsFilterDataType,
   SubscriptionsFilterOptions,
   SubscriptionsFilterSelection,
@@ -43,10 +42,23 @@ type SubscriptionsTabProps = {
   getSubscriptionDetailUrl?: (name: string) => string;
 };
 
+/**
+ * A typeahead selection is stored as { label, value } and matches exactly;
+ * a plain string is a typed partial text fragment and matches by inclusion.
+ */
 const asFilterSelection = (
   value: string | SubscriptionsFilterSelection | undefined,
-): SubscriptionsFilterSelection | undefined =>
-  typeof value === 'string' ? (value ? { label: value, value } : undefined) : value;
+): SubscriptionsFilterSelection | undefined => (typeof value === 'string' ? undefined : value);
+
+const asFilterFragment = (
+  value: string | SubscriptionsFilterSelection | undefined,
+): string | undefined => {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const trimmed = value.trim().toLowerCase();
+  return trimmed || undefined;
+};
 
 const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
   returnTo,
@@ -74,50 +86,69 @@ const SubscriptionsTab: React.FC<SubscriptionsTabProps> = ({
   const onClearFilters = React.useCallback(() => setFilterData(initialSubscriptionsFilterData), []);
 
   const filteredSubscriptions = React.useMemo(() => {
-    const subscriptionText = asFilterSelection(
+    const subscriptionFilter = asFilterSelection(
       filterData[SubscriptionsFilterOptions.subscription],
-    )?.value.toLowerCase();
+    );
     const groupFilter = asFilterSelection(filterData[SubscriptionsFilterOptions.group]);
     const modelFilter = asFilterSelection(filterData[SubscriptionsFilterOptions.model]);
-    const modelText = modelFilter?.value.startsWith(MODEL_TEXT_FILTER_PREFIX)
-      ? modelFilter.value.slice(MODEL_TEXT_FILTER_PREFIX.length).toLowerCase()
-      : undefined;
+    const subscriptionFragment = asFilterFragment(
+      filterData[SubscriptionsFilterOptions.subscription],
+    );
+    const groupFragment = asFilterFragment(filterData[SubscriptionsFilterOptions.group]);
+    const modelFragment = asFilterFragment(filterData[SubscriptionsFilterOptions.model]);
 
-    if (!subscriptionText && !groupFilter && !modelFilter) {
+    if (
+      !subscriptionFilter &&
+      !groupFilter &&
+      !modelFilter &&
+      !subscriptionFragment &&
+      !groupFragment &&
+      !modelFragment
+    ) {
       return subscriptions;
     }
 
     return subscriptions.filter((subscription) => {
       if (
-        subscriptionText &&
-        ![
-          subscription.name,
-          subscription.displayName,
-          subscription.description,
-          // The group's name, and on Model access also as it is shown: "<org-name>/<group>".
-          ...subscription.owner.groups.flatMap((group) => [
-            group.name,
-            groupLabel(group.name, organization),
-          ]),
-          ...subscription.modelRefs.flatMap((ref) => [ref.name, ref.displayName]),
-        ].some((text) => text?.toLowerCase().includes(subscriptionText))
+        (subscriptionFilter && subscription.name !== subscriptionFilter.value) ||
+        (subscriptionFragment &&
+          ![
+            subscription.name,
+            subscription.displayName,
+            subscription.description,
+            // The group's name, and on Model access also as it is shown: "<org-name>/<group>".
+            ...subscription.owner.groups.flatMap((group) => [
+              group.name,
+              groupLabel(group.name, organization),
+            ]),
+            ...subscription.modelRefs.flatMap((ref) => [ref.name, ref.displayName]),
+          ].some((text) => text?.toLowerCase().includes(subscriptionFragment)))
       ) {
         return false;
       }
       if (
-        groupFilter &&
-        !subscription.owner.groups.some((group) => group.name === groupFilter.value)
+        (groupFilter &&
+          !subscription.owner.groups.some((group) => group.name === groupFilter.value)) ||
+        (groupFragment &&
+          !subscription.owner.groups.some(
+            (group) =>
+              // The toolbar offers groups by their organization-qualified label, so a
+              // committed fragment must match that label as well as the raw name
+              group.name.toLowerCase().includes(groupFragment) ||
+              groupLabel(group.name, organization).toLowerCase().includes(groupFragment),
+          ))
       ) {
         return false;
       }
       if (
-        modelFilter &&
-        !subscription.modelRefs.some((ref) =>
-          modelText !== undefined
-            ? ref.name.toLowerCase().includes(modelText) ||
-              ref.displayName?.toLowerCase().includes(modelText)
-            : ref.name === modelFilter.value,
-        )
+        (modelFilter && !subscription.modelRefs.some((ref) => ref.name === modelFilter.value)) ||
+        (modelFragment &&
+          !subscription.modelRefs.some(
+            (ref) =>
+              ref.name.toLowerCase().includes(modelFragment) ||
+              ref.displayName?.toLowerCase().includes(modelFragment) ||
+              ref.description?.toLowerCase().includes(modelFragment),
+          ))
       ) {
         return false;
       }

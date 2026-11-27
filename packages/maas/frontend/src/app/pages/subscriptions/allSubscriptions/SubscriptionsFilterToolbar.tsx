@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { SearchInput } from '@patternfly/react-core';
 import FilterToolbar from '@odh-dashboard/ui-core/components/FilterToolbar';
-import TypeaheadSelect, {
-  TypeaheadSelectOption,
-} from '@odh-dashboard/ui-core/components/TypeaheadSelect';
 import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { MaaSSubscription } from '~/app/types/subscriptions';
+import TypeaheadFilterField, {
+  toSelectOptions,
+  TypeaheadFilterOption,
+} from '~/app/components/TypeaheadFilterField';
 import { CallerOrganizationContext, groupLabel } from '~/app/shared/GroupName';
 import {
   EventTrackingFilterAttribute,
@@ -15,7 +15,6 @@ import {
 } from '~/app/types/event-tracking';
 import {
   subscriptionsFilterOptions,
-  MODEL_TEXT_FILTER_PREFIX,
   SubscriptionsFilterDataType,
   SubscriptionsFilterOptions,
 } from '~/app/pages/subscriptions/allSubscriptions/const';
@@ -32,135 +31,9 @@ type SubscriptionsFilterToolbarProps = {
   subscriptions: MaaSSubscription[];
 };
 
-/** Matches the typed filter text against the option label or its resource name. */
-const filterByLabelOrValue = (filterValue: string, options: TypeaheadSelectOption[]) =>
-  options.filter(
-    (option) =>
-      String(option.content).toLowerCase().includes(filterValue.toLowerCase()) ||
-      String(option.value).toLowerCase().includes(filterValue.toLowerCase()),
-  );
-
-const modelTextFilterOption = (text: string): TypeaheadSelectOption => ({
-  value: `${MODEL_TEXT_FILTER_PREFIX}${text}`,
-  content: `Filter by "${text}"`,
-});
-
-const filterModels = (text: string, options: TypeaheadSelectOption[]) => {
-  const trimmedText = text.trim();
-  const models = options.filter(
-    (option) => !String(option.value).startsWith(MODEL_TEXT_FILTER_PREFIX),
-  );
-  const matches = filterByLabelOrValue(trimmedText, models);
-  return trimmedText ? [...matches, modelTextFilterOption(trimmedText)] : matches;
-};
-
-/** Deduplicates labels by resource name and sorts them for display. */
-const toSelectOptions = (labels: Map<string, string>): TypeaheadSelectOption[] =>
-  Array.from(labels.entries())
-    .toSorted(([, a], [, b]) => a.localeCompare(b))
-    .map(([value, content]) => ({ value, content }));
-
-type TypeaheadFilterFieldProps = {
-  options: TypeaheadSelectOption[];
-  filterAttribute: EventTrackingFilterAttribute;
-  placeholder: string;
-  testId: string;
-  onChange: (value?: string, label?: string) => void;
-  value?: string;
-  allowTextFilter?: boolean;
-};
-
-const TypeaheadFilterField: React.FC<TypeaheadFilterFieldProps> = ({
-  options,
-  filterAttribute,
-  placeholder,
-  testId,
-  onChange,
-  value,
-  allowTextFilter = false,
-}) => {
-  const [inputText, setInputText] = React.useState('');
-  const trackEvent = useTrackEvent();
-  const textOption =
-    allowTextFilter && value?.startsWith(MODEL_TEXT_FILTER_PREFIX)
-      ? modelTextFilterOption(value.slice(MODEL_TEXT_FILTER_PREFIX.length))
-      : undefined;
-  const inputOption =
-    allowTextFilter && inputText.trim() ? modelTextFilterOption(inputText.trim()) : undefined;
-  const selectOptions = [...options];
-  if (textOption) {
-    selectOptions.push(textOption);
-  }
-  if (inputOption && inputOption.value !== textOption?.value) {
-    selectOptions.push(inputOption);
-  }
-
-  return (
-    <TypeaheadSelect
-      selectOptions={selectOptions}
-      selected={value}
-      onInputChange={setInputText}
-      onToggle={(open) => {
-        if (!open) {
-          setInputText('');
-        }
-      }}
-      onSelect={(_event, selection) => {
-        const selectedOption = selectOptions.find((option) => option.value === selection);
-        onChange(String(selection), selectedOption ? String(selectedOption.content) : undefined);
-        setInputText('');
-        trackEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
-          resourceType: EventTrackingResourceType.SUBSCRIPTION,
-          filterAttribute,
-        } satisfies MaaSSettingsListFilteredProperties);
-      }}
-      onClearSelection={() => {
-        onChange('');
-        setInputText('');
-      }}
-      filterFunction={allowTextFilter ? filterModels : filterByLabelOrValue}
-      allowClear
-      isRequired={false}
-      isScrollable
-      placeholder={placeholder}
-      toggleWidth="350px"
-      dataTestId={testId}
-    />
-  );
-};
-
-type TextFilterFieldProps = Omit<TypeaheadFilterFieldProps, 'options'>;
-
-const TextFilterField: React.FC<TextFilterFieldProps> = ({
-  filterAttribute,
-  placeholder,
-  testId,
-  onChange,
-  value,
-}) => {
-  const trackEvent = useTrackEvent();
-  return (
-    <SearchInput
-      value={value ?? ''}
-      aria-label={placeholder}
-      placeholder={placeholder}
-      onChange={(_event, text) => onChange(text)}
-      style={{ minWidth: '380px' }}
-      onClear={() => onChange('')}
-      inputProps={{
-        'data-testid': testId,
-        onBlur: () => {
-          trackEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
-            resourceType: EventTrackingResourceType.SUBSCRIPTION,
-            filterAttribute,
-          } satisfies MaaSSettingsListFilteredProperties);
-        },
-      }}
-    />
-  );
-};
-
-/** Free-text subscription search with group and model typeahead selections. */
+/** Shared subscriptions toolbar: Subscription / Group / Model typeahead selects
+ * with fragment matching, used by the subscriptions page, the MaaS governance
+ * subscriptions tab, and the model access viewer. */
 const SubscriptionsFilterToolbar: React.FC<SubscriptionsFilterToolbarProps> = ({
   filterData,
   onFilterUpdate,
@@ -171,22 +44,48 @@ const SubscriptionsFilterToolbar: React.FC<SubscriptionsFilterToolbarProps> = ({
   // On Model access, the caller's organization's groups are listed by its name; the value stays
   // the group's full name, so the filter matches as before.
   const organization = React.useContext(CallerOrganizationContext);
-  const { groupOptions, modelOptions } = React.useMemo(() => {
+  const trackEvent = useTrackEvent();
+  const { subscriptionOptions, groupOptions, modelOptions } = React.useMemo(() => {
+    const subscriptionLabels = new Map<string, string>();
     const groupLabels = new Map<string, string>();
-    const modelLabels = new Map<string, string>();
+    // Keyed by model name so the same model referenced by several subscriptions
+    // collapses into one option; each ref's description becomes a search alias
+    const modelsByName = new Map<string, TypeaheadFilterOption>();
     subscriptions.forEach((subscription) => {
+      subscriptionLabels.set(subscription.name, subscription.displayName ?? subscription.name);
       subscription.owner.groups.forEach((group) =>
         groupLabels.set(group.name, groupLabel(group.name, organization)),
       );
-      subscription.modelRefs.forEach((modelRef) =>
-        modelLabels.set(modelRef.name, modelRef.displayName ?? modelRef.name),
-      );
+      subscription.modelRefs.forEach((modelRef) => {
+        const existing = modelsByName.get(modelRef.name);
+        if (!existing) {
+          modelsByName.set(modelRef.name, {
+            value: modelRef.name,
+            content: modelRef.displayName ?? modelRef.name,
+            ...(modelRef.description ? { searchAliases: [modelRef.description] } : {}),
+          });
+        } else if (
+          modelRef.description &&
+          !existing.searchAliases?.includes(modelRef.description)
+        ) {
+          existing.searchAliases = [...(existing.searchAliases ?? []), modelRef.description];
+        }
+      });
     });
     return {
+      subscriptionOptions: toSelectOptions(subscriptionLabels),
       groupOptions: toSelectOptions(groupLabels),
-      modelOptions: toSelectOptions(modelLabels),
+      modelOptions: Array.from(modelsByName.values()).toSorted((a, b) =>
+        String(a.content).localeCompare(String(b.content)),
+      ),
     };
   }, [subscriptions, organization]);
+
+  const fireFiltered = (filterAttribute: EventTrackingFilterAttribute) =>
+    trackEvent(MaaSEvents.MAAS_SETTINGS_LIST_FILTERED, {
+      resourceType: EventTrackingResourceType.SUBSCRIPTION,
+      filterAttribute,
+    } satisfies MaaSSettingsListFilteredProperties);
 
   return (
     <FilterToolbar<keyof typeof subscriptionsFilterOptions>
@@ -194,33 +93,33 @@ const SubscriptionsFilterToolbar: React.FC<SubscriptionsFilterToolbarProps> = ({
       filterOptions={subscriptionsFilterOptions}
       filterOptionRenders={{
         [SubscriptionsFilterOptions.subscription]: ({ onChange, value }) => (
-          <TextFilterField
-            filterAttribute={EventTrackingFilterAttribute.SUBSCRIPTION}
-            placeholder="Filter by subscription, description, group, or model"
-            testId={`${testIdPrefix}-subscription-filter-input`}
+          <TypeaheadFilterField
+            options={subscriptionOptions}
+            placeholder="Filter by subscription name"
+            testId={`${testIdPrefix}-subscription-filter-toggle`}
             onChange={onChange}
             value={value}
+            onFilterApplied={() => fireFiltered(EventTrackingFilterAttribute.SUBSCRIPTION)}
           />
         ),
         [SubscriptionsFilterOptions.group]: ({ onChange, value }) => (
           <TypeaheadFilterField
             options={groupOptions}
-            filterAttribute={EventTrackingFilterAttribute.GROUP}
-            placeholder="Select a group"
+            placeholder="Filter by group name"
             testId={`${testIdPrefix}-group-filter-toggle`}
             onChange={onChange}
             value={value}
+            onFilterApplied={() => fireFiltered(EventTrackingFilterAttribute.GROUP)}
           />
         ),
         [SubscriptionsFilterOptions.model]: ({ onChange, value }) => (
           <TypeaheadFilterField
             options={modelOptions}
-            allowTextFilter
-            filterAttribute={EventTrackingFilterAttribute.MODEL}
-            placeholder="Select a model"
+            placeholder="Filter by model name, ID, or description"
             testId={`${testIdPrefix}-model-filter-toggle`}
             onChange={onChange}
             value={value}
+            onFilterApplied={() => fireFiltered(EventTrackingFilterAttribute.MODEL)}
           />
         ),
       }}

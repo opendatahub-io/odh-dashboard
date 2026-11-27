@@ -159,8 +159,10 @@ describe('Subscriptions Page', () => {
     const pendingRow = subscriptionsPage.getRow('pending-sub');
     pendingRow.findPhase().should('contain.text', 'Pending');
 
-    subscriptionsPage.findFilterInput().should('exist').type('Premium Team');
-    subscriptionsPage.findRows().should('have.length', 1);
+    subscriptionsPage.filterByTypeahead('subscription', 'premium');
+    // The fragment matches the Premium subscription's display name and the
+    // deleting subscription's premium-users group
+    subscriptionsPage.findRows().should('have.length', 2);
     subscriptionsPage.findFilterResetButton().should('exist').click();
     subscriptionsPage.findRows().should('have.length', 8);
 
@@ -209,18 +211,27 @@ describe('Subscriptions Page', () => {
     premiumRow.findExpandedGroupName().should('not.be.visible');
   });
 
-  it('should filter subscriptions by display name and description', () => {
-    subscriptionsPage.findFilterInput().type('Team Subscription');
+  it('should filter subscriptions by typeahead selections and partial text fragments', () => {
+    subscriptionsPage.filterByTypeahead('subscription', 'Team Subscription');
     subscriptionsPage.findRows().should('have.length', 2);
     subscriptionsPage.findFilterResetButton().click();
     subscriptionsPage.findRows().should('have.length', 8);
 
-    subscriptionsPage.findFilterInput().type('enterprise');
+    subscriptionsPage.filterByTypeahead('subscription', 'enterprise');
+    // The fragment matches the Enterprise subscription's display name and the
+    // Premium subscription's description
     subscriptionsPage.findRows().should('have.length', 2);
+    subscriptionsPage.getRow('Premium Team Subscription').findName().should('exist');
+    subscriptionsPage.getRow('Enterprise Multi-Group Llama Access').findName().should('exist');
     subscriptionsPage.findFilterResetButton().click();
     subscriptionsPage.findRows().should('have.length', 8);
 
-    subscriptionsPage.findFilterInput().type('general users');
+    subscriptionsPage.filterByTypeahead('model', 'Flan');
+    subscriptionsPage.findRows().should('have.length', 4);
+    subscriptionsPage.findFilterResetButton().click();
+    subscriptionsPage.findRows().should('have.length', 8);
+
+    subscriptionsPage.filterByTypeahead('group', 'interns', 'interns');
     subscriptionsPage.findRows().should('have.length', 1);
     subscriptionsPage.findFilterResetButton().click();
     subscriptionsPage.findRows().should('have.length', 8);
@@ -351,8 +362,10 @@ describe('View Subscription Page', () => {
     subscriptionsPage.findRows().should('have.length', 8);
     subscriptionsPage.findCreateSubscriptionButton().should('exist');
 
-    subscriptionsPage.findFilterInput().type('Premium Team');
-    subscriptionsPage.findRows().should('have.length', 1);
+    subscriptionsPage.filterByTypeahead('subscription', 'premium');
+    // The fragment matches the Premium subscription's display name and the
+    // deleting subscription's premium-users group
+    subscriptionsPage.findRows().should('have.length', 2);
     subscriptionsPage.findFilterResetButton().click();
     subscriptionsPage.findRows().should('have.length', 8);
 
