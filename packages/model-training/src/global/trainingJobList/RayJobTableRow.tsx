@@ -12,6 +12,7 @@ import {
 import { CubesIcon, ExternalLinkAltIcon, PencilAltIcon } from '@patternfly/react-icons';
 import { relativeTime } from '@odh-dashboard/ui-core/utilities/time';
 import JobProject from './JobProject';
+import { JOBS_TABLE_COLUMN_CLASS } from './const';
 import TrainingJobClusterQueue from './TrainingJobClusterQueue';
 import RayJobStatus from './components/RayJobStatus';
 import RayJobStatusModal from './RayJobStatusModal';
@@ -167,15 +168,15 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
   return (
     <>
       <Tr>
-        <Td dataLabel="Name">
+        <Td dataLabel="Name" modifier="breakWord">
           <Button variant="link" isInline onClick={() => onSelectJob(job)}>
             {displayName}
           </Button>
         </Td>
-        <Td dataLabel="Project">
+        <Td dataLabel="Project" className={JOBS_TABLE_COLUMN_CLASS.project}>
           <JobProject job={job} />
         </Td>
-        <Td dataLabel="Nodes">
+        <Td dataLabel="Nodes" className={JOBS_TABLE_COLUMN_CLASS.nodes}>
           <Flex
             alignItems={{ default: 'alignItemsCenter' }}
             spaceItems={{ default: 'spaceItemsSm' }}
@@ -207,15 +208,19 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
             )}
           </Flex>
         </Td>
-        <Td dataLabel="Cluster queue">
+        <Td dataLabel="Cluster queue" className={JOBS_TABLE_COLUMN_CLASS.clusterQueue}>
           <TrainingJobClusterQueue
             localQueueName={localQueueName}
             namespace={job.metadata.namespace}
           />
         </Td>
-        <Td dataLabel="Ray cluster">{renderRayClusterCell()}</Td>
-        <Td dataLabel="Type">RayJob</Td>
-        <Td dataLabel="Created">
+        <Td dataLabel="Ray cluster" className={JOBS_TABLE_COLUMN_CLASS.rayCluster}>
+          {renderRayClusterCell()}
+        </Td>
+        <Td dataLabel="Type" className={JOBS_TABLE_COLUMN_CLASS.type}>
+          RayJob
+        </Td>
+        <Td dataLabel="Created" className={JOBS_TABLE_COLUMN_CLASS.created}>
           {job.metadata.creationTimestamp ? (
             <Timestamp
               date={new Date(job.metadata.creationTimestamp)}
@@ -237,7 +242,7 @@ const RayJobTableRow: React.FC<RayJobTableRowProps> = ({
             onClick={() => setStatusModalOpen(true)}
           />
         </Td>
-        <Td>
+        <Td className={JOBS_TABLE_COLUMN_CLASS.pauseResume}>
           {canPauseResume && (
             <Tooltip
               content={PAUSE_RAY_JOB_TOOLTIP_CONTENT}

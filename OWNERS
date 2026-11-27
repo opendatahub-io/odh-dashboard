@@ -139,3 +139,12 @@ filters:
       - workbenches-reviewers
     labels:
       - area/workbenches
+
+  # Data Registry Cypress coverage
+  'packages/cypress/cypress/(tests/e2e/data-registry|pages/dataRegistry)/.*':
+    approvers:
+      - data-registry-approvers
+    reviewers:
+      - data-registry-reviewers
+    labels:
+      - area/data-registry
