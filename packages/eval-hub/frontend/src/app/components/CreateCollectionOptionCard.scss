@@ -25,6 +25,7 @@
   --pf-v6-c-card--BorderWidth: var(--pf-t--global--border--width--box--default);
   --pf-v6-c-card--BorderRadius: var(--pf-t--global--border--radius--medium);
   --pf-v6-c-card--BackgroundColor: var(--pf-t--global--background--color--primary--default);
+  --evalhub-create-collection-option-card-icon-background: var(--pf-t--color--purple--10);
 
   height: 100%;
   transition: box-shadow 150ms ease-in-out;
@@ -38,7 +39,7 @@
   height: 2.5rem;
   margin-block-end: var(--pf-t--global--spacer--md);
   border-radius: 50%;
-  background-color: var(--pf-t--color--purple--10);
+  background-color: var(--evalhub-create-collection-option-card-icon-background);
   color: var(--pf-t--global--text--color--regular);
 }
 

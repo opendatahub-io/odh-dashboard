@@ -120,9 +120,15 @@ describe('Import collection', () => {
     importCollectionModal.setValue(
       'name: warn-me\ncategory: safety\nmystery: 1\nanother_mystery: 2\nbenchmarks:\n  - id: bench-alpha\n    provider_id: test-provider\n',
     );
-    // Missing description and unknown fields produce advisory warnings. The two unknown
-    // fields each have a source line that can be marked in the editor.
-    importCollectionModal.findWarningSquiggles().should('have.length.at.least', 2);
+    // Missing description and both unknown fields should produce warning markers. Read the
+    // Monaco model because its rendered squiggles are virtualized with the visible editor lines.
+    importCollectionModal.getWarningMarkers().should((markers) => {
+      expect(markers.map(({ message }) => message)).to.include.members([
+        'No description provided. Consider adding one so the collection is easy to identify.',
+        'Unrecognized field "another_mystery" will be ignored.',
+        'Unrecognized field "mystery" will be ignored.',
+      ]);
+    });
     importCollectionModal.findSubmitButton().should('be.enabled');
   });
 

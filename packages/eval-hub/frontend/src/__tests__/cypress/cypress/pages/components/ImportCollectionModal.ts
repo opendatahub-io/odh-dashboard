@@ -2,6 +2,12 @@ import { Modal } from './Modal';
 
 type MonacoModel = {
   getValue: () => string;
+  uri: object;
+};
+
+type MonacoMarker = {
+  message: string;
+  severity: number;
 };
 
 type MonacoGlobal = {
@@ -10,6 +16,7 @@ type MonacoGlobal = {
       getDomNode: () => HTMLElement | null;
       getModel: () => MonacoModel | null;
     }[];
+    getModelMarkers: (filter: { owner: string; resource: object }) => MonacoMarker[];
   };
 };
 
@@ -60,7 +67,7 @@ export class ImportCollectionModal extends Modal {
       });
   }
 
-  findFileInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+  findFileInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.findEditor().findByTestId('import-collection-file-input');
   }
 
@@ -69,9 +76,29 @@ export class ImportCollectionModal extends Modal {
     return this.findEditor().find('.squiggly-error');
   }
 
-  /** Monaco's warning marker squiggles (advisory warnings). */
-  findWarningSquiggles(): Cypress.Chainable<JQuery<HTMLElement>> {
-    return this.findEditor().find('.squiggly-warning');
+  /** Monaco model markers for advisory import warnings. */
+  getWarningMarkers(): Cypress.Chainable<MonacoMarker[]> {
+    this.waitForEditorReady();
+    return this.findEditor().then(($container) =>
+      cy.window().then((win) => {
+        const { monaco } = win as unknown as { monaco?: MonacoGlobal };
+        if (!monaco) {
+          throw new Error('Monaco editor was not found on window');
+        }
+        const editor = monaco.editor.getEditors().find((candidate) => {
+          const node = candidate.getDomNode();
+          return node !== null && $container[0].contains(node);
+        });
+        if (!editor) {
+          throw new Error('Monaco editor inside the import dialog was not found');
+        }
+        const model = editor.getModel();
+        if (!model) {
+          throw new Error('The import editor has no Monaco model');
+        }
+        return monaco.editor.getModelMarkers({ owner: 'evalhub-import', resource: model.uri });
+      }),
+    );
   }
 
   /**
@@ -151,7 +178,7 @@ export class ImportCollectionModal extends Modal {
     return this.find().find('.pf-v6-c-code-editor__tab-text');
   }
 
-  findNameInput(): Cypress.Chainable<JQuery<HTMLInputElement>> {
+  findNameInput(): Cypress.Chainable<JQuery<HTMLElement>> {
     return this.find().findByTestId('import-collection-name');
   }
 
