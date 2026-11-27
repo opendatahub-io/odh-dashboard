@@ -84,6 +84,9 @@ const DeploymentWizardForm: React.FC<DeploymentWizardFormProps> = ({
     initialData,
     project?.metadata.name,
     externalData,
+    !!existingDeployment,
+    // The host's actions describe LLMInferenceService deployments.
+    !existingDeployment || existingDeployment.model.kind === 'LLMInferenceService',
   );
   const { resources: formAsResources, loaded: formResourcesLoaded } = useFormToResourcesTransformer(
     wizardFormData,
@@ -106,6 +109,7 @@ const DeploymentWizardForm: React.FC<DeploymentWizardFormProps> = ({
     wizardFormData.state,
     wizardFormData.fields,
     shouldShowPreconfigureStep,
+    !!existingDeployment,
   );
   const currentProjectName = wizardFormData.state.project.projectName ?? undefined;
 

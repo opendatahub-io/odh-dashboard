@@ -17,7 +17,7 @@ import type {
   HardwareProfileConfig,
 } from '@odh-dashboard/hardware-profiles/shared';
 import { applyHardwareProfileConfig } from '@odh-dashboard/hardware-profiles/shared';
-import { setUpTokenAuth } from '@odh-dashboard/model-serving/concepts/auth';
+import { canProvisionTokenAuth, setUpTokenAuth } from '@odh-dashboard/model-serving/concepts/auth';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { applyReplicas, LLMD_INFERENCE_SERVICE_HARDWARE_PROFILE_PATHS } from './hardware';
 import {
@@ -309,6 +309,32 @@ const deployLLMInferenceServiceConfig = async (
   return updateLLMInferenceServiceConfig(llmInferenceServiceConfig, { dryRun: opts?.dryRun });
 };
 
+const ENABLE_AUTH_ANNOTATION = 'security.opendatahub.io/enable-auth';
+
+/**
+ * Without permission to create RoleBindings the token field is disabled, so
+ * its contents say nothing about whether the deployment requires
+ * authentication: an edit keeps the existing setting instead of deriving it
+ * from the tokens.
+ */
+export const keepAuthWithoutTokenPermission = (
+  model: LLMInferenceServiceKind,
+  existingModel: LLMInferenceServiceKind | undefined,
+  canProvisionTokens: boolean,
+): LLMInferenceServiceKind => {
+  if (canProvisionTokens || !existingModel) {
+    return model;
+  }
+  const annotations = { ...model.metadata.annotations };
+  const existing = existingModel.metadata.annotations?.[ENABLE_AUTH_ANNOTATION];
+  if (existing === undefined) {
+    delete annotations[ENABLE_AUTH_ANNOTATION];
+  } else {
+    annotations[ENABLE_AUTH_ANNOTATION] = existing;
+  }
+  return { ...model, metadata: { ...model.metadata, annotations } };
+};
+
 /**
  * Main entry point for deploying an LLMd deployment from wizard data.
  */
@@ -328,6 +354,7 @@ export const deployLLMdDeployment = async (
   if (!modelResource || !isLLMInferenceService(modelResource)) {
     throw new Error('LLMInferenceService is required');
   }
+  const canProvisionTokens = canProvisionTokenAuth(wizardData, !existingDeployment);
 
   const deploymentK8sName =
     modelResource.metadata.name || wizardData.k8sNameDesc.data.k8sName.value || '';
@@ -342,10 +369,10 @@ export const deployLLMdDeployment = async (
     deploymentK8sName,
     { dryRun },
   );
-  const llmInferenceServiceToDeploy = applyHfTokenServiceAccount(
-    modelResource,
-    hfTokenSecretName,
-    hfTokenServiceAccountName,
+  const llmInferenceServiceToDeploy = keepAuthWithoutTokenPermission(
+    applyHfTokenServiceAccount(modelResource, hfTokenSecretName, hfTokenServiceAccountName),
+    existingDeployment?.model,
+    canProvisionTokens,
   );
 
   let llmInferenceServiceConfig: LLMInferenceServiceConfigKind | undefined;
@@ -369,7 +396,7 @@ export const deployLLMdDeployment = async (
     (wizardData.tokenAuthentication.data && wizardData.tokenAuthentication.data.length > 0) ??
     false;
 
-  if (wizardData.canCreateRoleBindings) {
+  if (canProvisionTokens) {
     await setUpTokenAuth(
       wizardData.tokenAuthentication.data,
       llmInferenceService.metadata.name,

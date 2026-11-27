@@ -1454,6 +1454,10 @@ class ModelServingWizard extends Wizard {
     );
   }
 
+  findTokenPermissionWarning() {
+    return cy.findByTestId('token-authentication-permission-warning');
+  }
+
   findSecretNameInput() {
     return cy.findByTestId('service-account-form-name');
   }

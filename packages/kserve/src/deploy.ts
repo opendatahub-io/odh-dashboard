@@ -3,7 +3,7 @@ import type {
   WizardFormData,
 } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
-import { setUpTokenAuth } from '@odh-dashboard/model-serving/concepts/auth';
+import { canProvisionTokenAuth, setUpTokenAuth } from '@odh-dashboard/model-serving/concepts/auth';
 import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { KServeDeployment } from './types';
 import { assembleServingRuntime, createServingRuntime, updateServingRuntime } from './deployServer';
@@ -29,6 +29,7 @@ export const deployKServeDeployment = async (
   applyFieldData?: DeploymentAssemblyFn<KServeDeployment>,
   updateExistingServingRuntime?: boolean,
 ): Promise<KServeDeployment> => {
+  const canProvisionTokens = canProvisionTokenAuth(wizardData, !existingDeployment);
   const deploymentK8sName =
     wizardData.k8sNameDesc.data.k8sName.value || existingDeployment?.model.metadata.name || '';
   const hfTokenSecretName = await resolveHfTokenSecretName(
@@ -110,7 +111,7 @@ export const deployKServeDeployment = async (
   const createTokenAuth =
     (inferenceServiceData.tokenAuth && inferenceServiceData.tokenAuth.length > 0) ?? false;
 
-  if (wizardData.canCreateRoleBindings) {
+  if (canProvisionTokens) {
     await setUpTokenAuth(
       inferenceServiceData.tokenAuth,
       inferenceServiceResult.metadata.name,

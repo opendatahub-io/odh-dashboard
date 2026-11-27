@@ -1,7 +1,10 @@
 import { K8sResourceCommon } from '@openshift/dynamic-plugin-sdk-utils';
 import {
+  canProvisionTokenAuth,
   generateRole,
   setUpTokenAuth,
+  TOKEN_CHANGE_REFUSED_MESSAGE,
+  TOKEN_SETUP_REFUSED_MESSAGE,
   createServiceAccountIfMissing,
   createRoleIfMissing,
   createRoleBindingIfMissing,
@@ -293,6 +296,54 @@ describe('setUpTokenAuth', () => {
     expect(roleBindingsMock.createRoleBinding).toHaveBeenCalled();
   });
 
+  it('should explain a refused setup: reading the token Role is forbidden', async () => {
+    rolesMock.getRole.mockRejectedValue({
+      statusObject: { code: 403, status: 'Failure', message: 'roles is forbidden' },
+    });
+    await expect(
+      setUpTokenAuth([], 'test-model', 'test-ns', true, mockOwner, 'inferenceservices', undefined, {
+        dryRun: true,
+      }),
+    ).rejects.toThrow(TOKEN_SETUP_REFUSED_MESSAGE);
+  });
+
+  it('should not advise turning tokens off when a deployment that has tokens is refused', async () => {
+    rolesMock.getRole.mockRejectedValue({
+      statusObject: { code: 403, status: 'Failure', message: 'roles is forbidden' },
+    });
+    const existing = [{ apiVersion: 'v1', kind: 'Secret', metadata: { name: 'token-a' } }];
+    await expect(
+      setUpTokenAuth(
+        [],
+        'test-model',
+        'test-ns',
+        true,
+        mockOwner,
+        'inferenceservices',
+        existing as never[],
+        { dryRun: true },
+      ),
+    ).rejects.toThrow(TOKEN_CHANGE_REFUSED_MESSAGE);
+  });
+
+  it('should reuse an existing Role the caller may not create', async () => {
+    const existing = { metadata: { name: 'test-model-view-role' } };
+    rolesMock.getRole.mockResolvedValue(existing);
+    rolesMock.createRole.mockRejectedValue({
+      statusObject: { code: 403, status: 'Failure', message: 'forbidden' },
+    });
+    await setUpTokenAuth([], 'test-model', 'test-ns', true, mockOwner, 'inferenceservices');
+    expect(rolesMock.createRole).not.toHaveBeenCalled();
+  });
+
+  it('should pass other failures through unchanged', async () => {
+    const failure = { statusObject: { code: 500, status: 'Failure', message: 'boom' } };
+    rolesMock.getRole.mockRejectedValue(failure);
+    await expect(
+      setUpTokenAuth([], 'test-model', 'test-ns', true, mockOwner, 'inferenceservices'),
+    ).rejects.toBe(failure);
+  });
+
   it('should skip auth resource creation when createTokenAuthResources is false', async () => {
     await setUpTokenAuth([], 'test-model', 'test-ns', false, mockOwner, 'inferenceservices');
 
@@ -411,5 +462,17 @@ describe('createTokenSecrets', () => {
     ).rejects.toBe(failure);
 
     expect(secretsMock.deleteSecret).not.toHaveBeenCalled();
+  });
+});
+
+describe('canProvisionTokenAuth', () => {
+  it('should always set tokens up for a new deployment', () => {
+    expect(canProvisionTokenAuth({ canCreateRoleBindings: false }, true)).toBe(true);
+    expect(canProvisionTokenAuth({ canCreateRoleBindings: true }, true)).toBe(true);
+  });
+
+  it('should set tokens up for an edit only with RoleBinding create', () => {
+    expect(canProvisionTokenAuth({ canCreateRoleBindings: true }, false)).toBe(true);
+    expect(canProvisionTokenAuth({ canCreateRoleBindings: false }, false)).toBe(false);
   });
 });

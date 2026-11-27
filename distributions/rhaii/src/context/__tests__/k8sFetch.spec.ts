@@ -1,4 +1,5 @@
-import { K8sStatusError } from '@openshift/dynamic-plugin-sdk-utils';
+import { K8sStatusError } from '@odh-dashboard/k8s-core';
+import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
 import { mock403Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import { k8sFetch } from '../k8sFetch';
 
@@ -39,6 +40,9 @@ describe('RHAII Kubernetes transport', () => {
     );
     await expect(request).rejects.toBeInstanceOf(K8sStatusError);
     await expect(request).rejects.toThrow(body.message);
+    // The packages read the status code from k8s-core's class, e.g. a 404
+    // before creating a missing token ServiceAccount, or a 403 on an optional read.
+    expect(getGenericErrorCode(await request.catch((e: unknown) => e))).toBe(403);
   });
 
   it('should reject non-JSON HTTP failures with a status message', async () => {

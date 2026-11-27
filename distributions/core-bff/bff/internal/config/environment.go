@@ -190,6 +190,12 @@ type EnvConfig struct {
 	// Defaults to Namespace if not set. Used in namespace allowlist validation.
 	WorkbenchNamespace string
 
+	// NamespaceCandidates is the operator-configured list of namespaces the xKS
+	// namespace discovery evaluates for callers who cannot list namespaces
+	// cluster-wide. Listing a namespace here grants nothing: each candidate is
+	// returned only after the caller's own access reviews allow it.
+	NamespaceCandidates []string
+
 	// DashboardConfigName is the name of the OdhDashboardConfig CR to read.
 	DashboardConfigName string
 

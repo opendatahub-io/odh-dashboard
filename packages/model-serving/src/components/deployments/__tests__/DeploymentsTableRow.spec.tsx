@@ -1,7 +1,12 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import {
+  ProjectsContext,
+  type ProjectsContextType,
+  type ProjectDeploymentActions,
+} from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { mockUseAssignHardwareProfileResult } from '@odh-dashboard/hardware-profiles/__mocks__/mockUseAssignHardwareProfileResult';
 import { useAssignHardwareProfile } from '@odh-dashboard/hardware-profiles/shared/useAssignHardwareProfile';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
@@ -41,6 +46,13 @@ jest.mock('../../../concepts/extensionUtils', () => ({
     true,
     [],
   ],
+}));
+
+jest.mock('../DeploymentStatusModal', () => ({
+  __esModule: true,
+  default: ({ onStopDeployment }: { onStopDeployment?: () => void }) => (
+    <div data-testid="status-modal">{onStopDeployment ? 'can-stop' : 'no-stop'}</div>
+  ),
 }));
 
 // Mock the useExtractFormDataFromDeployment hook
@@ -365,6 +377,134 @@ describe('DeploymentsTableRow', () => {
       expect(screen.getByText('https://internal-endpoint.com')).toBeInTheDocument();
       expect(screen.getByTestId('api-protocol-label')).toBeInTheDocument();
       expect(screen.getByTestId('api-protocol-label')).toHaveTextContent('REST');
+    });
+  });
+
+  describe("with the caller's project actions", () => {
+    const runningStates = {
+      isRunning: true,
+      isStopped: false,
+      isStarting: false,
+      isStopping: false,
+    };
+    // The host's actions describe LLMInferenceService deployments.
+    const llmdDeployment = (partial: Parameters<typeof mockDeployment>[0] = {}) => {
+      const deployment = mockDeployment(partial);
+      return { ...deployment, model: { ...deployment.model, kind: 'LLMInferenceService' } };
+    };
+    const renderWithActions = (
+      actions: ProjectDeploymentActions | undefined,
+      deployment = llmdDeployment(),
+    ) => {
+      const context = {
+        projects: [],
+        modelServingProjects: [],
+        nonActiveProjects: [],
+        preferredProject: null,
+        updatePreferredProject: jest.fn(),
+        waitForProject: jest.fn(),
+        loaded: true,
+        loadError: undefined,
+        getProjectDeploymentActions: (name: string) =>
+          name === 'test-project' ? actions : undefined,
+      } satisfies ProjectsContextType;
+      renderWithRouter(
+        <ProjectsContext.Provider value={context}>
+          <table>
+            <tbody>
+              <DeploymentRow
+                deployment={deployment}
+                platformColumns={[]}
+                onDelete={onDelete}
+                rowIndex={0}
+              />
+            </tbody>
+          </table>
+        </ProjectsContext.Provider>,
+      );
+    };
+
+    it('should not offer Edit or Delete to a read-only caller', () => {
+      renderWithActions({
+        canEdit: false,
+        canStartStop: false,
+        canDelete: false,
+        canManageTokenAuth: false,
+      });
+      expect(screen.queryByRole('button', { name: 'Kebab toggle' })).not.toBeInTheDocument();
+    });
+
+    it('should gate Edit and Delete independently', () => {
+      renderWithActions({
+        canEdit: false,
+        canStartStop: false,
+        canDelete: true,
+        canManageTokenAuth: false,
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Kebab toggle' }));
+      expect(screen.queryByRole('menuitem', { name: 'Edit' })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
+      expect(onDelete).toHaveBeenCalled();
+    });
+
+    it('should offer Edit without Delete', () => {
+      renderWithActions({
+        canEdit: true,
+        canStartStop: true,
+        canDelete: false,
+        canManageTokenAuth: true,
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Kebab toggle' }));
+      expect(screen.getByRole('menuitem', { name: 'Edit' })).toBeInTheDocument();
+      expect(screen.queryByRole('menuitem', { name: 'Delete' })).not.toBeInTheDocument();
+    });
+
+    it.each([
+      // Patch-only: may start and stop, may not edit from the wizard.
+      [false, true],
+      [true, false],
+      [false, false],
+    ])(
+      'should gate Start and Stop on patch access (start/stop: %s, edit: %s)',
+      (canStartStop, canEdit) => {
+        const disabled = !canStartStop;
+        mockUseDeploymentExtension.mockReturnValue({ properties: { platform: 'test-platform' } });
+        renderWithActions(
+          { canEdit, canStartStop, canDelete: false, canManageTokenAuth: false },
+          llmdDeployment({
+            status: { state: ModelDeploymentState.LOADED, stoppedStates: runningStates },
+          }),
+        );
+        const toggle = screen.getByTestId('state-action-toggle');
+        expect(toggle).toHaveTextContent('Stop');
+        if (disabled) {
+          expect(toggle).toBeDisabled();
+        } else {
+          expect(toggle).toBeEnabled();
+        }
+        fireEvent.click(within(screen.getByTestId('model-status-text')).getByRole('button'));
+        expect(screen.getByTestId('status-modal')).toHaveTextContent(
+          canStartStop ? 'can-stop' : 'no-stop',
+        );
+      },
+    );
+
+    it('should not apply LLMInferenceService permissions to other platforms', () => {
+      const deployment = mockDeployment({});
+      renderWithActions(
+        { canEdit: false, canStartStop: false, canDelete: false, canManageTokenAuth: false },
+        { ...deployment, model: { ...deployment.model, kind: 'InferenceService' } },
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Kebab toggle' }));
+      expect(screen.getByRole('menuitem', { name: 'Edit' })).toBeInTheDocument();
+      expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
+    });
+
+    it('should offer every action when the project has none reported', () => {
+      renderWithActions(undefined);
+      fireEvent.click(screen.getByRole('button', { name: 'Kebab toggle' }));
+      expect(screen.getByRole('menuitem', { name: 'Edit' })).toBeInTheDocument();
+      expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
     });
   });
 });

@@ -73,6 +73,15 @@ func NewKubeconfigKubernetesClient(ctx context.Context, logger *slog.Logger) (Ku
 // which runs on the kubeconfig's own credentials, from a copy of base.
 func newKubeconfigKubernetesClientFromBase(ctx context.Context, base *rest.Config, logger *slog.Logger) (KubernetesClientInterface, error) {
 	cfg := rest.CopyConfig(base)
+	// Same rate as the per-request token client, so discovery in dev mode is
+	// not throttled to client-go's 5 QPS default.
+	if cfg.QPS == 0 {
+		cfg.QPS = TokenClientQPS
+	}
+	if cfg.Burst == 0 {
+		cfg.Burst = TokenClientBurst
+	}
+
 	cfg.Wrap(httpcontract.WrapTransport)
 	clientset, err := kubernetes.NewForConfig(cfg)
 	if err != nil {
@@ -89,6 +98,12 @@ func newKubeconfigKubernetesClientFromBase(ctx context.Context, base *rest.Confi
 		},
 	}, nil
 }
+
+// TokenClientQPS and TokenClientBurst bound one caller's per-request client.
+const (
+	TokenClientQPS   = 400
+	TokenClientBurst = 800
+)
 
 // NewTokenKubernetesClient creates a Kubernetes client using a user bearer token.
 func NewTokenKubernetesClient(ctx context.Context, token string, logger *slog.Logger) (KubernetesClientInterface, error) {
@@ -114,6 +129,19 @@ func newTokenKubernetesClientFromBase(ctx context.Context, baseConfig *rest.Conf
 	cfg.Password = ""
 	cfg.ExecProvider = nil
 	cfg.AuthProvider = nil
+
+	// client-go defaults to 5 QPS / burst 10 when unset. Namespace discovery
+	// reviews every candidate in its own namespace (23 action reviews each, 26
+	// for a returned namespace), so
+	// that default would turn one page load into minutes. Load on the API
+	// server is bounded by discovery's in-flight limit; this rate only keeps a
+	// runaway client in check.
+	if cfg.QPS == 0 {
+		cfg.QPS = TokenClientQPS
+	}
+	if cfg.Burst == 0 {
+		cfg.Burst = TokenClientBurst
+	}
 
 	cfg.Wrap(httpcontract.WrapTransport)
 	clientset, err := kubernetes.NewForConfig(cfg)
@@ -215,7 +243,13 @@ func (kc *TokenKubernetesClient) GetNamespaces(ctx context.Context, _ *RequestId
 	return nsList.Items, nil
 }
 
-// CanGetNamespace asks the API server about the caller's cluster-scoped, named get permission.
+// CanGetNamespace asks the API server whether the caller may get the named namespace.
+//
+// The review carries the namespace attribute as well as the name, mirroring what the
+// API server's request resolver produces for GET /api/v1/namespaces/<name>. Without
+// it RBAC only consults ClusterRoleBindings, so a user whose access comes from a
+// RoleBinding inside the namespace (admin, edit or view) would be denied a lookup the
+// API server itself allows.
 func (kc *TokenKubernetesClient) CanGetNamespace(ctx context.Context, _ *RequestIdentity, name string) (bool, error) {
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
@@ -223,9 +257,10 @@ func (kc *TokenKubernetesClient) CanGetNamespace(ctx context.Context, _ *Request
 	ssar := &authv1.SelfSubjectAccessReview{
 		Spec: authv1.SelfSubjectAccessReviewSpec{
 			ResourceAttributes: &authv1.ResourceAttributes{
-				Verb:     "get",
-				Resource: "namespaces",
-				Name:     name,
+				Verb:      "get",
+				Resource:  "namespaces",
+				Name:      name,
+				Namespace: name,
 			},
 		},
 	}
@@ -354,6 +389,47 @@ func (kc *TokenKubernetesClient) CheckAccess(ctx context.Context, _ *RequestIden
 		httpcontract.LogContext(kc.Logger, ctx).Info("SSAR denied", "verb", verb, "group", group, "resource", resource, "namespace", namespace)
 	}
 	return resp.Status.Allowed, nil
+}
+
+// ReviewAccess runs a SelfSubjectAccessReview as the caller. Unlike
+// CheckAccess, a review that completes without a decision because an
+// authorizer failed is reported as AccessReviewIndeterminate, not as a denial.
+func (kc *TokenKubernetesClient) ReviewAccess(ctx context.Context, _ *RequestIdentity, attrs AccessReviewAttributes) (AccessReviewResult, error) {
+	requestCtx := ctx
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	sar := &authv1.SelfSubjectAccessReview{
+		Spec: authv1.SelfSubjectAccessReviewSpec{
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      attrs.Verb,
+				Group:     attrs.Group,
+				Resource:  attrs.Resource,
+				Namespace: attrs.Namespace,
+				Name:      attrs.Name,
+			},
+		},
+	}
+	resp, err := kc.Client.AuthorizationV1().SelfSubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		logger := httpcontract.LogContext(kc.Logger, ctx)
+		attrsLog := []any{"verb", attrs.Verb, "group", attrs.Group, "resource", attrs.Resource, "code", httpcontract.SafeErrorCode(err)}
+		if requestCtx.Err() != nil {
+			// The request was cancelled or its deadline passed, which fails
+			// every pending review at once; the caller reports them in
+			// aggregate, so one line each would flood the log. A review that
+			// times out on its own (a slow authorizer) is still an error.
+			logger.Debug("SSAR review cancelled", attrsLog...)
+		} else {
+			logger.Error("SSAR review failed", attrsLog...)
+		}
+		return AccessReviewDenied, fmt.Errorf("failed to review access (verb=%s, resource=%s/%s): %w", attrs.Verb, attrs.Group, attrs.Resource, err)
+	}
+	result := ClassifyAccessReview(resp.Status.Allowed, resp.Status.Denied, resp.Status.EvaluationError)
+	if result == AccessReviewIndeterminate {
+		httpcontract.LogContext(kc.Logger, ctx).Warn("access review indeterminate", "verb", attrs.Verb, "group", attrs.Group, "resource", attrs.Resource)
+	}
+	return result, nil
 }
 
 func (kc *TokenKubernetesClient) GetConfigMap(ctx context.Context, namespace, name string) (*corev1.ConfigMap, error) {

@@ -161,24 +161,26 @@ export const deployModel = async (
     );
   }
 
-  if (!overwrite) {
-    dryRuns.push(
-      deployMethod.deploy(
-        wizardState,
-        externalData,
-        projectName,
-        existingDeployment,
-        dryRunModelResource,
-        serverResource,
-        serverResourceTemplateName,
-        true,
-        undefined,
-        undefined,
-        initialWizardData,
-        applyAllFieldDataFn,
-      ),
-    );
-  }
+  // A force update dry-runs too, with the same overwrite (a patch, which a
+  // stale resource version cannot conflict with), so its validation and every
+  // write it would make, token and Hugging Face setup included, are checked
+  // before anything is written.
+  dryRuns.push(
+    deployMethod.deploy(
+      wizardState,
+      externalData,
+      projectName,
+      existingDeployment,
+      dryRunModelResource,
+      serverResource,
+      serverResourceTemplateName,
+      true,
+      undefined,
+      overwrite,
+      initialWizardData,
+      applyAllFieldDataFn,
+    ),
+  );
   if (runPostDeploy) {
     dryRuns.push(
       runPostDeploy(

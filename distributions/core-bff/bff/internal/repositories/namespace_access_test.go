@@ -1,0 +1,937 @@
+package repositories
+
+import (
+	"context"
+	"errors"
+	"sync"
+	"sync/atomic"
+	"testing"
+	"time"
+
+	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+)
+
+var errReview = errors.New("review failed")
+
+// rbacClient answers access reviews from a rule table, the way an authorizer
+// would. Rules are "<namespace>|<group>/<resource>|<verb>"; "*" as namespace
+// matches every namespace (a cluster-wide grant), and "" matches only a review
+// made without a namespace.
+type rbacClient struct {
+	k8s.KubernetesClientInterface
+	mu            sync.Mutex
+	allow         map[string]bool
+	fail          map[string]bool // same key format: the review request errors
+	indeterminate map[string]bool // same key format: completes with no decision
+	canList       bool
+	listErr       error
+	reviewErr     error // every review errors
+	namespaces    map[string]*corev1.Namespace
+	getErr        error // every GetNamespace fails with it
+	reviews       atomic.Int32
+	reviewed      []k8s.AccessReviewAttributes
+	inFlight      atomic.Int32
+	maxFlight     atomic.Int32
+}
+
+func key(ns, group, resource, verb string) string {
+	return ns + "|" + PermissionKey(group, resource) + "|" + verb
+}
+
+func (c *rbacClient) ReviewAccess(_ context.Context, _ *k8s.RequestIdentity, a k8s.AccessReviewAttributes) (k8s.AccessReviewResult, error) {
+	verb, group, resource, namespace := a.Verb, a.Group, a.Resource, a.Namespace
+	n := c.inFlight.Add(1)
+	defer c.inFlight.Add(-1)
+	for {
+		m := c.maxFlight.Load()
+		if n <= m || c.maxFlight.CompareAndSwap(m, n) {
+			break
+		}
+	}
+	c.reviews.Add(1)
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.reviewed = append(c.reviewed, a)
+	if c.reviewErr != nil {
+		return k8s.AccessReviewDenied, c.reviewErr
+	}
+	k := key(namespace, group, resource, verb)
+	switch {
+	case c.fail[k]:
+		return k8s.AccessReviewDenied, errReview
+	case c.indeterminate[k]:
+		return k8s.AccessReviewIndeterminate, nil
+	case namespace == "" && resource == "namespaces" && verb == "list":
+		return boolResult(c.canList), nil
+	}
+	return boolResult(c.allow[k] || c.allow[key("*", group, resource, verb)]), nil
+}
+
+func boolResult(allowed bool) k8s.AccessReviewResult {
+	if allowed {
+		return k8s.AccessReviewAllowed
+	}
+	return k8s.AccessReviewDenied
+}
+
+func (c *rbacClient) GetNamespace(_ context.Context, _ *k8s.RequestIdentity, name string) (*corev1.Namespace, error) {
+	if c.getErr != nil {
+		return nil, c.getErr
+	}
+	if ns, ok := c.namespaces[name]; ok {
+		return ns, nil
+	}
+	return nil, k8serrors.NewNotFound(schema.GroupResource{Resource: "namespaces"}, name)
+}
+
+func (c *rbacClient) GetNamespaces(context.Context, *k8s.RequestIdentity) ([]corev1.Namespace, error) {
+	if c.listErr != nil {
+		return nil, c.listErr
+	}
+	out := []corev1.Namespace{}
+	for _, ns := range c.namespaces {
+		out = append(out, *ns)
+	}
+	return out, nil
+}
+
+func activeNS(name, display string) *corev1.Namespace {
+	ns := &corev1.Namespace{ObjectMeta: metav1.ObjectMeta{Name: name}, Status: corev1.NamespaceStatus{Phase: corev1.NamespaceActive}}
+	if display != "" {
+		ns.Annotations = map[string]string{"openshift.io/display-name": display}
+	}
+	return ns
+}
+
+// grant adds the verbs of one matrix resource in ns.
+func grant(allow map[string]bool, ns, group, resource string, verbs ...string) {
+	for _, v := range verbs {
+		allow[key(ns, group, resource, v)] = true
+	}
+}
+
+func deployer(allow map[string]bool, ns string) {
+	grant(allow, ns, groupServing, "llminferenceservices", "get", "list", "watch", "create", "update", "patch", "delete")
+	grant(allow, ns, groupServing, "llminferenceserviceconfigs", "get", "list", "watch", "update", "patch")
+	tokenManager(allow, ns)
+	grant(allow, ns, "", "namespaces", "get")
+}
+
+// tokenManager grants what token authentication reads and writes.
+func tokenManager(allow map[string]bool, ns string) {
+	grant(allow, ns, groupServing, "llminferenceservices", "get")
+	grant(allow, ns, "", "secrets", "create", "get", "list", "update", "delete")
+	grant(allow, ns, "", "serviceaccounts", "get", "create")
+	grant(allow, ns, groupRBAC, "roles", "get", "create")
+	grant(allow, ns, groupRBAC, "rolebindings", "get", "create")
+}
+
+func viewer(allow map[string]bool, ns string) {
+	grant(allow, ns, groupServing, "llminferenceservices", "get", "list", "watch")
+	grant(allow, ns, "", "namespaces", "get")
+}
+
+func names(list models.NamespaceAccessList) []string {
+	out := []string{}
+	for _, ns := range list.Namespaces {
+		out = append(out, ns.Name)
+	}
+	return out
+}
+
+func identity() *k8s.RequestIdentity { return &k8s.RequestIdentity{UserID: "u"} }
+
+func TestDeriveNamespaceActions_PermissionMatrix(t *testing.T) {
+	llm := PermissionKey(groupServing, "llminferenceservices")
+	sec := PermissionKey("", "secrets")
+	sa := PermissionKey("", "serviceaccounts")
+	roles := PermissionKey(groupRBAC, "roles")
+	bindings := PermissionKey(groupRBAC, "rolebindings")
+	A, D, E := models.AccessAllowed, models.AccessDenied, models.AccessError
+	all := func(d models.AccessDecision, verbs ...string) models.ResourcePermissions {
+		p := models.ResourcePermissions{}
+		for _, v := range verbs {
+			p[v] = d
+		}
+		return p
+	}
+	// tokenPerms is everything token authentication needs, with overrides.
+	cfg := PermissionKey(groupServing, "llminferenceserviceconfigs")
+	tokenPerms := func(override func(map[string]models.ResourcePermissions)) map[string]models.ResourcePermissions {
+		perms := map[string]models.ResourcePermissions{
+			llm:      all(A, "get"),
+			sec:      all(A, "create", "get", "list", "update", "delete"),
+			sa:       all(A, "get", "create"),
+			roles:    all(A, "get", "create"),
+			bindings: all(A, "get", "create"),
+		}
+		if override != nil {
+			override(perms)
+		}
+		return perms
+	}
+	viewVerbs := func() models.ResourcePermissions { return all(A, "get", "list", "watch") }
+	with := func(p models.ResourcePermissions, verb string, d models.AccessDecision) models.ResourcePermissions {
+		p[verb] = d
+		return p
+	}
+	full := tokenPerms(nil)
+	full[llm] = all(A, "get", "list", "watch", "create", "update", "patch", "delete")
+	full[cfg] = all(A, "get", "list", "watch", "update", "patch")
+	// editor holds everything Edit needs: model patch and update, the
+	// deployment's config and its token Secrets.
+	editor := func(override func(map[string]models.ResourcePermissions)) map[string]models.ResourcePermissions {
+		perms := map[string]models.ResourcePermissions{
+			llm: with(with(viewVerbs(), "patch", A), "update", A),
+			cfg: all(A, "get", "list", "watch", "update", "patch"),
+			sec: all(A, "get", "list"),
+			sa:  all(A, "get"),
+		}
+		if override != nil {
+			override(perms)
+		}
+		return perms
+	}
+	for _, tc := range []struct {
+		name  string
+		perms map[string]models.ResourcePermissions
+		want  models.NamespaceActions
+	}{
+		{
+			name:  "full deployer",
+			perms: full,
+			want:  models.NamespaceActions{View: true, Deploy: true, Edit: true, StartStop: true, Delete: true, CreateTokenAuth: true, ManageTokenAuth: true},
+		},
+		{
+			name:  "read-only is never offered mutations",
+			perms: map[string]models.ResourcePermissions{llm: with(with(with(viewVerbs(), "create", D), "patch", D), "delete", D)},
+			want:  models.NamespaceActions{View: true},
+		},
+		{
+			name:  "view does not need watch: the deployments page polls instead",
+			perms: map[string]models.ResourcePermissions{llm: with(viewVerbs(), "watch", D)},
+			want:  models.NamespaceActions{View: true},
+		},
+		{
+			name:  "view needs both list and get",
+			perms: map[string]models.ResourcePermissions{llm: with(viewVerbs(), "get", D)},
+			want:  models.NamespaceActions{},
+		},
+		{
+			name:  "create-only deploys without viewing",
+			perms: map[string]models.ResourcePermissions{llm: all(A, "create")},
+			want:  models.NamespaceActions{Deploy: true},
+		},
+		{
+			name:  "patch-only can start and stop but not edit",
+			perms: map[string]models.ResourcePermissions{llm: with(viewVerbs(), "patch", A)},
+			want:  models.NamespaceActions{View: true, StartStop: true},
+		},
+		{
+			name:  "editor",
+			perms: editor(nil),
+			want:  models.NamespaceActions{View: true, Edit: true, StartStop: true},
+		},
+		{
+			name:  "edit needs update as well as patch",
+			perms: editor(func(p map[string]models.ResourcePermissions) { p[llm]["update"] = D }),
+			want:  models.NamespaceActions{View: true, StartStop: true},
+		},
+		{
+			name:  "errored update fails edit closed",
+			perms: editor(func(p map[string]models.ResourcePermissions) { p[llm]["update"] = E }),
+			want:  models.NamespaceActions{View: true, StartStop: true},
+		},
+		{
+			name:  "edit needs to read the deployment's config, or saving drops its baseRefs",
+			perms: editor(func(p map[string]models.ResourcePermissions) { p[cfg]["list"] = D }),
+			want:  models.NamespaceActions{View: true, StartStop: true},
+		},
+		{
+			name:  "edit needs to write the deployment's config copy back",
+			perms: editor(func(p map[string]models.ResourcePermissions) { p[cfg]["update"] = D }),
+			want:  models.NamespaceActions{View: true, StartStop: true},
+		},
+		{
+			name:  "edit does not need watch on configs: the page polls instead",
+			perms: editor(func(p map[string]models.ResourcePermissions) { p[cfg]["watch"] = D }),
+			want:  models.NamespaceActions{View: true, Edit: true, StartStop: true},
+		},
+		{
+			name:  "edit needs the Hugging Face token ServiceAccount the wizard loads",
+			perms: editor(func(p map[string]models.ResourcePermissions) { p[sa]["get"] = D }),
+			want:  models.NamespaceActions{View: true, StartStop: true},
+		},
+		{
+			name:  "edit needs to read the Hugging Face token Secret",
+			perms: editor(func(p map[string]models.ResourcePermissions) { p[sec]["get"] = D }),
+			want:  models.NamespaceActions{View: true, StartStop: true},
+		},
+		{
+			name:  "edit needs to list the token Secrets, or the wizard cannot load the deployment",
+			perms: editor(func(p map[string]models.ResourcePermissions) { p[sec]["list"] = D }),
+			want:  models.NamespaceActions{View: true, StartStop: true},
+		},
+		{
+			name:  "update without patch is neither edit nor start/stop",
+			perms: map[string]models.ResourcePermissions{llm: with(with(viewVerbs(), "patch", D), "update", A)},
+			want:  models.NamespaceActions{View: true},
+		},
+		{
+			name:  "errored create fails closed",
+			perms: map[string]models.ResourcePermissions{llm: with(with(viewVerbs(), "create", E), "delete", E)},
+			want:  models.NamespaceActions{View: true},
+		},
+		{
+			name:  "Secret access alone does not grant model actions",
+			perms: tokenPerms(nil),
+			want:  models.NamespaceActions{CreateTokenAuth: true, ManageTokenAuth: true},
+		},
+		{
+			name:  "token auth needs get on the model, which the token Role grants",
+			perms: tokenPerms(func(p map[string]models.ResourcePermissions) { p[llm]["get"] = D }),
+			want:  models.NamespaceActions{},
+		},
+		{
+			name:  "token auth needs to create Secrets",
+			perms: tokenPerms(func(p map[string]models.ResourcePermissions) { p[sec]["create"] = D }),
+			want:  models.NamespaceActions{},
+		},
+		{
+			name:  "managing existing tokens needs to list them; creating new ones does not",
+			perms: tokenPerms(func(p map[string]models.ResourcePermissions) { p[sec]["list"] = D }),
+			want:  models.NamespaceActions{CreateTokenAuth: true},
+		},
+		{
+			name: "new tokens need only creation: no Secret list, update or delete",
+			perms: tokenPerms(func(p map[string]models.ResourcePermissions) {
+				p[sec] = models.ResourcePermissions{"create": A, "get": D, "list": D, "update": D, "delete": D}
+			}),
+			want: models.NamespaceActions{CreateTokenAuth: true},
+		},
+		{
+			name:  "token auth needs to read the ServiceAccount",
+			perms: tokenPerms(func(p map[string]models.ResourcePermissions) { p[sa]["get"] = D }),
+			want:  models.NamespaceActions{},
+		},
+		{
+			name:  "token auth needs to create the ServiceAccount",
+			perms: tokenPerms(func(p map[string]models.ResourcePermissions) { p[sa]["create"] = E }),
+			want:  models.NamespaceActions{},
+		},
+		{
+			name:  "token auth needs to read the Role",
+			perms: tokenPerms(func(p map[string]models.ResourcePermissions) { p[roles]["get"] = D }),
+			want:  models.NamespaceActions{},
+		},
+		{
+			name:  "token auth needs to create the RoleBinding",
+			perms: tokenPerms(func(p map[string]models.ResourcePermissions) { p[bindings]["create"] = D }),
+			want:  models.NamespaceActions{},
+		},
+		{name: "nothing", perms: map[string]models.ResourcePermissions{}, want: models.NamespaceActions{}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			assert.Equal(t, tc.want, DeriveNamespaceActions(tc.perms))
+		})
+	}
+}
+
+func TestDiscover_NoNamespaceListPermission_MixedAccess(t *testing.T) {
+	allow := map[string]bool{}
+	deployer(allow, "team-a")
+	viewer(allow, "team-b")
+	// team-c has only unrelated access: it must not appear.
+	grant(allow, "team-c", "", "pods", "get", "list")
+	client := &rbacClient{allow: allow, namespaces: map[string]*corev1.Namespace{
+		"team-a": activeNS("team-a", "Team A"), "team-b": activeNS("team-b", ""), "team-c": activeNS("team-c", ""),
+	}}
+	repo := NewNamespaceAccessRepository([]string{"team-a", "team-b", "team-c", "secret-ns"}, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err)
+
+	assert.Equal(t, models.NamespaceSourceCandidates, list.Source)
+	assert.True(t, list.Complete)
+	assert.Empty(t, list.Issues)
+	assert.Equal(t, []string{"team-a", "team-b"}, names(list))
+
+	a, b := list.Namespaces[0], list.Namespaces[1]
+	assert.Equal(t, models.NamespaceActions{View: true, Deploy: true, Edit: true, StartStop: true, Delete: true, CreateTokenAuth: true, ManageTokenAuth: true}, a.Actions)
+	assert.Equal(t, "Team A", a.DisplayName)
+	assert.Equal(t, "Active", a.Phase)
+	assert.Equal(t, models.NamespaceActions{View: true}, b.Actions)
+	assert.Equal(t, models.AccessDenied, b.Permissions[PermissionKey(groupServing, "llminferenceservices")]["create"])
+	assert.Equal(t, models.AccessDenied, b.Permissions[PermissionKey("", "secrets")]["list"])
+	assert.Equal(t, models.AccessAllowed, b.Permissions[PermissionKey("", "namespaces")]["get"])
+
+	// Every matrix entry is reported.
+	for _, c := range namespacePermissionMatrix {
+		for _, v := range c.Verbs {
+			assert.Contains(t, a.Permissions[PermissionKey(c.Group, c.Resource)], v)
+		}
+	}
+}
+
+func TestDiscover_EmptyResultIsAnArray(t *testing.T) {
+	repo := NewNamespaceAccessRepository(nil, "opendatahub")
+	list, err := repo.Discover(context.Background(), &rbacClient{}, identity(), nil)
+	require.NoError(t, err)
+	require.NotNil(t, list.Namespaces)
+	assert.Empty(t, list.Namespaces)
+	assert.NotNil(t, list.Issues)
+	assert.True(t, list.Complete)
+	assert.Equal(t, models.NamespaceSourceCandidates, list.Source)
+}
+
+func TestDiscover_AllCandidatesDeniedIsEmptyNotAnError(t *testing.T) {
+	repo := NewNamespaceAccessRepository([]string{"team-a", "team-b"}, "opendatahub")
+	list, err := repo.Discover(context.Background(), &rbacClient{}, identity(), nil)
+	require.NoError(t, err)
+	assert.Empty(t, list.Namespaces)
+	assert.True(t, list.Complete)
+}
+
+func TestDiscover_RequestedNamespacesAreTheManualFallback(t *testing.T) {
+	allow := map[string]bool{}
+	viewer(allow, "remembered")
+	client := &rbacClient{allow: allow, namespaces: map[string]*corev1.Namespace{"remembered": activeNS("remembered", "")}}
+	repo := NewNamespaceAccessRepository(nil, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), []string{"remembered", "not-mine"})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"remembered"}, names(list))
+}
+
+func TestDiscover_FailedReviewsAreReportedWithoutNames(t *testing.T) {
+	allow := map[string]bool{}
+	deployer(allow, "team-a")
+	fail := map[string]bool{}
+	for _, c := range namespacePermissionMatrix {
+		for _, v := range c.Verbs {
+			fail[key("broken", c.Group, c.Resource, v)] = true
+		}
+	}
+	client := &rbacClient{allow: allow, fail: fail, namespaces: map[string]*corev1.Namespace{"team-a": activeNS("team-a", "")}}
+	repo := NewNamespaceAccessRepository([]string{"team-a", "broken"}, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"team-a"}, names(list))
+	assert.False(t, list.Complete)
+	assert.Equal(t, []models.NamespaceDiscoveryIssue{{Code: models.IssueAccessReviewFailed, Count: 1}}, list.Issues)
+}
+
+func TestDiscover_PartialReviewFailureKeepsNamespaceButFailsActionClosed(t *testing.T) {
+	allow := map[string]bool{}
+	viewer(allow, "team-a")
+	grant(allow, "team-a", groupServing, "llminferenceservices", "delete")
+	client := &rbacClient{
+		allow:      allow,
+		fail:       map[string]bool{key("team-a", groupServing, "llminferenceservices", "create"): true},
+		namespaces: map[string]*corev1.Namespace{"team-a": activeNS("team-a", "")},
+	}
+	repo := NewNamespaceAccessRepository([]string{"team-a"}, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err)
+	require.Len(t, list.Namespaces, 1)
+	ns := list.Namespaces[0]
+	assert.Equal(t, models.NamespaceActions{View: true, Delete: true}, ns.Actions)
+	assert.Equal(t, models.AccessError, ns.Permissions[PermissionKey(groupServing, "llminferenceservices")]["create"])
+	// The namespace is returned, but its failed review is still reported.
+	assert.False(t, list.Complete)
+	assert.Equal(t, []models.NamespaceDiscoveryIssue{{Code: models.IssueAccessReviewFailed, Count: 1}}, list.Issues)
+}
+
+func TestDiscover_IndeterminateReviewsAreErrorsNotDenials(t *testing.T) {
+	allow := map[string]bool{}
+	viewer(allow, "team-a")
+	indeterminate := map[string]bool{key("team-a", groupServing, "llminferenceservices", "create"): true}
+	for _, c := range namespacePermissionMatrix {
+		for _, v := range c.Verbs {
+			indeterminate[key("webhook-down", c.Group, c.Resource, v)] = true
+		}
+	}
+	client := &rbacClient{allow: allow, indeterminate: indeterminate, namespaces: map[string]*corev1.Namespace{"team-a": activeNS("team-a", "")}}
+	repo := NewNamespaceAccessRepository([]string{"team-a", "webhook-down"}, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"team-a"}, names(list))
+	assert.Equal(t, models.AccessError, list.Namespaces[0].Permissions[PermissionKey(groupServing, "llminferenceservices")]["create"])
+	assert.False(t, list.Namespaces[0].Actions.Deploy)
+	assert.False(t, list.Complete, "an authorizer failure is not a clean result")
+	assert.Equal(t, []models.NamespaceDiscoveryIssue{{Code: models.IssueAccessReviewFailed, Count: 2}}, list.Issues)
+
+	// Indeterminate everywhere is unavailable, never an empty success.
+	only := NewNamespaceAccessRepository([]string{"webhook-down"}, "opendatahub")
+	_, err = only.Discover(context.Background(), client, identity(), nil)
+	assert.ErrorIs(t, err, ErrNamespaceDiscoveryUnavailable)
+	_, err = only.Get(context.Background(), client, identity(), "webhook-down")
+	assert.ErrorIs(t, err, ErrNamespaceAccessReviewFailed)
+}
+
+func TestDiscover_IndeterminateClusterListReviewFallsBackToCandidates(t *testing.T) {
+	allow := map[string]bool{}
+	viewer(allow, "team-a")
+	client := &rbacClient{
+		allow:         allow,
+		canList:       true,
+		indeterminate: map[string]bool{key("", "", "namespaces", "list"): true},
+		namespaces:    map[string]*corev1.Namespace{"team-a": activeNS("team-a", "")},
+	}
+	repo := NewNamespaceAccessRepository([]string{"team-a"}, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err)
+	assert.Equal(t, models.NamespaceSourceCandidates, list.Source)
+	assert.Equal(t, []string{"team-a"}, names(list))
+	assert.Contains(t, list.Issues, models.NamespaceDiscoveryIssue{Code: models.IssueClusterListReviewFailed, Count: 1})
+}
+
+func TestDiscover_EveryReviewFailingIsUnavailable(t *testing.T) {
+	repo := NewNamespaceAccessRepository([]string{"team-a"}, "opendatahub")
+	list, err := repo.Discover(context.Background(), &rbacClient{reviewErr: errReview}, identity(), nil)
+	require.ErrorIs(t, err, ErrNamespaceDiscoveryUnavailable)
+	assert.False(t, list.Complete)
+	assert.ElementsMatch(t, []models.NamespaceDiscoveryIssue{
+		{Code: models.IssueClusterListReviewFailed, Count: 1},
+		{Code: models.IssueAccessReviewFailed, Count: 1},
+		{Code: models.IssueSharedAccessReviewFailed, Count: 4},
+	}, list.Issues)
+}
+
+func TestDiscover_ClusterListUsesTheCallersListAndStillFilters(t *testing.T) {
+	allow := map[string]bool{}
+	deployer(allow, "*") // cluster-wide grant
+	client := &rbacClient{canList: true, allow: allow, namespaces: map[string]*corev1.Namespace{
+		"team-a": activeNS("team-a", ""), "team-b": activeNS("team-b", ""),
+	}}
+	// Configured candidates are not consulted when the caller can list.
+	repo := NewNamespaceAccessRepository([]string{"configured"}, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err)
+	assert.Equal(t, models.NamespaceSourceClusterList, list.Source)
+	assert.Equal(t, []string{"team-a", "team-b"}, names(list))
+}
+
+func TestDiscover_ClusterListFailureFallsBackToCandidates(t *testing.T) {
+	allow := map[string]bool{}
+	viewer(allow, "team-a")
+	client := &rbacClient{canList: true, listErr: errors.New("boom"), allow: allow, namespaces: map[string]*corev1.Namespace{"team-a": activeNS("team-a", "")}}
+	repo := NewNamespaceAccessRepository([]string{"team-a"}, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err)
+	assert.Equal(t, models.NamespaceSourceCandidates, list.Source)
+	assert.Equal(t, []string{"team-a"}, names(list))
+	assert.False(t, list.Complete)
+	assert.Equal(t, []models.NamespaceDiscoveryIssue{{Code: models.IssueClusterListFailed, Count: 1}}, list.Issues)
+}
+
+func TestDiscover_IsAiProjectFollowsTheReadableLabel(t *testing.T) {
+	ai := activeNS("ai", "AI")
+	ai.Labels = map[string]string{"opendatahub.io/dashboard": "true"}
+	notExact := activeNS("not-exact", "Not exact")
+	notExact.Labels = map[string]string{"opendatahub.io/dashboard": "yes"}
+	allow := map[string]bool{}
+	viewer(allow, "ai")
+	viewer(allow, "not-exact")
+	viewer(allow, "plain")
+	client := &rbacClient{allow: allow, namespaces: map[string]*corev1.Namespace{
+		"ai": ai, "not-exact": notExact, "plain": activeNS("plain", "Plain"),
+	}}
+	repo := NewNamespaceAccessRepository([]string{"ai", "not-exact", "plain"}, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err)
+	got := map[string]bool{}
+	for _, ns := range list.Namespaces {
+		require.NotNil(t, ns.IsAiProject, ns.Name)
+		got[ns.Name] = *ns.IsAiProject
+	}
+	assert.Equal(t, map[string]bool{"ai": true, "not-exact": false, "plain": false}, got)
+}
+
+func TestDiscover_SharedNamespaceReads(t *testing.T) {
+	allow := map[string]bool{}
+	grant(allow, "opendatahub", groupInfrastructure, "hardwareprofiles", "get", "list")
+	repo := NewNamespaceAccessRepository(nil, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), &rbacClient{allow: allow}, identity(), nil)
+	require.NoError(t, err)
+	assert.Equal(t, "opendatahub", list.Shared.Namespace)
+	assert.Equal(t, models.AccessAllowed, list.Shared.Permissions[PermissionKey(groupInfrastructure, "hardwareprofiles")]["list"])
+	assert.Equal(t, models.AccessDenied, list.Shared.Permissions[PermissionKey(groupServing, "llminferenceserviceconfigs")]["list"])
+	assert.NotContains(t, list.Shared.Permissions, PermissionKey("", "secrets"), "bootstrap needs no shared Secret access")
+}
+
+func TestDiscover_BoundsConcurrentReviews(t *testing.T) {
+	candidates := []string{}
+	allow := map[string]bool{}
+	existing := map[string]*corev1.Namespace{}
+	for i := 0; i < 40; i++ {
+		n := "ns-" + itoa(i)
+		candidates = append(candidates, n)
+		viewer(allow, n)
+		existing[n] = activeNS(n, "")
+	}
+	client := &rbacClient{allow: allow, namespaces: existing}
+	repo := NewNamespaceAccessRepository(candidates, "opendatahub")
+	repo.reviewConcurrency = 4
+
+	list, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err)
+	assert.Len(t, list.Namespaces, 40)
+	assert.LessOrEqual(t, client.maxFlight.Load(), int32(4))
+}
+
+func TestDiscover_TruncatesCandidates(t *testing.T) {
+	requested := make([]string, 0, MaxDiscoveryCandidates+5)
+	configured := []string{}
+	for i := 0; i < MaxDiscoveryCandidates+5; i++ {
+		configured = append(configured, "ns-"+itoa(i))
+	}
+	repo := NewNamespaceAccessRepository(configured, "opendatahub")
+	list, err := repo.Discover(context.Background(), &rbacClient{}, identity(), requested)
+	require.NoError(t, err, "truncation alone is not a failure")
+	assert.False(t, list.Complete)
+	assert.Equal(t, []models.NamespaceDiscoveryIssue{{Code: models.IssueCandidatesTruncated, Count: 5}}, list.Issues)
+}
+
+func itoa(i int) string {
+	const digits = "0123456789"
+	if i == 0 {
+		return "0"
+	}
+	out := ""
+	for ; i > 0; i /= 10 {
+		out = string(digits[i%10]) + out
+	}
+	return out
+}
+
+func TestGet_Outcomes(t *testing.T) {
+	allow := map[string]bool{}
+	viewer(allow, "mine")
+	viewer(allow, "gone") // allowed by RBAC but the namespace does not exist
+	grant(allow, "no-meta", groupServing, "llminferenceservices", "create")
+	failAll := map[string]bool{}
+	for _, c := range namespacePermissionMatrix {
+		for _, v := range c.Verbs {
+			failAll[key("broken", c.Group, c.Resource, v)] = true
+		}
+	}
+	client := &rbacClient{allow: allow, fail: failAll, namespaces: map[string]*corev1.Namespace{"mine": activeNS("mine", "Mine")}}
+	repo := NewNamespaceAccessRepository(nil, "opendatahub")
+	ctx := context.Background()
+
+	got, err := repo.Get(ctx, client, identity(), "mine")
+	require.NoError(t, err)
+	assert.Equal(t, "Mine", got.DisplayName)
+	assert.True(t, got.Actions.View)
+	assert.False(t, got.Actions.Deploy)
+
+	got, err = repo.Get(ctx, client, identity(), "no-meta")
+	require.NoError(t, err)
+	assert.True(t, got.Actions.Deploy)
+	assert.Equal(t, models.NamespacePhaseUnknown, got.Phase, "the phase is explicit when the caller cannot read the namespace")
+
+	_, err = repo.Get(ctx, client, identity(), "gone")
+	assert.ErrorIs(t, err, ErrNamespaceNotFound)
+
+	// Denied and nonexistent-without-access look identical.
+	_, err = repo.Get(ctx, client, identity(), "someone-else")
+	assert.ErrorIs(t, err, ErrNamespaceAccessDenied)
+
+	_, err = repo.Get(ctx, client, identity(), "broken")
+	assert.ErrorIs(t, err, ErrNamespaceAccessReviewFailed)
+}
+
+func TestDiscover_ReliableDenialPlusFailureIsPartialEmptyNot503(t *testing.T) {
+	fail := map[string]bool{}
+	for _, c := range namespacePermissionMatrix {
+		for _, v := range c.Verbs {
+			fail[key("broken", c.Group, c.Resource, v)] = true
+		}
+	}
+	client := &rbacClient{allow: map[string]bool{}, fail: fail}
+	repo := NewNamespaceAccessRepository([]string{"not-mine", "broken"}, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err, "a reliable denial means discovery did not fail outright")
+	assert.Empty(t, list.Namespaces)
+	assert.False(t, list.Complete)
+	assert.Equal(t, []models.NamespaceDiscoveryIssue{{Code: models.IssueAccessReviewFailed, Count: 1}}, list.Issues)
+}
+
+func TestDiscover_NotFoundStillReportsItsFailedReviews(t *testing.T) {
+	allow := map[string]bool{}
+	deployer(allow, "gone")
+	client := &rbacClient{allow: allow, fail: map[string]bool{key("gone", "", "pods", "list"): true}}
+	repo := NewNamespaceAccessRepository([]string{"gone"}, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err, "a namespace that does not exist is a decided answer")
+	assert.Empty(t, list.Namespaces)
+	assert.False(t, list.Complete)
+	assert.Equal(t, []models.NamespaceDiscoveryIssue{{Code: models.IssueAccessReviewFailed, Count: 1}}, list.Issues)
+}
+
+func TestDiscover_DefinitiveDenialWithAnUnrelatedFailureIsPartialEmpty(t *testing.T) {
+	// Paulo's repro: list errors, get and every other action review deny. No
+	// action is possible even if list were allowed (view needs get too).
+	client := &rbacClient{allow: map[string]bool{}, fail: map[string]bool{key("only", groupServing, "llminferenceservices", "list"): true}}
+	repo := NewNamespaceAccessRepository([]string{"only"}, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err, "a definitive denial is a decided answer, not 503")
+	assert.Empty(t, list.Namespaces)
+	assert.False(t, list.Complete)
+	assert.Equal(t, []models.NamespaceDiscoveryIssue{{Code: models.IssueAccessReviewFailed, Count: 1}}, list.Issues)
+
+	_, err = repo.Get(context.Background(), client, identity(), "only")
+	assert.ErrorIs(t, err, ErrNamespaceAccessDenied)
+}
+
+func TestDiscover_FailureThatCouldEnableAnActionStaysUndecided(t *testing.T) {
+	// get is allowed, so a list that errors could still enable view.
+	allow := map[string]bool{}
+	grant(allow, "only", groupServing, "llminferenceservices", "get")
+	client := &rbacClient{allow: allow, fail: map[string]bool{key("only", groupServing, "llminferenceservices", "list"): true}}
+	repo := NewNamespaceAccessRepository([]string{"only"}, "opendatahub")
+
+	_, err := repo.Discover(context.Background(), client, identity(), nil)
+	assert.ErrorIs(t, err, ErrNamespaceDiscoveryUnavailable)
+
+	_, err = repo.Get(context.Background(), client, identity(), "only")
+	assert.ErrorIs(t, err, ErrNamespaceAccessReviewFailed)
+}
+
+func TestDiscover_FailedNamespaceReadIsReported(t *testing.T) {
+	allow := map[string]bool{}
+	viewer(allow, "mine")
+	client := &rbacClient{allow: allow, getErr: k8serrors.NewServiceUnavailable("etcd is down")}
+	repo := NewNamespaceAccessRepository([]string{"mine"}, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err)
+	require.Equal(t, []string{"mine"}, names(list))
+	assert.Equal(t, models.NamespacePhaseUnknown, list.Namespaces[0].Phase)
+	assert.Equal(t, models.AccessAllowed, list.Namespaces[0].Permissions[PermissionKey("", "namespaces")]["get"])
+	assert.False(t, list.Complete)
+	assert.Equal(t, []models.NamespaceDiscoveryIssue{{Code: models.IssueNamespaceReadFailed, Count: 1}}, list.Issues)
+}
+
+// detailBlockingClient answers the action reviews but never the rest, so the
+// deadline expires after a namespace was already authorized.
+type detailBlockingClient struct{ rbacClient }
+
+func (c *detailBlockingClient) ReviewAccess(ctx context.Context, id *k8s.RequestIdentity, a k8s.AccessReviewAttributes) (k8s.AccessReviewResult, error) {
+	if a.Resource == "pods" || a.Resource == "namespaces" || a.Verb == "watch" {
+		<-ctx.Done()
+		return k8s.AccessReviewDenied, ctx.Err()
+	}
+	return c.rbacClient.ReviewAccess(ctx, id, a)
+}
+
+func TestGet_DeadlineAfterAnAllowedReviewIsUnavailable(t *testing.T) {
+	allow := map[string]bool{}
+	viewer(allow, "team-a")
+	client := &detailBlockingClient{rbacClient{allow: allow}}
+	repo := NewNamespaceAccessRepository(nil, "opendatahub")
+	repo.timeout = 50 * time.Millisecond
+
+	_, err := repo.Get(context.Background(), client, identity(), "team-a")
+	assert.ErrorIs(t, err, ErrNamespaceAccessReviewFailed)
+}
+
+// An authorizer can allow a review made without a namespace yet deny the same
+// verb in a given namespace (webhooks may decide per namespace). Discovery
+// must therefore never reuse a namespace-less answer for a named namespace.
+func TestDiscover_EveryActionIsReviewedInTheTargetNamespace(t *testing.T) {
+	allow := map[string]bool{}
+	deployer(allow, "") // allowed only for reviews without a namespace
+	viewer(allow, "team-a")
+	client := &rbacClient{allow: allow, namespaces: map[string]*corev1.Namespace{
+		"team-a": activeNS("team-a", ""), "team-b": activeNS("team-b", ""),
+	}}
+	repo := NewNamespaceAccessRepository([]string{"team-a", "team-b"}, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"team-a"}, names(list))
+	assert.Equal(t, models.NamespaceActions{View: true}, list.Namespaces[0].Actions)
+	for _, a := range client.reviewed {
+		if a.Namespace == "" {
+			assert.Equal(t, k8s.AccessReviewAttributes{Verb: "list", Resource: "namespaces"}, a,
+				"only the cluster-list review is made without a namespace")
+		}
+	}
+}
+
+func TestDiscover_HiddenNamespacesCostOnlyTheActionReviews(t *testing.T) {
+	client := &rbacClient{allow: map[string]bool{}}
+	repo := NewNamespaceAccessRepository([]string{"not-mine"}, "opendatahub")
+
+	_, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err)
+	actionReviews := 0
+	for _, c := range actionPermissionMatrix {
+		actionReviews += len(c.Verbs)
+	}
+	perNamespace := 0
+	for _, a := range client.reviewed {
+		if a.Namespace == "not-mine" {
+			perNamespace++
+		}
+	}
+	assert.Equal(t, actionReviews, perNamespace)
+}
+
+func TestNamespacePermissionMatrix_CoversEveryActionReview(t *testing.T) {
+	verbs := map[string]int{}
+	for _, c := range namespacePermissionMatrix {
+		for _, v := range c.Verbs {
+			verbs[PermissionKey(c.Group, c.Resource)+"|"+v]++
+		}
+	}
+	assert.Len(t, verbs, 25)
+	for k, n := range verbs {
+		assert.Equal(t, 1, n, k)
+	}
+}
+
+func TestDiscover_RequestedNamesSurviveTruncation(t *testing.T) {
+	configured := []string{}
+	for i := 0; i < MaxDiscoveryCandidates+10; i++ {
+		configured = append(configured, "aa-"+itoa(i))
+	}
+	allow := map[string]bool{}
+	viewer(allow, "zz-mine")
+	client := &rbacClient{allow: allow, namespaces: map[string]*corev1.Namespace{"zz-mine": activeNS("zz-mine", "")}}
+	repo := NewNamespaceAccessRepository(configured, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), []string{"zz-mine"})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"zz-mine"}, names(list))
+	assert.Contains(t, list.Issues, models.NamespaceDiscoveryIssue{Code: models.IssueCandidatesTruncated, Count: 11})
+}
+
+// blockingClient never answers until the request context ends.
+type blockingClient struct{ rbacClient }
+
+func (c *blockingClient) ReviewAccess(ctx context.Context, _ *k8s.RequestIdentity, _ k8s.AccessReviewAttributes) (k8s.AccessReviewResult, error) {
+	<-ctx.Done()
+	return k8s.AccessReviewDenied, ctx.Err()
+}
+
+func TestDiscover_DeadlineFailsClosedAndIsReported(t *testing.T) {
+	repo := NewNamespaceAccessRepository([]string{"team-a"}, "opendatahub")
+	repo.timeout = 50 * time.Millisecond
+
+	list, err := repo.Discover(context.Background(), &blockingClient{}, identity(), nil)
+	require.ErrorIs(t, err, ErrNamespaceDiscoveryUnavailable)
+	assert.Empty(t, list.Namespaces)
+	assert.Contains(t, list.Issues, models.NamespaceDiscoveryIssue{Code: models.IssueDiscoveryDeadlineExceeded, Count: 1})
+
+	_, err = repo.Get(context.Background(), &blockingClient{}, identity(), "team-a")
+	assert.ErrorIs(t, err, ErrNamespaceAccessReviewFailed)
+}
+
+func TestDiscover_ClusterListDropsRequestedNamesItDoesNotList(t *testing.T) {
+	allow := map[string]bool{}
+	// Cluster-wide grants allow every action review, even for a name that does
+	// not exist; only the named get is missing.
+	grant(allow, "*", groupServing, "llminferenceservices", "get", "list", "watch", "create", "update", "patch", "delete")
+	client := &rbacClient{canList: true, allow: allow, namespaces: map[string]*corev1.Namespace{"team-a": activeNS("team-a", "")}}
+	repo := NewNamespaceAccessRepository(nil, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), []string{"ghost", "team-a"})
+	require.NoError(t, err)
+	assert.Equal(t, models.NamespaceSourceClusterList, list.Source)
+	assert.Equal(t, []string{"team-a"}, names(list), "a requested name absent from the caller's list does not exist")
+	assert.True(t, list.Complete)
+}
+
+func TestDiscover_ClusterListIsNotCapped(t *testing.T) {
+	allow := map[string]bool{}
+	existing := map[string]*corev1.Namespace{}
+	for i := 0; i < MaxDiscoveryCandidates+5; i++ {
+		n := "ns-" + itoa(i)
+		existing[n] = activeNS(n, "")
+	}
+	// Sorted by name, ns-99 falls past the first 200 candidates.
+	viewer(allow, "ns-204")
+	viewer(allow, "ns-99")
+	client := &rbacClient{canList: true, allow: allow, namespaces: existing}
+	repo := NewNamespaceAccessRepository(nil, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), client, identity(), nil)
+	require.NoError(t, err)
+	assert.True(t, list.Complete, "a caller who can list keeps every listed namespace evaluated")
+	assert.Empty(t, list.Issues)
+	assert.ElementsMatch(t, []string{"ns-204", "ns-99"}, names(list))
+}
+
+func TestDiscover_ManageTokenAuthNeedsUpdateOnSecrets(t *testing.T) {
+	allow := map[string]bool{}
+	grant(allow, "team-a", groupServing, "llminferenceservices", "get", "list", "create")
+	tokenManager(allow, "team-a")
+	allow[key("team-a", "", "secrets", "update")] = false
+	repo := NewNamespaceAccessRepository([]string{"team-a"}, "opendatahub")
+
+	list, err := repo.Discover(context.Background(), &rbacClient{allow: allow}, identity(), nil)
+	require.NoError(t, err)
+	require.Len(t, list.Namespaces, 1)
+	assert.False(t, list.Namespaces[0].Actions.ManageTokenAuth, "replacing an existing token Secret is a PUT")
+	assert.Equal(t, models.AccessDenied, list.Namespaces[0].Permissions[PermissionKey("", "secrets")]["update"])
+}
+
+func TestForEachBounded_LimitsWorkersAndSkipsAfterCancellation(t *testing.T) {
+	var running, peak int32
+	var mu sync.Mutex
+	done := map[int]bool{}
+	forEachBounded(context.Background(), 50, 4, func(i int) {
+		n := atomic.AddInt32(&running, 1)
+		for {
+			p := atomic.LoadInt32(&peak)
+			if n <= p || atomic.CompareAndSwapInt32(&peak, p, n) {
+				break
+			}
+		}
+		time.Sleep(time.Millisecond)
+		atomic.AddInt32(&running, -1)
+		mu.Lock()
+		done[i] = true
+		mu.Unlock()
+	}, func(int) { t.Error("nothing is skipped without cancellation") })
+	assert.Len(t, done, 50)
+	assert.LessOrEqual(t, atomic.LoadInt32(&peak), int32(4))
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	skipped := 0
+	forEachBounded(ctx, 10, 4, func(int) { t.Error("nothing starts after cancellation") }, func(int) { skipped++ })
+	assert.Equal(t, 10, skipped)
+}
+
+func TestDiscover_CancelledRequestIsUnavailable(t *testing.T) {
+	allow := map[string]bool{}
+	viewer(allow, "team-a")
+	repo := NewNamespaceAccessRepository([]string{"team-a", "team-b"}, "opendatahub")
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := repo.Discover(ctx, &rbacClient{allow: allow}, identity(), nil)
+	assert.ErrorIs(t, err, ErrNamespaceDiscoveryUnavailable, "skipped namespaces are undecided, not denied")
+}

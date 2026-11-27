@@ -61,6 +61,12 @@ type Props = {
   manualProjectMode?: boolean;
   getProjectDescription?: (name: string) => string;
   isAiProject?: (name: string) => boolean;
+  /**
+   * Projects kept by the "AI projects only" filter; defaults to isAiProject.
+   * Lets a host keep projects whose classification is unknown reachable
+   * without showing the AI badge on them.
+   */
+  isInAiFilter?: (name: string) => boolean;
   aiLabel?: React.ReactNode;
   getProjectHref?: (name: string) => string;
   onCreateProject?: () => void;
@@ -430,6 +436,7 @@ const WorkingProjectModal: React.FC<
   manualProjectMode = false,
   getProjectDescription,
   isAiProject,
+  isInAiFilter = isAiProject,
   aiLabel,
   getProjectHref,
   onCreateProject,
@@ -466,11 +473,12 @@ const WorkingProjectModal: React.FC<
   const [selectedFilter, setFilter] = React.useState<string>();
   const scrolledRowRef = React.useRef<HTMLElement | null>(null);
   const scrollFrameRef = React.useRef<number>();
-  const reviewProjectMatchesAiFilter = !projectToReview || Boolean(isAiProject?.(projectToReview));
-  const activeProjectMatchesAiFilter = !activeProject || Boolean(isAiProject?.(activeProject.name));
+  const reviewProjectMatchesAiFilter = !projectToReview || Boolean(isInAiFilter?.(projectToReview));
+  const activeProjectMatchesAiFilter =
+    !activeProject || Boolean(isInAiFilter?.(activeProject.name));
   const filter =
     selectedFilter ??
-    (isAiProject && reviewProjectMatchesAiFilter && activeProjectMatchesAiFilter ? 'ai' : 'all');
+    (isInAiFilter && reviewProjectMatchesAiFilter && activeProjectMatchesAiFilter ? 'ai' : 'all');
   const changeSelectedProject = (_event: React.SyntheticEvent, name: string) => {
     if (selecting) {
       return;
@@ -479,7 +487,9 @@ const WorkingProjectModal: React.FC<
     setHasUserSelectedProject(true);
     setSelectionError(undefined);
   };
-  const aiProjectCount = isAiProject ? projects.filter(({ name }) => isAiProject(name)).length : 0;
+  const aiProjectCount = isInAiFilter
+    ? projects.filter(({ name }) => isInAiFilter(name)).length
+    : 0;
   const projectCount = filter === 'ai' ? aiProjectCount : projects.length;
   const filterLabel = filter === 'ai' ? 'AI projects only' : 'All projects';
   const filterToggleLabel = (
@@ -521,7 +531,7 @@ const WorkingProjectModal: React.FC<
   const visibleProjects = projects.filter(({ name, displayName }) => {
     const query = search.trim().toLowerCase();
     return (
-      (filter !== 'ai' || isAiProject?.(name)) &&
+      (filter !== 'ai' || isInAiFilter?.(name)) &&
       (!query ||
         [name, displayName, getProjectDescription?.(name)].some((value) =>
           value?.toLowerCase().includes(query),

@@ -184,6 +184,27 @@ export const createTokenSecrets = async (
   );
 };
 
+/**
+ * Whether the deploy sets up token authentication. A new deployment always
+ * does: no permission check decides whether it requires authentication. Setup
+ * reuses the ServiceAccount, Role and RoleBinding where they exist, so
+ * Kubernetes decides, and the dry run stops a refused setup before anything is
+ * saved. An edit sets tokens up only with RoleBinding create access, as
+ * before: without it the token field is disabled and the deployment keeps its
+ * authentication setting.
+ */
+export const canProvisionTokenAuth = (
+  wizardData: { canCreateRoleBindings: boolean },
+  isNewDeployment: boolean,
+): boolean => isNewDeployment || wizardData.canCreateRoleBindings;
+
+export const TOKEN_SETUP_REFUSED_MESSAGE =
+  'You do not have permission to set up token authentication in this project. Turn off token authentication to deploy without it, or ask for access.';
+
+/** For a deployment that already has tokens, where turning them off is a change too. */
+export const TOKEN_CHANGE_REFUSED_MESSAGE =
+  "You do not have permission to manage this deployment's tokens, which saving it updates. Ask for access to manage them.";
+
 export const setUpTokenAuth = async (
   tokenAuth: TokenAuthEntry[] | undefined,
   deployedModelName: string,
@@ -229,9 +250,22 @@ export const setUpTokenAuth = async (
           createRoleIfMissing(role, namespace, opts),
         ]).then(() => createRoleBindingIfMissing(roleBinding, namespace, opts))
       : Promise.resolve()
-  ).then(() =>
-    createTokenSecrets(tokenAuth, deployedModelName, namespace, owner, existingSecrets, opts),
-  );
+  )
+    .then(() =>
+      createTokenSecrets(tokenAuth, deployedModelName, namespace, owner, existingSecrets, opts),
+    )
+    .catch((error: unknown) => {
+      // A refused setup stops the deployment (in the dry run, before anything
+      // is saved); say what the user can do about it.
+      if (getGenericErrorCode(error) === 403) {
+        throw new Error(
+          existingSecrets && existingSecrets.length > 0
+            ? TOKEN_CHANGE_REFUSED_MESSAGE
+            : TOKEN_SETUP_REFUSED_MESSAGE,
+        );
+      }
+      throw error;
+    });
 };
 
 export const isDeploymentAuthEnabled = (

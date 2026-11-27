@@ -189,6 +189,12 @@ export type WizardFormData = {
     huggingFaceApiKey: ReturnType<typeof useHuggingFaceApiKeyField>;
     requiresHuggingFaceApiKey: boolean;
     canCreateRoleBindings: boolean;
+    /**
+     * False when the host knows the caller may not set up (new deployment) or
+     * manage (edit) token authentication. Unset (older callers) keeps the
+     * RoleBinding check alone.
+     */
+    canManageTokenAuth?: boolean;
     validatedConfigurationSelection: ValidatedConfigurationsFieldHook;
     devFeatureFlags?: {
       vLLMDeploymentOnMaaS: boolean;

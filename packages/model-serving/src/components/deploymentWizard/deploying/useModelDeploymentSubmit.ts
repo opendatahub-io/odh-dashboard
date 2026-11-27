@@ -1,5 +1,7 @@
 import React from 'react';
 import { useSecretOps } from '@odh-dashboard/plugin-core';
+import { byName } from '@odh-dashboard/k8s-core';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { getServingRuntimeFromTemplate, isTemplateKind } from '@odh-dashboard/model-serving/shared';
 import { useDeployMethod } from './useDeployMethod';
 import { useWizardFieldPreDeploy } from './useWizardFieldPreDeploy';
@@ -44,6 +46,8 @@ export const useModelDeploymentSubmit = (
   clearSubmitError: () => void;
 } => {
   const secretOps = useSecretOps();
+  const { deploymentTargetProjects, getProjectDeploymentActions } =
+    React.useContext(ProjectsContext);
   const { deployMethod, deployMethodLoaded } = useDeployMethod(
     deployMethodActivationInput,
     resources,
@@ -102,6 +106,49 @@ export const useModelDeploymentSubmit = (
           throw new Error(
             'Deploy method or extensions not loaded or could not be inferred from resources',
           );
+        }
+        // Permissions are checked in one project, so the YAML must deploy to
+        // that same project: the selected one for a new deployment, the
+        // deployment's own for an edit.
+        const yamlNamespace = resources.model?.metadata.namespace;
+        const expectedNamespace = existingDeployment
+          ? existingDeployment.model.metadata.namespace
+          : formState.project.projectName;
+        if (yamlNamespace && expectedNamespace && yamlNamespace !== expectedNamespace) {
+          throw new Error(
+            `The YAML namespace "${yamlNamespace}" must match the project "${expectedNamespace}".`,
+          );
+        }
+        // An edit can be opened by URL, so the edit permission is checked
+        // again here, where the deployment is saved.
+        // The host's actions describe LLMInferenceService deployments, as in
+        // the deployments table.
+        if (
+          existingDeployment?.model.kind === 'LLMInferenceService' &&
+          expectedNamespace &&
+          getProjectDeploymentActions?.(expectedNamespace)?.canEdit === false
+        ) {
+          throw new Error(
+            `You do not have permission to edit deployments in the project "${expectedNamespace}".`,
+          );
+        }
+        // Where the host decides deploy targets, a new deployment needs its
+        // project selected in the form: that is where its permissions (token
+        // authentication included) were checked.
+        if (!existingDeployment && deploymentTargetProjects && !formState.project.projectName) {
+          throw new Error('Select a project before deploying.');
+        }
+        // Access to a project can be revoked while the wizard is open. A new
+        // deployment, from the form or the YAML, must still target a project
+        // the caller may deploy to; an edit stays in the deployment's project.
+        const targetName = expectedNamespace ?? yamlNamespace;
+        if (
+          !existingDeployment &&
+          deploymentTargetProjects &&
+          targetName &&
+          !deploymentTargetProjects.some(byName(targetName))
+        ) {
+          throw new Error(`You can no longer deploy models to the project "${targetName}".`);
         }
 
         // Prefer the Template on the shared model-server selection (spokes attach it).
@@ -167,6 +214,8 @@ export const useModelDeploymentSubmit = (
       formState,
       secretOps,
       existingDeployment,
+      deploymentTargetProjects,
+      getProjectDeploymentActions,
       initialWizardData,
       applyAllFieldDataFn,
       runPreDeploy,

@@ -190,6 +190,10 @@ describe('getRuntimeOdhPackages', () => {
     expect(hostProvided.has('@odh-dashboard/ui-core/context/HardwareProfilesContext')).toBe(true);
     expect(all.has('@odh-dashboard/ui-core/context/WorkingProjectContext')).toBe(true);
     expect(hostProvided.has('@odh-dashboard/ui-core/context/WorkingProjectContext')).toBe(true);
+    // Federated consumers import ProjectsContext by subpath; without sharing it
+    // they would bundle their own copy and read its default value.
+    expect(all.has('@odh-dashboard/ui-core/context/ProjectsContext')).toBe(true);
+    expect(hostProvided.has('@odh-dashboard/ui-core/context/ProjectsContext')).toBe(true);
   });
 
   it.each(['./*', 'context', './missing'])(

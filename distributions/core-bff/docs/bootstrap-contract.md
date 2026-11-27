@@ -339,6 +339,11 @@ granting them to the dashboard service account does nothing. Each authenticated 
 Kubernetes grants both to every authenticated user through the default `system:basic-user`
 ClusterRole; a cluster that removes that binding must grant them back.
 
+`namespaces` is not in this list either. Namespace discovery runs entirely as the caller: the
+caller's own `list namespaces` when it is allowed, otherwise configured and requested names checked
+with the caller's access reviews. See
+[namespace-discovery-contract.md](./namespace-discovery-contract.md).
+
 ## Consumers
 
 [RHOAIENG-96067](https://redhat.atlassian.net/browse/RHOAIENG-96067) (RHAII composition) consumes

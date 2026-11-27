@@ -3,6 +3,7 @@ import { deploymentStrategyRecreate } from '@odh-dashboard/model-serving/shared/
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
 import { mockHardwareProfile } from '@odh-dashboard/hardware-profiles/__mocks__/mockHardwareProfile';
+import { setUpTokenAuth } from '@odh-dashboard/model-serving/concepts/auth';
 import { deployKServeDeployment } from '../deploy';
 import { createServingRuntime, updateServingRuntime } from '../deployServer';
 import { deployInferenceService } from '../deployModel';
@@ -16,6 +17,10 @@ jest.mock('../deployServer', () => ({
 jest.mock('../deployModel', () => ({
   ...jest.requireActual('../deployModel'),
   deployInferenceService: jest.fn(),
+}));
+jest.mock('@odh-dashboard/model-serving/concepts/auth', () => ({
+  ...jest.requireActual('@odh-dashboard/model-serving/concepts/auth'),
+  setUpTokenAuth: jest.fn(() => Promise.resolve()),
 }));
 jest.mock('../hfTokenSecret', () => ({
   ...jest.requireActual('../hfTokenSecret'),
@@ -44,6 +49,7 @@ const WIZARD_DATA = {
   huggingFaceApiKey: { data: { token: '' } },
   requiresHuggingFaceApiKey: false,
   canCreateRoleBindings: false,
+  canManageTokenAuth: true,
 } as unknown as WizardFormData['state'];
 
 describe('deployKServeDeployment', () => {
@@ -230,6 +236,67 @@ describe('deployKServeDeployment', () => {
 
     expect(mockDeployInferenceService.mock.calls[0][0].spec.predictor.deploymentStrategy).toEqual({
       type: 'Recreate',
+    });
+  });
+
+  describe('token authentication', () => {
+    const withTokens = (
+      tokens: { uuid: string; displayName: string; k8sName?: string }[],
+      permissions: { canCreateRoleBindings: boolean; canManageTokenAuth?: boolean },
+    ) =>
+      ({
+        ...WIZARD_DATA,
+        tokenAuthentication: { data: tokens },
+        canCreateRoleBindings: permissions.canCreateRoleBindings,
+        canManageTokenAuth: permissions.canManageTokenAuth,
+      } as WizardFormData['state']);
+
+    it('should keep a new token and set it up after a host token refusal', async () => {
+      await deployKServeDeployment(
+        withTokens([{ uuid: 'n', displayName: 'new' }], {
+          canCreateRoleBindings: true,
+          canManageTokenAuth: false,
+        }),
+        {},
+        'test-project',
+      );
+      const deployed = mockDeployInferenceService.mock.calls[0][0];
+      expect(deployed.metadata.annotations?.['security.opendatahub.io/enable-auth']).toBe('true');
+      expect(setUpTokenAuth).toHaveBeenCalled();
+    });
+
+    it("should set a new deployment's tokens up without RoleBinding create", async () => {
+      await deployKServeDeployment(
+        withTokens([{ uuid: 'n', displayName: 'new' }], { canCreateRoleBindings: false }),
+        {},
+        'test-project',
+      );
+      expect(setUpTokenAuth).toHaveBeenCalled();
+    });
+
+    it("should leave an edit's tokens alone without RoleBinding create", async () => {
+      await deployKServeDeployment(
+        withTokens([{ uuid: 'e', displayName: 'existing', k8sName: 'existing-sa' }], {
+          canCreateRoleBindings: false,
+        }),
+        {},
+        'test-project',
+        {
+          modelServingPlatformId: 'kserve',
+          model: mockInferenceServiceK8sResource({}),
+          server: mockServingRuntimeK8sResource({ name: 'existing-runtime' }),
+        },
+      );
+      expect(setUpTokenAuth).not.toHaveBeenCalled();
+    });
+
+    it('should set tokens up for wizard state without canManageTokenAuth', async () => {
+      await deployKServeDeployment(
+        withTokens([{ uuid: 'n', displayName: 'new' }], { canCreateRoleBindings: true }),
+        {},
+        'test-project',
+      );
+      expect(setUpTokenAuth).toHaveBeenCalled();
     });
   });
 });

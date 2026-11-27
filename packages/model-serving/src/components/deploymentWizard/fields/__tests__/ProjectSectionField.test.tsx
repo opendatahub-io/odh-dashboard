@@ -2,7 +2,11 @@ import React from 'react';
 import { render, screen, renderHook, fireEvent, act } from '@testing-library/react';
 import { ProjectsContext } from '@odh-dashboard/ui-core';
 import { mockProjectK8sResource } from '@odh-dashboard/k8s-core/__mocks__/mockProjectK8sResource';
-import ProjectSection, { isValidProjectName, useProjectSection } from '../ProjectSection';
+import ProjectSection, {
+  isValidProjectName,
+  useDeploymentTargetProjects,
+  useProjectSection,
+} from '../ProjectSection';
 
 const mockProject = mockProjectK8sResource({
   k8sName: 'test-project',
@@ -102,6 +106,91 @@ describe('ProjectSection', () => {
         fireEvent.click(option);
       });
       expect(mockSetProject).toHaveBeenCalledWith(mockProject.metadata.name);
+    });
+  });
+
+  describe('deployment targets', () => {
+    const deployer = mockProjectK8sResource({ k8sName: 'deployer', displayName: 'Deployer' });
+    const viewer = mockProjectK8sResource({ k8sName: 'viewer', displayName: 'Viewer' });
+    const updatePreferredProject = jest.fn();
+    const TargetsProvider = ({ children }: { children: React.ReactNode }) => {
+      const value = React.useMemo(
+        () => ({
+          projects: [deployer, viewer],
+          deploymentTargetProjects: [deployer],
+          loaded: true,
+          preferredProject: null,
+          modelServingProjects: [deployer, viewer],
+          nonActiveProjects: [],
+          updatePreferredProject,
+          waitForProject: () => Promise.resolve(),
+          loadError: undefined,
+        }),
+        [],
+      );
+      return <ProjectsContext.Provider value={value}>{children}</ProjectsContext.Provider>;
+    };
+
+    it('should offer only deploy-capable projects in the selector', async () => {
+      render(
+        <ProjectSection
+          initialProjectName={undefined}
+          projectName={undefined}
+          setProjectName={mockSetProject}
+        />,
+        { wrapper: TargetsProvider },
+      );
+      await act(async () => {
+        fireEvent.click(screen.getByText('Select target project'));
+      });
+      expect(screen.getByText('Deployer')).toBeInTheDocument();
+      expect(screen.queryByText('Viewer')).not.toBeInTheDocument();
+    });
+
+    it('should not adopt a view-only project as the preferred target', () => {
+      const { result } = renderHook(() => useProjectSection(), { wrapper: TargetsProvider });
+      act(() => {
+        result.current.setProjectName('viewer');
+      });
+      expect(updatePreferredProject).not.toHaveBeenCalled();
+      act(() => {
+        result.current.setProjectName('deployer');
+      });
+      expect(updatePreferredProject).toHaveBeenCalledWith(deployer);
+    });
+
+    it('should not adopt a deploy-only target as the working project', () => {
+      const deployOnly = mockProjectK8sResource({ k8sName: 'deploy-only' });
+      const DeployOnlyProvider = ({ children }: { children: React.ReactNode }) => {
+        const value = React.useMemo(
+          () => ({
+            projects: [viewer],
+            deploymentTargetProjects: [deployOnly],
+            loaded: true,
+            preferredProject: null,
+            modelServingProjects: [viewer],
+            nonActiveProjects: [],
+            updatePreferredProject,
+            waitForProject: () => Promise.resolve(),
+            loadError: undefined,
+          }),
+          [],
+        );
+        return <ProjectsContext.Provider value={value}>{children}</ProjectsContext.Provider>;
+      };
+      const { result } = renderHook(() => useProjectSection(), { wrapper: DeployOnlyProvider });
+      act(() => {
+        result.current.setProjectName('deploy-only');
+      });
+      expect(result.current.projectName).toBe('deploy-only');
+      expect(updatePreferredProject).not.toHaveBeenCalled();
+    });
+
+    it('should resolve targets to every project when the host sets none', () => {
+      const { result } = renderHook(() => useDeploymentTargetProjects(), {
+        wrapper: MockProjectsProvider,
+      });
+      expect(result.current).toEqual([mockProject]);
     });
   });
 

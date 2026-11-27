@@ -1,5 +1,12 @@
+import React from 'react';
+import { renderHook } from '@testing-library/react';
 import { testHook } from '@odh-dashboard/jest-config/hooks';
-import type { ProjectKind, PodKind } from '@odh-dashboard/k8s-core';
+import {
+  ProjectsContext,
+  type ProjectsContextType,
+} from '@odh-dashboard/ui-core/context/ProjectsContext';
+import { K8sStatusError, type ProjectKind, type PodKind } from '@odh-dashboard/k8s-core';
+import { mock403Error } from '@odh-dashboard/k8s-core/__mocks__/mockK8sStatus';
 import type { InferenceServiceKind, ServingRuntimeKind } from '@odh-dashboard/model-serving/shared';
 import { mockInferenceServiceK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockInferenceServiceK8sResource';
 import { mockServingRuntimeK8sResource } from '@odh-dashboard/model-serving/__mocks__/mockServingRuntimeK8sResource';
@@ -186,6 +193,64 @@ describe('useWatchDeployments', () => {
     const [, , errors] = renderResult.result.current as DeploymentHookResult;
 
     expect(errors).toContain(mockError);
+  });
+
+  describe('denied KServe reads', () => {
+    const forbidden = new K8sStatusError(mock403Error({}));
+    beforeEach(() => {
+      mockUseWatchInferenceServices.mockReturnValue([[], true, forbidden]);
+    });
+
+    it('should not be a page error where the host decides access per project', () => {
+      const context: ProjectsContextType = {
+        projects: [],
+        modelServingProjects: [],
+        nonActiveProjects: [],
+        preferredProject: null,
+        updatePreferredProject: jest.fn(),
+        waitForProject: jest.fn(),
+        loaded: true,
+        loadError: undefined,
+        getProjectDeploymentActions: () => ({ canEdit: true }),
+      };
+      const { result } = renderHook(() => useWatchDeployments(mockProject), {
+        wrapper: ({ children }) =>
+          React.createElement(ProjectsContext.Provider, { value: context }, children),
+      });
+      const [deployments, loaded, errors] = result.current as DeploymentHookResult;
+
+      expect(deployments).toEqual([]);
+      expect(loaded).toBe(true);
+      expect(errors).toEqual([]);
+    });
+
+    it('should keep a denied ServingRuntime read an error: editing would lose it', () => {
+      mockUseWatchInferenceServices.mockReturnValue([mockInferenceServices, true, undefined]);
+      mockUseWatchServingRuntimes.mockReturnValue([[], true, forbidden]);
+      const context: ProjectsContextType = {
+        projects: [],
+        modelServingProjects: [],
+        nonActiveProjects: [],
+        preferredProject: null,
+        updatePreferredProject: jest.fn(),
+        waitForProject: jest.fn(),
+        loaded: true,
+        loadError: undefined,
+        getProjectDeploymentActions: () => ({ canEdit: true }),
+      };
+      const { result } = renderHook(() => useWatchDeployments(mockProject), {
+        wrapper: ({ children }) =>
+          React.createElement(ProjectsContext.Provider, { value: context }, children),
+      });
+      const [, , errors] = result.current as DeploymentHookResult;
+      expect(errors).toEqual([forbidden]);
+    });
+
+    it('should still be reported elsewhere', () => {
+      const renderResult = testHook(useWatchDeployments)(mockProject, undefined, undefined);
+      const [, , errors] = renderResult.result.current as DeploymentHookResult;
+      expect(errors).toContain(forbidden);
+    });
   });
 
   it('should pass through error state from serving runtimes', () => {

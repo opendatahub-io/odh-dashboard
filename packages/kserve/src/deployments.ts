@@ -1,6 +1,8 @@
 import React from 'react';
 import type { ProjectKind } from '@odh-dashboard/k8s-core';
 import { K8sAPIOptions } from '@odh-dashboard/k8s-core';
+import { getGenericErrorCode } from '@odh-dashboard/k8s-core/api/errorUtils';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import {
   type InferenceServiceKind,
   getAPIProtocolFromServingRuntime,
@@ -123,11 +125,27 @@ export const useWatchDeployments = (
       exclusionsResolved,
   );
 
+  // Where the host decides access per project (RHAII, which grants it for
+  // LLMInferenceServices), a caller who may not read KServe resources has no
+  // KServe deployments there, so a denied read is not a page error. Elsewhere
+  // every failure is reported, as before.
+  const { getProjectDeploymentActions } = React.useContext(ProjectsContext);
+  // Only where the host has actions for this project: a host without them
+  // here (e.g. RHAII where discovery is absent) decides nothing.
+  const hostDecidesAccess = getProjectDeploymentActions?.(project.metadata.name) !== undefined;
+  // Only the InferenceService read: KServe rows keep Edit, and editing without
+  // the ServingRuntime would lose it, so its denial stays a page error.
   const errors = React.useMemo(() => {
-    return [inferenceServiceError, servingRuntimeError, deploymentPodsError].filter(
-      (error): error is Error => Boolean(error),
-    );
-  }, [inferenceServiceError, servingRuntimeError, deploymentPodsError]);
+    const deniedHere =
+      hostDecidesAccess &&
+      inferenceServiceError !== undefined &&
+      getGenericErrorCode(inferenceServiceError) === 403;
+    return [
+      deniedHere ? undefined : inferenceServiceError,
+      servingRuntimeError,
+      deploymentPodsError,
+    ].filter((error): error is Error => Boolean(error));
+  }, [inferenceServiceError, servingRuntimeError, deploymentPodsError, hostDecidesAccess]);
 
   return [deployments, effectivelyLoaded, errors];
 };

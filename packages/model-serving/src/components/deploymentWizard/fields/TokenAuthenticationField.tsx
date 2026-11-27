@@ -51,6 +51,8 @@ export type TokenAuthenticationFieldHook = {
   shouldAutoCheck: boolean;
   isDisabled: boolean;
   disabledHelperText?: string;
+  /** Shown while the field stays enabled: token setup may be refused. */
+  permissionWarning?: string;
 };
 
 export const useTokenAuthenticationField = (
@@ -87,13 +89,24 @@ export const useTokenAuthenticationField = (
   >(initialData);
 
   const initialDataRef = React.useRef(initialData);
+  const inputsRef = React.useRef({ shouldAutoCheck, existingData });
   React.useEffect(() => {
+    const onlyPermissionChanged =
+      inputsRef.current.shouldAutoCheck === shouldAutoCheck &&
+      inputsRef.current.existingData === existingData;
+    inputsRef.current = { shouldAutoCheck, existingData };
     const isInitialDataDifferent = !_.isEqual(initialData, initialDataRef.current);
-    if (isInitialDataDifferent) {
-      initialDataRef.current = initialData;
-      setTokenAuthData(initialData);
+    if (!isInitialDataDifferent) {
+      return;
     }
-  }, [initialData]);
+    const previousInitialData = initialDataRef.current;
+    initialDataRef.current = initialData;
+    // A permission change alone must not discard what the user entered: the
+    // default token is added or removed only while it is still untouched.
+    setTokenAuthData((current) =>
+      onlyPermissionChanged && !_.isEqual(current, previousInitialData) ? current : initialData,
+    );
+  }, [initialData, shouldAutoCheck, existingData]);
 
   return {
     data: tokenAuthData,
@@ -200,6 +213,7 @@ type TokenAuthenticationFieldProps = {
   isExternalRouteVisible: boolean;
   externalRouteData?: boolean;
   disabledHelperText?: string;
+  permissionWarning?: string;
 };
 
 export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> = ({
@@ -210,6 +224,7 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
   isExternalRouteVisible,
   externalRouteData,
   disabledHelperText,
+  permissionWarning,
 }) => {
   const isDisabled = !allowCreate;
   const createNewToken = React.useCallback(() => {
@@ -261,6 +276,18 @@ export const TokenAuthenticationField: React.FC<TokenAuthenticationFieldProps> =
           <FormHelperText>
             <HelperText>
               <HelperTextItem>{disabledHelperText}</HelperTextItem>
+            </HelperText>
+          </FormHelperText>
+        ) : null}
+        {!isDisabled && permissionWarning ? (
+          <FormHelperText>
+            <HelperText>
+              <HelperTextItem
+                variant="warning"
+                data-testid="token-authentication-permission-warning"
+              >
+                {permissionWarning}
+              </HelperTextItem>
             </HelperText>
           </FormHelperText>
         ) : null}

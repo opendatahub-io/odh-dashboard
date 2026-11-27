@@ -971,7 +971,7 @@ describe('Model Serving Deploy Wizard', () => {
     });
   });
 
-  it('disables token authentication and external route while keeping environment variables editable when rolebinding creation is not allowed', () => {
+  it('keeps token authentication on with a warning, disables the external route, and keeps environment variables editable when rolebinding creation is not allowed', () => {
     initIntercepts({ modelType: ServingRuntimeModelType.PREDICTIVE });
     cy.interceptK8s('POST', SelfSubjectAccessReviewModel, (req) => {
       const { resourceAttributes } = req.body.spec;
@@ -1018,7 +1018,10 @@ describe('Model Serving Deploy Wizard', () => {
 
     modelServingWizard.findAdvancedOptionsStep().should('be.enabled');
     modelServingWizard.findExternalRouteCheckbox().should('be.visible').and('be.disabled');
-    modelServingWizard.findTokenAuthenticationCheckbox().should('be.visible').and('be.disabled');
+    // A permission never turns authentication off for a new deployment: token
+    // setup may reuse existing resources, and the dry run stops a refused one.
+    modelServingWizard.findTokenAuthenticationCheckbox().should('be.visible').and('be.enabled');
+    modelServingWizard.findTokenPermissionWarning().should('be.visible');
     modelServingWizard.findEnvVariablesCheckbox().should('be.enabled').click();
     modelServingWizard.findAddVariableButton().should('be.enabled').click();
     modelServingWizard.findEnvVariableName('0').clear().type('CUSTOM_ENV');

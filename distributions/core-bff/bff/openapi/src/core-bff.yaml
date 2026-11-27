@@ -158,6 +158,96 @@ paths:
       operationId: getNamespaces
       summary: List accessible namespaces
 
+  /api/v1/namespace-access:
+    get:
+      tags:
+        - Namespaces
+      operationId: getNamespaceAccess
+      summary: Discover the namespaces the caller can use for RHAII (xKS only)
+      description: >-
+        Authorized namespace discovery for callers who may not list namespaces
+        cluster-wide. Candidates come from the caller's own cluster list when
+        permitted (source cluster-list); otherwise from the configured
+        NAMESPACE_CANDIDATES and the namespace query parameters (source candidates). Each candidate is returned
+        only when the caller's SelfSubjectAccessReviews, each made in that
+        namespace, allow at least one RHAII action in it. Failed and indeterminate
+        reviews (an authorizer error with no decision) are reported as error, never
+        grant an action, and are counted in issues. An empty result is
+        data.namespaces: []. Discovery that found nothing because every source or
+        review failed is 503, with the failed sources and reviews in error.issues.
+        A caller who may list namespaces is not limited by the candidate cap, and a
+        namespace parameter absent from that caller's list is dropped. Absent (404)
+        on OpenShift. See
+        docs/namespace-discovery-contract.md.
+      parameters:
+        - name: namespace
+          in: query
+          required: false
+          description: >-
+            Namespaces the client already knows (manual entry, remembered
+            selections). Repeatable, at most 50. Evaluated first, so truncation never drops them.
+          style: form
+          explode: true
+          schema:
+            type: array
+            maxItems: 50
+            items:
+              type: string
+              minLength: 1
+              maxLength: 63
+              pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+      responses:
+        '200':
+          $ref: '#/components/responses/NamespaceAccessListResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
+        '404':
+          $ref: '#/components/responses/BFFNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/NamespaceDiscoveryUnavailable'
+
+  /api/v1/namespace-access/{name}:
+    get:
+      tags:
+        - Namespaces
+      operationId: getNamespaceAccessByName
+      summary: Evaluate one namespace for manual entry (xKS only)
+      description: >-
+        Runs the same permission matrix for one namespace. 403 when the caller has
+        no RHAII action there, whether or not it exists; 404 only when the caller
+        may read the namespace and it does not exist; 503 when the reviews could
+        not be evaluated. Absent (404) on OpenShift.
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 63
+            pattern: '^[a-z0-9]([-a-z0-9]*[a-z0-9])?$'
+      responses:
+        '200':
+          $ref: '#/components/responses/NamespaceAccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/BFFForbidden'
+        '404':
+          $ref: '#/components/responses/BFFNotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/BFFServiceUnavailable'
+
   /api/v1/namespaces/{name}:
     get:
       tags:
@@ -166,8 +256,10 @@ paths:
       summary: Look up one namespace by its exact Kubernetes name
       description: >-
         Read-only lookup using the authenticated caller's Kubernetes credentials.
-        A cluster-scoped SelfSubjectAccessReview for get on namespaces/<name> is
-        performed before reading the Namespace. Does not require list permission.
+        A SelfSubjectAccessReview for get on namespaces/<name> (with the namespace
+        attribute set to <name>, as the API server resolves the request) is
+        performed before reading the Namespace, so a RoleBinding inside the
+        namespace is honoured. Does not require list permission.
       parameters:
         - name: name
           in: path
@@ -1965,6 +2057,169 @@ components:
           items:
             $ref: '#/components/schemas/Namespace'
 
+    AccessDecision:
+      type: string
+      enum: [allowed, denied, error]
+      description: >-
+        SelfSubjectAccessReview outcome. error means the review could not be
+        evaluated; it never enables an action.
+
+    ResourcePermissions:
+      type: object
+      description: Verb to decision for one resource.
+      additionalProperties:
+        $ref: '#/components/schemas/AccessDecision'
+
+    PermissionMatrix:
+      type: object
+      description: >-
+        Keyed by <group>/<resource>, with core for the empty group, e.g.
+        serving.kserve.io/llminferenceservices or core/secrets.
+      additionalProperties:
+        $ref: '#/components/schemas/ResourcePermissions'
+
+    NamespaceActions:
+      type: object
+      required: [view, deploy, edit, startStop, delete, createTokenAuth, manageTokenAuth]
+      properties:
+        view:
+          type: boolean
+          description: list and get on llminferenceservices (watch is reported, not required)
+        deploy:
+          type: boolean
+          description: create on llminferenceservices
+        edit:
+          type: boolean
+          description: >-
+            patch and update on llminferenceservices; get, list, update and patch on
+            llminferenceserviceconfigs (the edit wizard loads the deployment's config copy and
+            saving writes it back; watch is reported, not required); get and list on secrets and get
+            on serviceaccounts, which the edit wizard reads
+        startStop:
+          type: boolean
+          description: patch on llminferenceservices (starting and stopping patch an annotation)
+        delete:
+          type: boolean
+          description: delete on llminferenceservices
+        createTokenAuth:
+          type: boolean
+          description: >-
+            create on secrets; get and create on serviceaccounts, roles and rolebindings; and get
+            on llminferenceservices, which the token Role grants: what setting up token
+            authentication on a new deployment needs when none of its resources exist yet. Advisory:
+            setup reuses existing resources, so Kubernetes decides
+        manageTokenAuth:
+          type: boolean
+          description: >-
+            createTokenAuth plus list, update and delete on secrets: what managing the tokens of an
+            existing deployment needs
+
+    NamespaceAccess:
+      type: object
+      required: [name, phase, actions, permissions]
+      properties:
+        name:
+          type: string
+        displayName:
+          type: string
+          description: Present only when the namespace object could be read
+        phase:
+          type: string
+          enum: [Active, Terminating, Unknown]
+          description: >-
+            Namespace status.phase when the namespace object could be read. Unknown when the caller
+            is authorized in the namespace but cannot read the Namespace object; such a namespace
+            is usable and the UI labels it by name.
+        isAiProject:
+          type: boolean
+          description: >-
+            As on /api/v1/namespaces: true only when the opendatahub.io/dashboard label is exactly
+            true. Omitted when the namespace object could not be read (phase Unknown), so the
+            classification is unknown; the UI keeps such a namespace in its AI-projects filter.
+        actions:
+          $ref: '#/components/schemas/NamespaceActions'
+        permissions:
+          $ref: '#/components/schemas/PermissionMatrix'
+
+    NamespaceDiscoveryIssue:
+      type: object
+      required: [code, count]
+      properties:
+        code:
+          type: string
+          enum:
+            - CLUSTER_LIST_REVIEW_FAILED
+            - CLUSTER_LIST_FAILED
+            - ACCESS_REVIEW_FAILED
+            - CANDIDATES_TRUNCATED
+            - SHARED_ACCESS_REVIEW_FAILED
+            - DISCOVERY_DEADLINE_EXCEEDED
+            - NAMESPACE_READ_FAILED
+        count:
+          type: integer
+          minimum: 1
+
+    NamespaceAccessList:
+      type: object
+      required: [source, complete, issues, namespaces, shared]
+      properties:
+        source:
+          type: string
+          enum: [cluster-list, candidates]
+          description: candidates means the caller cannot list namespaces; keep offering manual entry
+        complete:
+          type: boolean
+          description: >-
+            False when any issue was recorded (a failed source or review, the candidate cap, or a
+            failed shared review), so namespaces or details may be missing
+        issues:
+          type: array
+          items:
+            $ref: '#/components/schemas/NamespaceDiscoveryIssue'
+        namespaces:
+          type: array
+          items:
+            $ref: '#/components/schemas/NamespaceAccess'
+        shared:
+          type: object
+          required: [namespace, permissions]
+          description: Caller reads of retained resources in the dashboard namespace
+          properties:
+            namespace:
+              type: string
+            permissions:
+              $ref: '#/components/schemas/PermissionMatrix'
+
+    NamespaceDiscoveryUnavailableEnvelope:
+      type: object
+      required: [error]
+      properties:
+        error:
+          allOf:
+            - $ref: '#/components/schemas/Error'
+            - type: object
+              required: [issues]
+              properties:
+                issues:
+                  type: array
+                  description: Which sources or reviews failed; never carries a namespace name
+                  items:
+                    $ref: '#/components/schemas/NamespaceDiscoveryIssue'
+
+    NamespaceAccessListEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/NamespaceAccessList'
+
+    NamespaceAccessEnvelope:
+      type: object
+      required: [data]
+      properties:
+        data:
+          $ref: '#/components/schemas/NamespaceAccess'
+
     Error:
       type: object
       description: Inner error object used inside ErrorResponse envelope.
@@ -2456,6 +2711,99 @@ components:
               userId: 'user@example.com'
               clusterAdmin: false
 
+    NamespaceAccessListResponse:
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+      description: Authorized namespaces with their RHAII permission matrix
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NamespaceAccessListEnvelope'
+          examples:
+            usableNamespace:
+              summary: A complete listing with one namespace the caller can deploy to
+              value:
+                data:
+                  source: cluster-list
+                  complete: true
+                  issues: []
+                  namespaces:
+                    - name: team-a
+                      displayName: Team A
+                      phase: Active
+                      isAiProject: true
+                      actions: { view: true, deploy: true, edit: true, startStop: true, delete: true, createTokenAuth: true, manageTokenAuth: true }
+                      permissions:
+                        serving.kserve.io/llminferenceservices: { get: allowed, list: allowed, watch: allowed, create: allowed, update: allowed, patch: allowed, delete: allowed }
+                        serving.kserve.io/llminferenceserviceconfigs: { get: allowed, list: allowed, watch: allowed, update: allowed, patch: allowed }
+                        core/secrets: { create: allowed, get: allowed, list: allowed, update: allowed, delete: allowed }
+                        core/serviceaccounts: { get: allowed, create: allowed }
+                        rbac.authorization.k8s.io/roles: { get: allowed, create: allowed }
+                        rbac.authorization.k8s.io/rolebindings: { get: allowed, create: allowed }
+                        core/pods: { get: allowed, list: allowed }
+                        core/namespaces: { get: allowed }
+                  shared:
+                    namespace: opendatahub
+                    permissions:
+                      infrastructure.opendatahub.io/hardwareprofiles: { get: allowed, list: allowed }
+                      serving.kserve.io/llminferenceserviceconfigs: { get: allowed, list: allowed }
+            incompleteDiscovery:
+              summary: >-
+                Candidates for a caller who cannot list namespaces, with one failed
+                review; the view-only namespace cannot be read, so its phase is Unknown
+                and isAiProject is omitted
+              value:
+                data:
+                  source: candidates
+                  complete: false
+                  issues:
+                    - { code: ACCESS_REVIEW_FAILED, count: 1 }
+                  namespaces:
+                    - name: team-b
+                      phase: Unknown
+                      actions: { view: true, deploy: false, edit: false, startStop: false, delete: false, createTokenAuth: false, manageTokenAuth: false }
+                      permissions:
+                        serving.kserve.io/llminferenceservices: { get: allowed, list: allowed, watch: allowed, create: denied, update: denied, patch: denied, delete: error }
+                        serving.kserve.io/llminferenceserviceconfigs: { get: denied, list: denied, watch: denied, update: denied, patch: denied }
+                        core/secrets: { create: denied, get: denied, list: denied, update: denied, delete: denied }
+                        core/serviceaccounts: { get: denied, create: denied }
+                        rbac.authorization.k8s.io/roles: { get: denied, create: denied }
+                        rbac.authorization.k8s.io/rolebindings: { get: denied, create: denied }
+                        core/pods: { get: denied, list: denied }
+                        core/namespaces: { get: denied }
+                  shared:
+                    namespace: opendatahub
+                    permissions:
+                      infrastructure.opendatahub.io/hardwareprofiles: { get: allowed, list: allowed }
+                      serving.kserve.io/llminferenceserviceconfigs: { get: allowed, list: allowed }
+
+    NamespaceAccessResponse:
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+      description: One namespace with its RHAII permission matrix
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NamespaceAccessEnvelope'
+          example:
+            data:
+              name: team-a
+              displayName: Team A
+              phase: Active
+              isAiProject: true
+              actions: { view: true, deploy: true, edit: true, startStop: true, delete: true, createTokenAuth: true, manageTokenAuth: true }
+              permissions:
+                serving.kserve.io/llminferenceservices: { get: allowed, list: allowed, watch: allowed, create: allowed, update: allowed, patch: allowed, delete: allowed }
+                serving.kserve.io/llminferenceserviceconfigs: { get: allowed, list: allowed, watch: allowed, update: allowed, patch: allowed }
+                core/secrets: { create: allowed, get: allowed, list: allowed, update: allowed, delete: allowed }
+                core/serviceaccounts: { get: allowed, create: allowed }
+                rbac.authorization.k8s.io/roles: { get: allowed, create: allowed }
+                rbac.authorization.k8s.io/rolebindings: { get: allowed, create: allowed }
+                core/pods: { get: allowed, list: allowed }
+                core/namespaces: { get: allowed }
+
     NamespacesResponse:
       headers:
         X-Request-ID:
@@ -2788,6 +3136,43 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/FailureResponse'
+
+    BFFServiceUnavailable:
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+      description: >-
+        A dependency the BFF needed could not be evaluated, such as access reviews
+        or namespace discovery. Distinct from 403: nothing was denied.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/FailureResponse'
+          example:
+            error:
+              code: 'SERVICE_UNAVAILABLE'
+              message: 'the upstream service is temporarily unavailable'
+              requestId: '6d755a02-faea-46ea-ae98-9de9cc8dc4f1'
+
+    NamespaceDiscoveryUnavailable:
+      headers:
+        X-Request-ID:
+          $ref: '#/components/headers/RequestID'
+      description: >-
+        Discovery decided nothing because every source or review failed. issues
+        tells a failed cluster list (CLUSTER_LIST_FAILED) from an
+        authorization-service failure (ACCESS_REVIEW_FAILED).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NamespaceDiscoveryUnavailableEnvelope'
+          example:
+            error:
+              code: 'SERVICE_UNAVAILABLE'
+              message: 'the upstream service is temporarily unavailable'
+              requestId: '6d755a02-faea-46ea-ae98-9de9cc8dc4f1'
+              issues:
+                - { code: ACCESS_REVIEW_FAILED, count: 1 }
 
     BFFForbidden:
       headers:

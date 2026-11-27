@@ -113,6 +113,7 @@
   },
   "module-federation-shared": [
     "./context/HardwareProfilesContext",
+    "./context/ProjectsContext",
     "./context/WorkingProjectContext"
   ],
   "scripts": {

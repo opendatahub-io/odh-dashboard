@@ -121,6 +121,12 @@ func (c EnvConfig) validateCore(add func(string, ...any)) {
 	}
 	c.validateKubernetesNames(add)
 
+	for i, ns := range c.NamespaceCandidates {
+		if len(validation.IsDNS1123Label(ns)) != 0 {
+			add("NAMESPACE_CANDIDATES/--namespace-candidates entry %d is not a valid namespace name (value omitted)", i+1)
+		}
+	}
+
 	if strings.TrimSpace(c.StaticAssetsDir) == "" {
 		add("STATIC_ASSETS_DIR/--static-assets-dir is empty; the SPA asset root is required")
 	}

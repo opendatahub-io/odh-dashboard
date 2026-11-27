@@ -1,7 +1,8 @@
 import React from 'react';
 import { z } from 'zod';
 import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
-import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
+import { byName, isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
+import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { useValidation } from '@odh-dashboard/ui-core/utilities/useValidation';
 import { hardwareProfileValidationSchema } from '@odh-dashboard/hardware-profiles/shared';
 import {
@@ -38,7 +39,9 @@ export const useModelDeploymentWizardValidation = (
   state: WizardFormData['state'],
   fields: WizardField<unknown>[] = [],
   shouldShowPreconfigureStep = false,
+  isEdit = false,
 ): ModelDeploymentWizardValidation => {
+  const { deploymentTargetProjects } = React.useContext(ProjectsContext);
   // Step 1: Model Source
   const step1Fields = fields.filter((field) => field.step === 'modelSource');
 
@@ -126,16 +129,21 @@ export const useModelDeploymentWizardValidation = (
   );
 
   // Step validation
-  const isPreconfigureStepValid =
-    !shouldShowPreconfigureStep ||
-    isValidProjectName(state.project.initialProjectName ?? state.project.projectName ?? undefined);
+  const selectedProjectName =
+    state.project.initialProjectName ?? state.project.projectName ?? undefined;
+  // A new deployment needs a project that is still a deploy target: access can
+  // be revoked after it was selected. Editing stays in the deployment's project.
+  const isProjectValid =
+    isValidProjectName(selectedProjectName) &&
+    (isEdit ||
+      !deploymentTargetProjects ||
+      deploymentTargetProjects.some(byName(selectedProjectName)));
+  const isPreconfigureStepValid = !shouldShowPreconfigureStep || isProjectValid;
   const isModelSourceStepValid =
     modelSourceStepValidation.getFieldValidation(undefined, true).length === 0;
   const hwpHidden = isNonSingleNodeTopologyActive(state);
   const isModelDeploymentStepValid =
-    isValidProjectName(
-      state.project.initialProjectName ?? state.project.projectName ?? undefined,
-    ) &&
+    isProjectValid &&
     isK8sNameDescriptionDataValid(state.k8sNameDesc.data) &&
     (hwpHidden ||
       (Object.keys(hardwareProfileValidation.getAllValidationIssues()).length === 0 &&

@@ -6,6 +6,7 @@ import InvalidProject from '@odh-dashboard/ui-core/components/InvalidProject';
 import { useHostApi } from '@odh-dashboard/plugin-core';
 import { getStoredPreferredProject } from '@odh-dashboard/ui-core/context/getStoredPreferredProject';
 import NoProjectsPage from './NoProjectsPage';
+import { GlobalNoModelsView } from './GlobalNoModelsView';
 import ModelServingProjectSelection from './ModelServingProjectSelection';
 
 type ApplicationPageProps = React.ComponentProps<typeof ApplicationsPage>;
@@ -24,14 +25,18 @@ const GlobalModelServingCoreLoader: React.FC<GlobalModelServingCoreLoaderProps> 
     contexts: { ModelServingContextProvider },
   } = useHostApi();
   const { namespace } = useParams<{ namespace: string }>();
-  const { projects, preferredProject } = React.useContext(ProjectsContext);
+  const { projects, preferredProject, deploymentTargetProjects } =
+    React.useContext(ProjectsContext);
   const storedProject = getStoredPreferredProject(projects);
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
   if (projects.length === 0) {
     renderStateProps = {
       empty: true,
-      emptyStatePage: <NoProjectsPage />,
+      // A caller who may only create deployments browses no project, but can
+      // still deploy to one.
+      emptyStatePage:
+        (deploymentTargetProjects?.length ?? 0) > 0 ? <GlobalNoModelsView /> : <NoProjectsPage />,
     };
   } else if (namespace) {
     const foundProject = projects.find(byName(namespace));

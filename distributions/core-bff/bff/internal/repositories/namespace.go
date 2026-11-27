@@ -33,7 +33,9 @@ func (r *NamespaceRepository) GetNamespaces(ctx context.Context, client k8s.Kube
 	return namespaceModels, nil
 }
 
-// GetNamespace checks named, cluster-scoped get access before reading with the caller's client.
+// GetNamespace checks the caller's named get on the namespace (with the namespace
+// attribute, so a RoleBinding inside it counts) before reading it with the
+// caller's client.
 func (r *NamespaceRepository) GetNamespace(ctx context.Context, client k8s.KubernetesClientInterface, identity *k8s.RequestIdentity, name string) (models.NamespaceModel, error) {
 	allowed, err := client.CanGetNamespace(ctx, identity, name)
 	if err != nil {

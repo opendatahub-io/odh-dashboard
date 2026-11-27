@@ -1,11 +1,15 @@
-import { isK8sStatus, K8sStatusError } from '@openshift/dynamic-plugin-sdk-utils';
+import { isK8sStatus, K8sStatusError } from '@odh-dashboard/k8s-core';
 
 const optionalMissingResources = [
   '/apis/template.openshift.io/v1/namespaces/',
   '/apis/infrastructure.opendatahub.io/v1/namespaces/',
 ];
 
-/** Same-origin Kubernetes transport. The SDK requires non-successful requests to reject. */
+/**
+ * Same-origin Kubernetes transport. The SDK requires non-successful requests to reject.
+ * Status failures reject with k8s-core's `K8sStatusError`, as on the ODH frontend, so the
+ * packages' status-code checks (a 404 before creating, a 403 on an optional read) apply.
+ */
 export const k8sFetch = async (url: string, options?: RequestInit): Promise<Response> => {
   const response = await fetch(`/api/k8s${url}`, options);
   if (

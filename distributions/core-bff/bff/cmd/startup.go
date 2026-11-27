@@ -178,6 +178,10 @@ func parseStartupConfig(args []string, errOut io.Writer) (startupConfig, error) 
 	fs.StringVar(&cfg.WorkbenchNamespace, "workbench-namespace",
 		getEnvAsString("WORKBENCH_NAMESPACE", ""),
 		"Kubernetes namespace for workbenches (defaults to dashboard namespace if empty)")
+	cfg.NamespaceCandidates = splitList(getEnvAsString("NAMESPACE_CANDIDATES", ""))
+	fs.Func("namespace-candidates",
+		"Comma-separated namespaces the xKS namespace discovery evaluates for callers who cannot list namespaces (each is returned only if the caller's access reviews allow it)",
+		newListParser(&cfg.NamespaceCandidates))
 	fs.StringVar(&cfg.DashboardConfigName, "dashboard-config-name",
 		getEnvAsString("DASHBOARD_CONFIG_NAME", "odh-dashboard-config"),
 		"Name of the OdhDashboardConfig CR")

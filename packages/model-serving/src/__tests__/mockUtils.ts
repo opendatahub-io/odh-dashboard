@@ -237,6 +237,7 @@ export const mockDeploymentWizardState = (
         },
         requiresHuggingFaceApiKey: false,
         canCreateRoleBindings: true,
+        canManageTokenAuth: true,
         validatedConfigurationSelection: {
           selectedValidatedConfigurations: {},
           toggleOption: jest.fn(),
