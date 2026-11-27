@@ -196,10 +196,10 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
           callback: async (signal: AbortSignal) => {
             try {
               const response = await listPipelinesCR(pollingNamespace, { signal });
-              const serverLoaded = dspaLoaded([response[0], true]);
-              const serverAllReady = isDspaAllReady([response[0], true]);
+              const isApiServerReady = dspaLoaded([response[0], true]);
+              const isDspaReady = isDspaAllReady([response[0], true]);
 
-              if (hasServerTimedOut([response[0], true], serverLoaded)) {
+              if (hasServerTimedOut([response[0], true], isDspaReady)) {
                 const errorMessage =
                   response[0]?.status?.conditions?.find((condition) => condition.type === 'Ready')
                     ?.message || `${pollingNamespace} pipeline server creation timed out`;
@@ -212,7 +212,7 @@ export const ConfigurePipelinesServerModal: React.FC<ConfigurePipelinesServerMod
                 };
               }
 
-              if (serverLoaded && serverAllReady) {
+              if (isApiServerReady && isDspaReady) {
                 if (startingStatusModalOpenRef?.current === pollingNamespace) {
                   return {
                     status: NotificationResponseStatus.STOP,
