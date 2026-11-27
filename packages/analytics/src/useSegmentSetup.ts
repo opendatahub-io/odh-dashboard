@@ -2,6 +2,11 @@ import * as React from 'react';
 import { initSegment, type SegmentConnectionOptions } from './initSegment';
 import type { TrackPageEvent } from './types';
 
+type SetupConnection = {
+  connected: boolean;
+  resume?: () => void;
+};
+
 export type SegmentSetupOptions = SegmentConnectionOptions & {
   /** Segment write key; an empty value skips setup. */
   segmentKey: string;
@@ -35,7 +40,11 @@ export const useSegmentSetup = ({
   const identifyRef = React.useRef(identify);
   const trackPageEventRef = React.useRef(trackPageEvent);
   const enabledRef = React.useRef(enabled);
-  const setupGenerationRef = React.useRef(0);
+  // Each set of setup inputs owns its connection, including temporary Suspense reconnections.
+  const connection = React.useMemo<SetupConnection>(
+    () => ({ connected: false }),
+    [segmentKey, ready, enabled, clusterID, userKey, cdnURL, apiHost, protocol],
+  );
 
   React.useLayoutEffect(() => {
     identifyRef.current = identify;
@@ -43,26 +52,46 @@ export const useSegmentSetup = ({
     enabledRef.current = enabled;
   }, [identify, trackPageEvent, enabled]);
 
-  React.useLayoutEffect(
-    () => () => {
-      // Invalidate at commit, before new callbacks can reach the previous client.
-      setupGenerationRef.current += 1;
-    },
-    [segmentKey, ready, enabled, clusterID, userKey, cdnURL, apiHost, protocol],
-  );
+  React.useLayoutEffect(() => {
+    connection.connected = true;
+    // A reveal reconnects layout effects without restarting passive initialization.
+    // Keep delivery asynchronous, as it is when initialization first resolves.
+    void Promise.resolve().then(() => connection.resume?.());
+    return () => {
+      // Disconnect at commit, before new callbacks can reach the previous client.
+      connection.connected = false;
+    };
+  }, [connection]);
 
   React.useEffect(() => {
     if (!segmentKey || !ready) {
       return;
     }
-    const setupGeneration = setupGenerationRef.current;
-    window.clusterID = clusterID;
-    initSegment({ segmentKey, enabled, cdnURL, apiHost, protocol }).then(() => {
-      if (setupGeneration !== setupGenerationRef.current || !enabled || !enabledRef.current) {
+    // connected pauses delivery while hidden; cancelled permanently retires this attempt.
+    // initialized waits for setup completion; delivered prevents repeats after reconnection.
+    let cancelled = false;
+    let initialized = false;
+    let delivered = false;
+    const completeSetup = () => {
+      const isPendingDelivery = initialized && !delivered;
+      const isActiveAttempt = !cancelled && connection.connected;
+      const isTrackingEnabled = enabled && enabledRef.current;
+      if (!isPendingDelivery || !isActiveAttempt || !isTrackingEnabled) {
         return;
       }
+      delivered = true;
       identifyRef.current();
       trackPageEventRef.current();
+    };
+    connection.resume = completeSetup;
+    window.clusterID = clusterID;
+    initSegment({ segmentKey, enabled, cdnURL, apiHost, protocol }).then(() => {
+      initialized = true;
+      completeSetup();
     });
-  }, [segmentKey, ready, enabled, clusterID, userKey, cdnURL, apiHost, protocol]);
+    return () => {
+      cancelled = true;
+      connection.resume = undefined;
+    };
+  }, [segmentKey, ready, enabled, clusterID, userKey, cdnURL, apiHost, protocol, connection]);
 };

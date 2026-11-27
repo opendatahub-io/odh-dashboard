@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { act, renderHook as renderConcurrentHook } from '@testing-library/react';
+import { act, renderHook as renderConcurrentHook, screen } from '@testing-library/react';
 import { renderHook } from '@odh-dashboard/jest-config/hooks';
 import { AnalyticsBrowser } from '@segment/analytics-next';
 import { createSegmentTracking } from '../createSegmentTracking';
@@ -236,6 +236,58 @@ describe('shared host analytics setup', () => {
       initSpy.mockRestore();
     }
   });
+
+  it.each([true, false])(
+    'should resume setup after Suspense reveals unchanged inputs (resolved while hidden: %s)',
+    async (resolveWhileHidden) => {
+      const { setup } = createHost();
+      const suspended = new Promise<void>(() => {
+        // Keep the fallback committed until the test explicitly reveals the tree.
+      });
+      const { rerender, unmount } = renderConcurrentHook(
+        ({ suspend }) => {
+          useSegmentSetup(setup);
+          if (suspend) {
+            throw suspended;
+          }
+        },
+        {
+          initialProps: { suspend: false },
+          wrapper: ({ children }) =>
+            React.createElement(
+              React.Suspense,
+              { fallback: React.createElement('div', { 'data-testid': 'setup-fallback' }) },
+              children,
+            ),
+        },
+      );
+
+      // Commit the fallback before the real initializer's continuation runs.
+      rerender({ suspend: true });
+      expect(screen.getByTestId('setup-fallback')).not.toBeNull();
+      if (resolveWhileHidden) {
+        await act(async () => undefined);
+        expect(client.identify).not.toHaveBeenCalled();
+        expect(client.page).not.toHaveBeenCalled();
+      }
+
+      rerender({ suspend: false });
+      await act(async () => undefined);
+      expect(screen.queryByTestId('setup-fallback')).toBeNull();
+      expect(AnalyticsBrowser.load).toHaveBeenCalledTimes(1);
+      expect(client.identify).toHaveBeenCalledTimes(1);
+      expect(client.page).toHaveBeenCalledTimes(1);
+
+      // Reconnecting an already completed setup must not emit again or reload the SDK.
+      rerender({ suspend: true });
+      rerender({ suspend: false });
+      await act(async () => undefined);
+      expect(AnalyticsBrowser.load).toHaveBeenCalledTimes(1);
+      expect(client.identify).toHaveBeenCalledTimes(1);
+      expect(client.page).toHaveBeenCalledTimes(1);
+      unmount();
+    },
+  );
 
   it.each([true, false])(
     'should respect original and committed enablement when setup starts enabled=%s',

@@ -128,7 +128,7 @@ Setup and route observation behave as follows:
 
 - Setup skips all work when the key is empty or `ready` is false.
 - Otherwise, setup assigns `window.clusterID` and invokes `initSegment`. When that function resolves, setup calls the latest committed identify callback followed by the latest committed page callback if setup is enabled.
-- Effect cleanup invalidates that setup attempt's pending identify/page callbacks when setup inputs change or the component unmounts, including Strict Mode effect replay. It does not cancel SDK initialization or stop the client.
+- Layout cleanup pauses pending identify/page callbacks at commit. Revealing the same setup after a temporary Suspense fallback resumes pending delivery once, without reinitializing the SDK or repeating completed callbacks. Passive cleanup permanently cancels superseded or unmounted attempts, including Strict Mode effect replay. Cleanup does not cancel SDK initialization or stop the client.
 - `usePageTracking` invokes its latest callback on mount and when the route key changes, independently of setup readiness and enablement. Setup and route observation can each emit an initial page event.
 - Changed setup inputs can initialize another client. These hooks do not add retries, event queues, deduplication, or SDK teardown.
 
