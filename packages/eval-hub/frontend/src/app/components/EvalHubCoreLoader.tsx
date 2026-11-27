@@ -6,6 +6,7 @@ import { useWorkingProjectRouteSync } from '@odh-dashboard/plugin-core/routing';
 import {
   requiresWorkingProjectSelection,
   useWorkingProject,
+  WorkingProjectStatusValue,
 } from '@odh-dashboard/ui-core/context/WorkingProjectContext';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { ProjectIconWithSize } from '@odh-dashboard/internal/concepts/projects/ProjectIconWithSize';
@@ -40,6 +41,8 @@ const EvalHubCoreLoader: React.FC<EvalHubCoreLoaderProps> = ({ getInvalidRedirec
     registerProjectRouteSync,
     status: workingProjectStatus,
   } = useWorkingProject();
+  const isWorkingProjectLoading =
+    isUnifiedProjectSelectorEnabled && workingProjectStatus === WorkingProjectStatusValue.Loading;
   useWorkingProjectRouteSync({
     activeProjectName: activeProject?.name,
     routeProjectName: namespace,
@@ -53,7 +56,9 @@ const EvalHubCoreLoader: React.FC<EvalHubCoreLoaderProps> = ({ getInvalidRedirec
   });
 
   let renderStateProps: ApplicationPageRenderState & { children?: React.ReactNode };
-  if (namespaces.length === 0) {
+  if (isWorkingProjectLoading) {
+    renderStateProps = { empty: true };
+  } else if (namespaces.length === 0) {
     renderStateProps = {
       empty: true,
       emptyStatePage: <EvalHubNoProjects />,
@@ -121,7 +126,7 @@ const EvalHubCoreLoader: React.FC<EvalHubCoreLoaderProps> = ({ getInvalidRedirec
           </Flex>
         )
       }
-      loaded={namespacesLoaded}
+      loaded={namespacesLoaded && !isWorkingProjectLoading}
       provideChildrenPadding
     />
   );

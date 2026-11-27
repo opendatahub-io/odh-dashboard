@@ -70,7 +70,7 @@ describe('EvalHubProjectSelector', () => {
     expect(screen.getByTestId('project-selector')).toBeInTheDocument();
   });
 
-  it('should hide the legacy selector when UPS is enabled', () => {
+  it('should keep project recovery available when UPS is enabled', () => {
     jest
       .mocked(useIsAreaAvailable)
       .mockReturnValue({ status: true } as ReturnType<typeof useIsAreaAvailable>);
@@ -79,8 +79,13 @@ describe('EvalHubProjectSelector', () => {
         <EvalHubProjectSelector namespace="project-a" getRedirectPath={mockGetRedirectPath} />
       </MemoryRouter>,
     );
-    expect(screen.queryByTestId('project-selector')).not.toBeInTheDocument();
-    expect(mockUpdatePreferredNamespace).not.toHaveBeenCalled();
+    expect(screen.getByTestId('project-selector')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('select-project'));
+    expect(mockUpdatePreferredNamespace).toHaveBeenCalledWith({ name: 'new-project' });
+    expect(mockNavigate).toHaveBeenCalledWith({
+      pathname: '/eval-hub/new-project',
+      search: '',
+    });
   });
 
   it('should pass namespace to the selector', () => {
