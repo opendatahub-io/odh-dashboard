@@ -84,5 +84,10 @@ func ValidateConnection(connection Connection) error {
 		connection.Status.State == "" {
 		return fmt.Errorf("connection response is missing required fields")
 	}
+	switch connection.Status.State {
+	case "ready", "ingestion_not_ready", "not_ready":
+	default:
+		return fmt.Errorf("connection response has unsupported state %q", connection.Status.State)
+	}
 	return nil
 }

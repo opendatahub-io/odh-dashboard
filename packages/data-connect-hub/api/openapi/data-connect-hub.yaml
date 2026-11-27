@@ -470,6 +470,7 @@ components:
             state:
               type: string
               enum: [ready, ingestion_not_ready, not_ready]
+              description: Connection health state. Unsupported upstream values are rejected.
             message:
               type: string
             updated_at:

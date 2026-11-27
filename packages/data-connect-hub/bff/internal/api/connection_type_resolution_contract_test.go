@@ -31,6 +31,9 @@ func TestConnectionTypeResolutionContractServer(t *testing.T) {
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		namespace := r.Header.Get("X-Tenant-ID")
 		connections := mockConnections(namespace)[:1]
+		if strings.HasPrefix(namespace, "state-") {
+			connections[0].Status.State = strings.ReplaceAll(strings.TrimPrefix(namespace, "state-"), "-", "_")
+		}
 		var payload any
 		if strings.Contains(r.URL.Path, "connection-types") {
 			connectionType := mockConnectionTypes(namespace)[0]

@@ -31,6 +31,7 @@ func TestListConnectionsValidatesEveryItem(t *testing.T) {
 		{"missing format", func(c *models.Connection) { c.Resource.Format = "" }},
 		{"invalid format", func(c *models.Connection) { c.Resource.Format = "unsupported" }},
 		{"missing state", func(c *models.Connection) { c.Status.State = "" }},
+		{"unsupported state", func(c *models.Connection) { c.Status.State = "pending" }},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			invalid := valid
