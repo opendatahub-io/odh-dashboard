@@ -280,6 +280,82 @@ paths:
               schema:
                 $ref: '#/components/schemas/UpdateNamespacePropertiesResponse'
 
+  /v1/{project}/namespaces/{collection}/rename:
+    post:
+      operationId: renameNamespace
+      summary: Rename a collection
+      description: |
+        Renames a collection and every catalog-managed asset inside it.
+        Asset metadata, labels, connections, and the asset uuid are preserved.
+        The collection's properties are preserved. `default` cannot be renamed.
+        This does not delete or recreate assets.
+      tags: [namespaces]
+      parameters:
+        - $ref: '#/components/parameters/project'
+        - $ref: '#/components/parameters/collection'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameNamespaceRequest'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '200':
+          description: Collection renamed. The body is the new name and the preserved properties.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NamespaceResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
+  /v1/{project}/namespaces/{collection}/assets/{asset}/move:
+    post:
+      operationId: moveAsset
+      summary: Move an asset to another collection
+      description: |
+        Moves one table or volume to an existing collection in the same project.
+        The asset display name, uuid, metadata, labels, connection, and schema are preserved.
+        Fails when the destination collection is missing or already has an asset with the same name.
+        Does not use `POST /v1/{project}/tables/rename`, which remains unimplemented.
+      tags: [assets]
+      x-rhoai-extension: true
+      parameters:
+        - $ref: '#/components/parameters/project'
+        - $ref: '#/components/parameters/collection'
+        - $ref: '#/components/parameters/asset'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveAssetRequest'
+      responses:
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '200':
+          description: Asset moved. The body is the asset in its destination collection.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MovedAssetResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+
   # ===========================================================================
   # Tables (Iceberg REST)
   # ===========================================================================
@@ -1067,6 +1143,14 @@ components:
         type: string
       description: Volume name
 
+    asset:
+      name: asset
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Asset display name. Unique within a collection across tables and volumes.
+
   responses:
     NotFound:
       description: Resource not found
@@ -1270,6 +1354,36 @@ components:
           type: array
           items:
             type: string
+
+    RenameNamespaceRequest:
+      type: object
+      required: [newNamespace]
+      properties:
+        newNamespace:
+          type: array
+          minItems: 1
+          maxItems: 1
+          items:
+            type: string
+          description: Single-element array with the new collection name
+
+    MoveAssetRequest:
+      type: object
+      required: [destinationNamespace]
+      properties:
+        destinationNamespace:
+          type: array
+          minItems: 1
+          maxItems: 1
+          items:
+            type: string
+          description: Single-element array with the destination collection name. The asset name is not changed.
+
+    MovedAssetResponse:
+      description: Asset after a successful move. A table or a volume, matching the existing read shapes.
+      oneOf:
+        - $ref: '#/components/schemas/StructuredAssetResponse'
+        - $ref: '#/components/schemas/UnstructuredAssetResponse'
 
     # ----- Tables (Iceberg) -----
 

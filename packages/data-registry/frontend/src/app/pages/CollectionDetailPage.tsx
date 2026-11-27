@@ -25,19 +25,21 @@ import { useCollectionDetail } from '~/app/hooks/useCollectionDetail';
 import { useAssets } from '~/app/hooks/useAssets';
 import { useCollections } from '~/app/hooks/useCollections';
 import { useLabels } from '~/app/hooks/useLabels';
-import { browseUrl } from '~/app/utilities/routes';
+import { browseUrl, collectionDetailUrl } from '~/app/utilities/routes';
 import { hasDataRegistryWriteAccess } from '~/app/utilities/access';
 import DeleteCollectionModal from '~/app/components/DeleteCollectionModal';
 import ManageCollectionsModal from '~/app/components/ManageCollectionsModal';
+import RenameCollectionModal from '~/app/components/RenameCollectionModal';
 import ManageLabelsModal from '~/app/components/ManageLabelsModal';
 import RegisterDataModal from '~/app/components/RegisterDataModal';
 import type { CollectionInfo } from '~/app/hooks/useCollections';
 import { useDataRegistryTrackEvent } from '~/app/hooks/useDataRegistryTrackEvent';
 import { DATA_REGISTRY_EVENT_NAMES } from '~/app/utilities/tracking';
 import {
+  COLLECTION_DELETE_WITH_ASSETS_MESSAGE,
   DEFAULT_COLLECTION_DELETE_MESSAGE,
   DEFAULT_COLLECTION_NAME,
-  NON_EMPTY_COLLECTION_DELETE_MESSAGE,
+  DEFAULT_COLLECTION_RENAME_MESSAGE,
 } from '~/app/utilities/collectionConstants';
 import CollectionDetailView from './CollectionDetailView';
 
@@ -57,6 +59,7 @@ const CollectionDetailPage: React.FC = () => {
   const [labels, , , labelsRefresh] = useLabels(project || '');
   const [isActionsOpen, setIsActionsOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+  const [isRenameModalOpen, setIsRenameModalOpen] = React.useState(false);
   const [isManageCollectionsOpen, setIsManageCollectionsOpen] = React.useState(false);
   const [isManageLabelsOpen, setIsManageLabelsOpen] = React.useState(false);
   const [isRegisterDataOpen, setIsRegisterDataOpen] = React.useState(false);
@@ -92,16 +95,20 @@ const CollectionDetailPage: React.FC = () => {
   const displayName = collection || 'Loading...';
   const hasAssets = (collectionDetail?.assets.length ?? 0) > 0;
   const isDefaultCollection = collection === DEFAULT_COLLECTION_NAME;
-  const isDeleteDisabled = hasAssets || isDefaultCollection;
+  const isDeleteDisabled = isDefaultCollection;
 
   // Convert CollectionDetail to CollectionInfo for the DeleteCollectionModal
   const collectionInfo: CollectionInfo | null = collectionDetail
     ? {
         name: collectionDetail.name,
         description: collectionDetail.description,
-        assetNames: collectionDetail.assets.map((a) => a.name),
-        tableCount: collectionDetail.structuredCount,
-        volumeCount: collectionDetail.unstructuredCount,
+        assetNames: collectionDetail.assets.map((asset) => asset.name),
+        assets: collectionDetail.assets.map((asset) => ({
+          name: asset.name,
+          assetType: asset.assetType,
+        })),
+        tableCount: collectionDetail.assets.filter((asset) => asset.assetType === 'table').length,
+        volumeCount: collectionDetail.assets.filter((asset) => asset.assetType === 'volume').length,
       }
     : null;
 
@@ -167,6 +174,29 @@ const CollectionDetailPage: React.FC = () => {
           >
             Manage collections
           </DropdownItem>
+          <Tooltip
+            content={
+              !hasWriteAccess
+                ? 'You do not have permission to modify data registry resources'
+                : isDefaultCollection
+                  ? DEFAULT_COLLECTION_RENAME_MESSAGE
+                  : 'Rename this collection'
+            }
+          >
+            <DropdownItem
+              key="rename"
+              onClick={() => {
+                if (!isDefaultCollection && hasWriteAccess) {
+                  setIsRenameModalOpen(true);
+                }
+              }}
+              isAriaDisabled={isDefaultCollection}
+              isDisabled={!hasWriteAccess}
+              data-testid="collection-action-rename"
+            >
+              Rename collection
+            </DropdownItem>
+          </Tooltip>
           <Divider component="li" />
           <Tooltip
             content={
@@ -175,7 +205,7 @@ const CollectionDetailPage: React.FC = () => {
                 : isDefaultCollection
                   ? DEFAULT_COLLECTION_DELETE_MESSAGE
                   : hasAssets
-                    ? NON_EMPTY_COLLECTION_DELETE_MESSAGE
+                    ? COLLECTION_DELETE_WITH_ASSETS_MESSAGE
                     : 'Delete this collection'
             }
           >
@@ -205,11 +235,28 @@ const CollectionDetailPage: React.FC = () => {
           onClose={() => setIsDeleteModalOpen(false)}
         />
       ) : null}
+      {isRenameModalOpen && project && collection ? (
+        <RenameCollectionModal
+          isOpen={isRenameModalOpen}
+          project={project}
+          collectionName={collection}
+          onClose={() => setIsRenameModalOpen(false)}
+          onRenamed={(_previousName, nextName) => {
+            setIsRenameModalOpen(false);
+            navigate(collectionDetailUrl(project, nextName));
+          }}
+        />
+      ) : null}
       {isManageCollectionsOpen && project ? (
         <ManageCollectionsModal
           isOpen={isManageCollectionsOpen}
           project={project}
           onRefresh={handleRefresh}
+          onCollectionRenamed={(previousName, nextName) => {
+            if (previousName === collection) {
+              navigate(collectionDetailUrl(project, nextName));
+            }
+          }}
           onClose={handleCollectionsModalClose}
         />
       ) : null}
@@ -311,6 +358,9 @@ const CollectionDetailPage: React.FC = () => {
         <CollectionDetailView
           collection={collectionDetail}
           project={project}
+          collections={collectionNames}
+          hasWriteAccess={hasWriteAccess}
+          onAssetMoved={handleRefresh}
           onRegisterData={() => {
             if (project) {
               trackEvent({

@@ -28,13 +28,14 @@ import { useCollections } from '~/app/hooks/useCollections';
 import { useLabels } from '~/app/hooks/useLabels';
 import { deleteGenericTable, deleteVolume } from '~/app/api/dataRegistry';
 import { hasDataRegistryWriteAccess } from '~/app/utilities/access';
-import { browseUrl } from '~/app/utilities/routes';
+import { assetDetailUrl, browseUrl } from '~/app/utilities/routes';
 import { getAssetDetailConnectionWarnings } from '~/app/utilities/connectionUtils';
 import { useNotification } from '~/app/hooks/useNotification';
 import { useDataRegistryTrackEvent } from '~/app/hooks/useDataRegistryTrackEvent';
 import { DATA_REGISTRY_EVENT_NAMES } from '~/app/utilities/tracking';
 import DeleteAssetModal from '~/app/components/DeleteAssetModal';
 import EditAssetModal from '~/app/components/EditAssetModal';
+import MoveAssetModal from '~/app/components/MoveAssetModal';
 import ManageCollectionsModal from '~/app/components/ManageCollectionsModal';
 import ManageLabelsModal from '~/app/components/ManageLabelsModal';
 import TableDetailView from './TableDetailView';
@@ -96,6 +97,7 @@ const TableDetailPage: React.FC = () => {
 
   const [isActionsOpen, setIsActionsOpen] = React.useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = React.useState(false);
+  const [isMoveModalOpen, setIsMoveModalOpen] = React.useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = React.useState(searchParams.get('edit') === 'true');
   const [returnToEditModal, setReturnToEditModal] = React.useState(false);
   const [isManageCollectionsOpen, setIsManageCollectionsOpen] = React.useState(false);
@@ -260,6 +262,14 @@ const TableDetailPage: React.FC = () => {
           >
             Edit
           </DropdownItem>
+          <DropdownItem
+            key="move"
+            onClick={() => setIsMoveModalOpen(true)}
+            isDisabled={!hasWriteAccess}
+            data-testid="asset-action-move"
+          >
+            Move
+          </DropdownItem>
           <Divider component="li" />
           <DropdownItem
             key="delete"
@@ -280,6 +290,20 @@ const TableDetailPage: React.FC = () => {
           </DropdownItem>
         </DropdownList>
       </Dropdown>
+      {isMoveModalOpen && project && collection && name ? (
+        <MoveAssetModal
+          isOpen={isMoveModalOpen}
+          project={project}
+          assetName={name}
+          sourceCollection={collection}
+          collections={collectionNames}
+          onClose={() => setIsMoveModalOpen(false)}
+          onMoved={(destination) => {
+            setIsMoveModalOpen(false);
+            navigate(assetDetailUrl(project, destination, name, isVolume ? 'volume' : 'table'));
+          }}
+        />
+      ) : null}
       {isDeleteModalOpen && name ? (
         <DeleteAssetModal
           assetName={displayName}

@@ -28,10 +28,14 @@ import { useDataRegistryTrackEvent } from '~/app/hooks/useDataRegistryTrackEvent
 import { assetDetailUrl } from '~/app/utilities/routes';
 import { FORMAT_OPTIONS, getUnstructuredFormatLabel } from '~/app/utilities/formatUtils';
 import { DATA_REGISTRY_EVENT_NAMES } from '~/app/utilities/tracking';
+import MoveAssetModal from '~/app/components/MoveAssetModal';
 
 type CollectionDetailViewProps = {
   collection: CollectionDetail;
   project?: string;
+  collections?: string[];
+  hasWriteAccess?: boolean;
+  onAssetMoved?: () => void;
   onRegisterData?: () => void;
   isRegisterDataDisabled?: boolean;
 };
@@ -41,12 +45,24 @@ type AssetRowProps = {
   assetType: string;
   collectionName: string;
   project?: string;
+  collections: string[];
+  hasWriteAccess: boolean;
+  onMoved: () => void;
 };
 
-const AssetRow: React.FC<AssetRowProps> = ({ asset, assetType, collectionName, project }) => {
+const AssetRow: React.FC<AssetRowProps> = ({
+  asset,
+  assetType,
+  collectionName,
+  project,
+  collections,
+  hasWriteAccess,
+  onMoved,
+}) => {
   const navigate = useNavigate();
   const trackEvent = useDataRegistryTrackEvent();
   const [isKebabOpen, setIsKebabOpen] = React.useState(false);
+  const [isMoveOpen, setIsMoveOpen] = React.useState(false);
   const formatLabel =
     asset.assetType === 'volume'
       ? getUnstructuredFormatLabel(asset.format)
@@ -109,6 +125,14 @@ const AssetRow: React.FC<AssetRowProps> = ({ asset, assetType, collectionName, p
         >
           <DropdownList>
             <DropdownItem
+              key="move"
+              onClick={() => setIsMoveOpen(true)}
+              isDisabled={!hasWriteAccess || !project}
+              data-testid={`asset-move-${asset.name}`}
+            >
+              Move
+            </DropdownItem>
+            <DropdownItem
               key="view"
               onClick={() => {
                 if (detailUrl) {
@@ -125,6 +149,20 @@ const AssetRow: React.FC<AssetRowProps> = ({ asset, assetType, collectionName, p
             </DropdownItem>
           </DropdownList>
         </Dropdown>
+        {isMoveOpen && project ? (
+          <MoveAssetModal
+            isOpen={isMoveOpen}
+            project={project}
+            assetName={asset.name}
+            sourceCollection={collectionName}
+            collections={collections}
+            onClose={() => setIsMoveOpen(false)}
+            onMoved={() => {
+              setIsMoveOpen(false);
+              onMoved();
+            }}
+          />
+        ) : null}
       </Td>
     </Tr>
   );
@@ -133,6 +171,9 @@ const AssetRow: React.FC<AssetRowProps> = ({ asset, assetType, collectionName, p
 const CollectionDetailView: React.FC<CollectionDetailViewProps> = ({
   collection,
   project,
+  collections = [],
+  hasWriteAccess = true,
+  onAssetMoved,
   onRegisterData,
   isRegisterDataDisabled = false,
 }) => (
@@ -191,6 +232,9 @@ const CollectionDetailView: React.FC<CollectionDetailViewProps> = ({
                       assetType={assetType}
                       collectionName={collection.name}
                       project={project}
+                      collections={collections}
+                      hasWriteAccess={hasWriteAccess}
+                      onMoved={() => onAssetMoved?.()}
                     />
                   );
                 })}

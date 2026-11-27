@@ -26,6 +26,7 @@ import {
   PiiStatus,
   StructuredFormat,
   UnstructuredFormat,
+  AssetResponse,
 } from '~/app/types';
 import { URL_PREFIX, BFF_API_VERSION } from '~/app/utilities/const';
 import { connectionRefSchema } from '~/app/schemas/connection.schema';
@@ -102,6 +103,11 @@ const listVolumesResponseSchema = z.object({
 const assetListResponseSchema = z.object({
   assets: z.array(structuredAssetResponseSchema),
 });
+
+const movedAssetResponseSchema = z.union([
+  structuredAssetResponseSchema,
+  unstructuredAssetResponseSchema,
+]);
 
 const namespaceSchema = z.array(z.string()).min(1).max(1);
 
@@ -257,6 +263,35 @@ export const deleteCollection = (
   collection: string,
   opts: APIOptions = {},
 ): Promise<void> => remove(`/${encodedPath(project)}/namespaces/${encodedPath(collection)}`, opts);
+
+export const renameCollection = (
+  project: string,
+  collection: string,
+  newNamespace: string,
+  opts: APIOptions = {},
+): Promise<NamespaceResponse> =>
+  create(
+    `/${encodedPath(project)}/namespaces/${encodedPath(collection)}/rename`,
+    asRequestBody({ newNamespace: [newNamespace] }),
+    opts,
+    namespaceResponseSchema,
+  );
+
+export const moveAsset = (
+  project: string,
+  collection: string,
+  name: string,
+  destinationNamespace: string,
+  opts: APIOptions = {},
+): Promise<AssetResponse> =>
+  create(
+    `/${encodedPath(project)}/namespaces/${encodedPath(collection)}/assets/${encodeURIComponent(
+      name,
+    )}/move`,
+    asRequestBody({ destinationNamespace: [destinationNamespace] }),
+    opts,
+    movedAssetResponseSchema,
+  );
 
 // Assets (generic tables)
 
@@ -458,6 +493,9 @@ export const is403Error = (error: unknown): boolean =>
 export const isConflictError = (error: unknown): boolean =>
   getErrorCode(error) === 409 ||
   (error instanceof Error && /(?:already exists|conflict|not empty)/i.test(error.message));
+
+export const isMissingRouteError = (error: unknown): boolean =>
+  error instanceof Error && getErrorCode(error) === 404 && !/does not exist/i.test(error.message);
 
 export const isConnectionError = (error: unknown): boolean =>
   error instanceof Error &&

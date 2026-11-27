@@ -55,6 +55,7 @@ import ServiceUnavailableError from '~/app/components/errors/ServiceUnavailableE
 import noAssetsImage from '~/images/no-assets.png';
 import DeleteAssetModal from './DeleteAssetModal';
 import EditAssetModal from './EditAssetModal';
+import MoveAssetModal from './MoveAssetModal';
 import './RegistryTable.scss';
 
 type RegistryTableProps = {
@@ -63,6 +64,7 @@ type RegistryTableProps = {
   error: Error | undefined;
   labels: string[];
   project: string;
+  collections?: string[];
   connections?: ConnectionModel[];
   connectionDisplayData?: ConnectionModel[];
   connectionsLoaded?: boolean;
@@ -201,6 +203,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   error,
   labels,
   project,
+  collections = [],
   connections = [],
   connectionDisplayData,
   connectionsLoaded = false,
@@ -228,6 +231,7 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
   const [isKebabOpen, setIsKebabOpen] = React.useState(false);
   const [activeActionsAsset, setActiveActionsAsset] = React.useState<string>();
   const [deleteAsset, setDeleteAsset] = React.useState<RegistryAsset | null>(null);
+  const [moveAssetTarget, setMoveAssetTarget] = React.useState<RegistryAsset | null>(null);
   const [editAsset, setEditAsset] = React.useState<RegistryAsset | null>(null);
   const [isEditAssetModalOpen, setIsEditAssetModalOpen] = React.useState(false);
   const [activeSortIndex, setActiveSortIndex] = React.useState<number | undefined>(undefined);
@@ -1033,6 +1037,14 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
                           >
                             Edit
                           </DropdownItem>
+                          <DropdownItem
+                            key="move"
+                            onClick={() => setMoveAssetTarget(asset)}
+                            isDisabled={!hasWriteAccess}
+                            data-testid={assetTestId('asset-move')}
+                          >
+                            Move
+                          </DropdownItem>
                           <Divider component="li" />
                           <DropdownItem
                             key="delete"
@@ -1059,6 +1071,20 @@ const RegistryTable: React.FC<RegistryTableProps> = ({
           </Tbody>
         </Table>
       </PageSection>
+      {moveAssetTarget ? (
+        <MoveAssetModal
+          isOpen
+          project={project}
+          assetName={moveAssetTarget.name}
+          sourceCollection={moveAssetTarget.collection}
+          collections={collections}
+          onClose={() => setMoveAssetTarget(null)}
+          onMoved={() => {
+            setMoveAssetTarget(null);
+            onRetry();
+          }}
+        />
+      ) : null}
       {deleteAsset ? (
         <DeleteAssetModal
           assetName={deleteAsset.name}

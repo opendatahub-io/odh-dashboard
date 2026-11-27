@@ -2,12 +2,16 @@ import React from 'react';
 import { useFetchState, type APIOptions, type FetchStateCallbackPromise } from 'mod-arch-core';
 import { fetchCollectionDetails } from '~/app/api/dataRegistry';
 import type { RegistryAsset } from '~/app/hooks/useAssets';
-import { parseCollectionDescription } from '~/app/utilities/collectionUtils';
+import {
+  parseCollectionDescription,
+  type CollectionAssetRef,
+} from '~/app/utilities/collectionUtils';
 
 export type CollectionInfo = {
   name: string;
   description: string;
   assetNames: string[];
+  assets: CollectionAssetRef[];
   tableCount: number;
   volumeCount: number;
 };
@@ -45,6 +49,10 @@ export const useCollections = (
             name,
             description: parseCollectionDescription(detail.properties, project, name),
             assetNames: collectionAssets.map((asset) => asset.name),
+            assets: collectionAssets.map((asset) => ({
+              name: asset.name,
+              assetType: asset.assetType,
+            })),
             tableCount: collectionAssets.filter((asset) => asset.assetType === 'table').length,
             volumeCount: collectionAssets.filter((asset) => asset.assetType === 'volume').length,
           };
