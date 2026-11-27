@@ -1,6 +1,9 @@
 import { KueueWorkloadStatus } from '@odh-dashboard/k8s-core/kueue/types';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
-import { getDeploymentStatusSubtitle } from '../getDeploymentStatusSubtitle';
+import {
+  getDeploymentStatusSubtitle,
+  getDeploymentStatusSubtitleBoldText,
+} from '../getDeploymentStatusSubtitle';
 
 describe('getDeploymentStatusSubtitle', () => {
   it('shows only queue position for Queued status when queuePosition is set', () => {
@@ -39,7 +42,7 @@ describe('getDeploymentStatusSubtitle', () => {
     expect(subtitle).toBe('Waiting for quota in my-queue');
   });
 
-  it('appends pod admission counts after queue position when both are present', () => {
+  it('shows only queue position when pod admission counts are also present', () => {
     const subtitle = getDeploymentStatusSubtitle({
       state: ModelDeploymentState.PENDING,
       kueueStatus: {
@@ -49,6 +52,27 @@ describe('getDeploymentStatusSubtitle', () => {
         podAdmissionCounts: { admitted: 3, total: 5 },
       },
     });
-    expect(subtitle).toBe('2nd in my-queue (3 of 5 pods admitted)');
+    expect(subtitle).toBe('2nd in my-queue');
+  });
+});
+
+describe('getDeploymentStatusSubtitleBoldText', () => {
+  it('returns the queue name when the subtitle is a Kueue message', () => {
+    expect(
+      getDeploymentStatusSubtitleBoldText({
+        state: ModelDeploymentState.PENDING,
+        kueueStatus: { status: KueueWorkloadStatus.Queued, queueName: 'my-queue' },
+      }),
+    ).toBe('my-queue');
+  });
+
+  it('returns undefined when the subtitle is the deployment failure message', () => {
+    expect(
+      getDeploymentStatusSubtitleBoldText({
+        state: ModelDeploymentState.FAILED_TO_LOAD,
+        message: 'Failed to pull image',
+        kueueStatus: { status: KueueWorkloadStatus.Admitted, queueName: 'my-queue' },
+      }),
+    ).toBeUndefined();
   });
 });

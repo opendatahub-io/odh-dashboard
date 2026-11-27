@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flex, FlexItem, Icon, Popover, Spinner } from '@patternfly/react-core';
+import { Button, Flex, FlexItem, Icon, Popover, Spinner } from '@patternfly/react-core';
 import { ExclamationTriangleIcon } from '@patternfly/react-icons';
 import { Td, Tbody } from '@patternfly/react-table';
 import {
@@ -18,10 +18,12 @@ import { KUEUE_QUEUE_LABEL } from '@odh-dashboard/k8s-core/kueue/workloadStatus'
 import { ProjectsContext } from '@odh-dashboard/ui-core/context/ProjectsContext';
 import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import UnderlinedTruncateButton from '@odh-dashboard/ui-core/components/UnderlinedTruncateButton';
+import { QueueSubtitleText } from '@odh-dashboard/ui-core/kueue/KueueSubtitleText';
 import { ModelDeploymentState } from '@odh-dashboard/model-serving/shared';
 import {
   ModelStatusIcon,
   getDeploymentStatusSubtitle,
+  getDeploymentStatusSubtitleBoldText,
   getDeploymentStatusSubtitleColor,
 } from '@odh-dashboard/model-serving/shared/components';
 import { DeploymentHardwareProfileCell } from './DeploymentHardwareProfileCell';
@@ -112,6 +114,8 @@ export const DeploymentRow: React.FC<{
 
   const navigateToDeploymentWizard = useNavigateToDeploymentWizard(deployment);
   const statusSubtitle = getDeploymentStatusSubtitle(deployment.status);
+  const statusSubtitleBoldText = getDeploymentStatusSubtitleBoldText(deployment.status);
+  const statusSubtitleColor = getDeploymentStatusSubtitleColor(deployment.status);
 
   const openStatusModal = React.useCallback(() => {
     fireDeploymentStatusEvent(trackEvent, DeploymentTrackingEvent.STATUS_LOG_VIEWED, deployment);
@@ -252,12 +256,27 @@ export const DeploymentRow: React.FC<{
             </FlexItem>
             {statusSubtitle != null && (
               <FlexItem>
-                <UnderlinedTruncateButton
-                  data-testid="deployment-status-subtitle"
-                  content={statusSubtitle}
-                  color={getDeploymentStatusSubtitleColor(deployment.status)}
-                  onClick={openStatusModal}
-                />
+                {statusSubtitleBoldText ? (
+                  <Button
+                    variant="link"
+                    isInline
+                    data-testid="deployment-status-subtitle"
+                    onClick={openStatusModal}
+                  >
+                    <QueueSubtitleText
+                      text={statusSubtitle}
+                      queue={statusSubtitleBoldText}
+                      color={statusSubtitleColor}
+                    />
+                  </Button>
+                ) : (
+                  <UnderlinedTruncateButton
+                    data-testid="deployment-status-subtitle"
+                    content={statusSubtitle}
+                    color={statusSubtitleColor}
+                    onClick={openStatusModal}
+                  />
+                )}
               </FlexItem>
             )}
           </Flex>
