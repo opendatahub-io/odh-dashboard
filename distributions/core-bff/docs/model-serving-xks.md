@@ -15,10 +15,10 @@ xKS every call under that prefix ends in a local proxy error.
 
 Every caller of `/api/service/model-serving/` in the repo, excluding tests and Cypress mocks:
 
-| # | Method and route (after the prefix) | Consumer | Reached on RHAII today? | What upstream does | Kubernetes resources and verbs (upstream) |
-|---|---|---|---|---|---|
-| 1 | `GET /api/v1/gateways?namespace=<ns>` | `packages/model-serving/src/shared/api/gatewayDiscovery.ts` via `useGetGatewayOptions`, rendered by `packages/llmd-serving/src/wizardFields/gateway/GatewaySelectField.tsx` (deployment wizard, gateway field) | No (see below) | SSAR as the caller, then lists Gateways with its own ServiceAccount and keeps listeners whose `allowedRoutes` admit `<ns>` (`Same`, `All`, `Selector` against the namespace labels). Returns `{gateways:[{name,namespace,listener,status,displayName?,description?}]}`. Status is `Ready` when `Accepted` and `Programmed` are True, `NotReady` when either is False, else `Unknown`. A denied or failed access check returns an empty list. | Caller: `create selfsubjectaccessreviews` for `create serving.kserve.io/llminferenceservices` in `<ns>`. ServiceAccount: `list gateway.networking.k8s.io/gateways` (all namespaces), `get namespaces/<ns>` when a listener uses a selector. |
-| 2 | `GET /api/v1/samples/llm-d?type=<t>[&topology=<t>]` | `packages/llmd-serving/src/settings/topologyConfigs/TopologyConfigurationCreateEdit.tsx`, `.../routingConfigs/RoutingConfigurationCreateEdit.tsx` (admin settings pages) | No: RHAII bundles the `deployments` extension profile of llmd-serving, which has no settings pages | Returns a static YAML template embedded at build time. No auth, no Kubernetes calls. | None |
+| #   | Method and route (after the prefix)                 | Consumer                                                                                                                                                                                                       | Reached on RHAII today?                                                                            | What upstream does                                                                                                                                                                                                                                                                                                                                                                                                                           | Kubernetes resources and verbs (upstream)                                                                                                                                                                                                   |
+| --- | --------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `GET /api/v1/gateways?namespace=<ns>`               | `packages/model-serving/src/shared/api/gatewayDiscovery.ts` via `useGetGatewayOptions`, rendered by `packages/llmd-serving/src/wizardFields/gateway/GatewaySelectField.tsx` (deployment wizard, gateway field) | No (see below)                                                                                     | SSAR as the caller, then lists Gateways with its own ServiceAccount and keeps listeners whose `allowedRoutes` admit `<ns>` (`Same`, `All`, `Selector` against the namespace labels). Returns `{gateways:[{name,namespace,listener,status,displayName?,description?}]}`. Status is `Ready` when `Accepted` and `Programmed` are True, `NotReady` when either is False, else `Unknown`. A denied or failed access check returns an empty list. | Caller: `create selfsubjectaccessreviews` for `create serving.kserve.io/llminferenceservices` in `<ns>`. ServiceAccount: `list gateway.networking.k8s.io/gateways` (all namespaces), `get namespaces/<ns>` when a listener uses a selector. |
+| 2   | `GET /api/v1/samples/llm-d?type=<t>[&topology=<t>]` | `packages/llmd-serving/src/settings/topologyConfigs/TopologyConfigurationCreateEdit.tsx`, `.../routingConfigs/RoutingConfigurationCreateEdit.tsx` (admin settings pages)                                       | No: RHAII bundles the `deployments` extension profile of llmd-serving, which has no settings pages | Returns a static YAML template embedded at build time. No auth, no Kubernetes calls.                                                                                                                                                                                                                                                                                                                                                         | None                                                                                                                                                                                                                                        |
 
 Why route 1 is not reached on RHAII today: the gateway field extensions require the
 `llmd-gateway-field` feature flag, which `distributions/rhaii/distribution.yaml` does not set, and
@@ -36,20 +36,26 @@ profile: `grep -rn "service/model-serving" packages distributions --include=*.ts
 **Native Core BFF route for gateway discovery on xKS. No model-serving-api backend in the RHAII
 bundle. OpenShift keeps the proxy unchanged.**
 
-1. On `PLATFORM_TYPE=XKS`, Core BFF serves `GET /api/service/model-serving/api/v1/gateways` itself,
+1. On a confirmed xKS platform (configured with `--platform-type=XKS` or `ODH_PLATFORM_TYPE=XKS`,
+   as `manifests/distributions/rhaii/deployment.yaml` does, or positively detected), Core BFF serves `GET /api/service/model-serving/api/v1/gateways` itself,
    with the same request and response shape as upstream, so `gatewayDiscovery.ts` needs no change.
    Every Kubernetes call runs as the caller (RHOAIENG-96081):
    - SSAR `create serving.kserve.io/llminferenceservices` in `<ns>`. Denied returns
      `{gateways: []}`, as upstream does.
    - `list gateway.networking.k8s.io/v1 gateways` across namespaces as the caller.
    - `get namespaces/<ns>` as the caller only when a listener uses a selector. If that is forbidden
-     or the namespace is gone, selector listeners are skipped (fail closed) and the rest are
-     returned.
+     or the namespace is gone, selector listeners are skipped (fail closed), the rest are returned,
+     and the BFF logs a warning with the namespace and the number of skipped listeners. The
+     built-in `view`, `edit` and `admin` roles bound in the project grant this read; a custom
+     deploy role must add it.
+   - The whole discovery is bounded to 10 seconds.
 2. On xKS, nothing else under `/api/service/model-serving/` is routed: the proxy is not registered
    and other paths return the standard 404 error envelope instead of a 502 to a host that doesn't
    exist. The samples route is not part of the RHAII journey.
 3. On OpenShift (ODH and RHOAI), registration stays exactly as today: the whole prefix is proxied to
-   `model-serving-api` with the caller's token. No behaviour change.
+   `model-serving-api` with the caller's token. No behaviour change. A platform guessed as xKS after
+   an inconclusive probe also keeps the proxy, because it may be OpenShift: the native route needs
+   a confirmed xKS platform, like the cluster-TLS-profile decision (`ServeTLSWithoutClusterProfile`).
 4. The RHAII bundle ships a ClusterRole `rhaii-dashboard-gateway-reader`
    (`gateway.networking.k8s.io/gateways: get, list`), unbound, documented next to the dashboard
    access role: the installer binds it to the same users or groups that may use the dashboard.
@@ -99,17 +105,17 @@ user role) before switching. Response shape and frontend stay the same.
 
 ## Implementation
 
-| Piece | Where |
-|---|---|
-| Route registration (xKS only) and no proxy on xKS | `bff/internal/api/routes_model_serving.go`, `bff/internal/api/model_serving_proxy.go` |
-| Handler: query validation, caller SSAR, response | `bff/internal/api/gateway_discovery_handler.go` |
-| Gateway list, listener filter, status | `bff/internal/repositories/gateway_discovery.go` |
-| Response models | `bff/internal/models/gateway.go` |
-| OpenAPI | `GET /api/service/model-serving/api/v1/gateways` in `bff/openapi/src/core-bff.yaml` |
-| Envtest data (Gateway CRD, Gateways, test users) | `bff/internal/integrations/kubernetes/k8mocks/mock_gateways.go` |
-| Contract tests | `contract-tests/__tests__/xks/testCoreBffModelServingGateways.test.ts`, `contract-tests/__tests__/openshift/testCoreBffModelServingProxy.test.ts` |
-| Bundle RBAC | `manifests/distributions/rhaii/cluster-role-gateway-reader.yaml` |
-| RHAII host data service | `distributions/rhaii/src/context/HostApiProvider.tsx` |
+| Piece                                                      | Where                                                                                                                                             |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Route registration (confirmed xKS only) and no proxy there | `bff/internal/api/routes_model_serving.go`, `bff/internal/api/model_serving_proxy.go`                                                             |
+| Handler: query validation, caller SSAR, response           | `bff/internal/api/gateway_discovery_handler.go`                                                                                                   |
+| Gateway list, listener filter, status                      | `bff/internal/repositories/gateway_discovery.go`                                                                                                  |
+| Response models                                            | `bff/internal/models/gateway.go`                                                                                                                  |
+| OpenAPI                                                    | `GET /api/service/model-serving/api/v1/gateways` in `bff/openapi/src/core-bff.yaml`                                                               |
+| Envtest data (Gateway CRD, Gateways, test users)           | `bff/internal/integrations/kubernetes/k8mocks/mock_gateways.go`                                                                                   |
+| Contract tests                                             | `contract-tests/__tests__/xks/testCoreBffModelServingGateways.test.ts`, `contract-tests/__tests__/openshift/testCoreBffModelServingProxy.test.ts` |
+| Bundle RBAC                                                | `manifests/distributions/rhaii/cluster-role-gateway-reader.yaml`                                                                                  |
+| RHAII host data service                                    | `distributions/rhaii/src/context/HostApiProvider.tsx`                                                                                             |
 
 Behaviour that differs from model-serving-api, on purpose:
 
@@ -120,8 +126,18 @@ Behaviour that differs from model-serving-api, on purpose:
 - A cluster without the Gateway API returns an empty list instead of a 500.
 - Errors use the Core BFF error contract (`{"error":{code,message,requestId}}` or a sanitized
   `v1.Status`) instead of `{"error":"..."}`. The frontend only checks `res.ok`.
+- A namespace the caller cannot read drops only the label-selector listeners (with a warning log)
+  instead of failing the request. Upstream reads it with its ServiceAccount, so it never hits this.
+- There is no `GATEWAY_LABEL_SELECTOR` equivalent: every Gateway is listed. Upstream's default is
+  empty, so the default behaviour matches.
+- The caller's list is paged (500 per page). A continue token that expires mid-list returns the API
+  server's 410; upstream lists from a cache in one call.
 
-The route does not set `Cache-Control`: Gateway status changes, and the frontend fetches on demand.
+Like every `/api` response, this one carries `Cache-Control: no-store` and `Vary` on the credential
+headers (bootstrap-contract.md, "Response caching"): the list depends on the caller's permissions.
+
+`MODEL_SERVING_HOST` is still validated at startup on every platform, because validation runs
+before the platform is resolved, but a confirmed xKS platform does not use it.
 
 ## Follow-ups
 
@@ -131,3 +147,9 @@ The route does not set `Cache-Control`: Gateway status changes, and the frontend
 - RHOAI: decide the RBAC story (reader role for dashboard users) before routing OpenShift to the
   native handler, as part of RHOAIENG-83702.
 - The samples route stays upstream-only. Revisit if RHAII ships the llmd-serving settings profile.
+- The gateway field's failure message ("ensure that the model-serving-api service is accessible")
+  names a service xKS does not have; on xKS the usual cause is a missing
+  `rhaii-dashboard-gateway-reader` binding. The copy is UX-owned (RHOAIENG-96902), so changing it
+  needs UX sign-off.
+- `distributions/core-bff/manifests/base` (the Tilt and CI bundle) does not ship the reader role. Its
+  callers are cluster admins in those environments, and RHAI-50761 replaces that bundle.

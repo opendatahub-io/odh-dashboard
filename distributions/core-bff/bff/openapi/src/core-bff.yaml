@@ -1332,15 +1332,17 @@ paths:
       operationId: listGatewayOptions
       summary: List the Gateway listeners a namespace's deployments may attach to
       description: >-
-        On xKS Core BFF serves this route natively (RHAI-50760, docs/model-serving-xks.md).
-        On OpenShift it is not a Core BFF route: the model-serving proxy forwards it to
+        On a confirmed xKS platform Core BFF serves this route natively (RHAI-50760,
+        docs/model-serving-xks.md). Elsewhere (OpenShift, or a platform guessed after an
+        inconclusive probe) it is not a Core BFF route: the model-serving proxy forwards it to
         model-serving-api, which returns the same shape. Every Kubernetes call runs as the
         caller. The caller first needs create on serving.kserve.io/llminferenceservices in the
         namespace (SelfSubjectAccessReview); without it the response is 200 with an empty list.
         The caller then lists gateway.networking.k8s.io/v1 Gateways in all namespaces, and gets
         the namespace only when a listener selects namespaces by label. A denied Gateway list is
         the API server's 403. When the namespace cannot be read, label-selector listeners are
-        left out. A cluster without the Gateway API returns an empty list. Each listener whose
+        left out and a warning is logged. The list is paged; a continue token that expires
+        mid-list is the API server's 410. Discovery is bounded to 10 seconds (504 on timeout). A cluster without the Gateway API returns an empty list. Each listener whose
         allowedRoutes admits the namespace (Same, All or a matching Selector; unset means Same)
         becomes one entry. Status is Ready when the Gateway's Accepted and Programmed conditions
         are True, NotReady when either is False, and Unknown otherwise.
@@ -1364,6 +1366,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '405':
           $ref: '#/components/responses/MethodNotAllowed'
+        '410':
+          $ref: '#/components/responses/Gone'
         '429':
           $ref: '#/components/responses/TooManyRequests'
         '500':
@@ -1380,8 +1384,8 @@ paths:
   /api/service/model-serving/{path}:
     summary: Model serving service proxy
     description: >-
-      OpenShift only. On xKS the BFF registers no proxy: the gateway discovery route above is
-      native and every other path under the prefix is a 404.
+      Not on a confirmed xKS platform, where the BFF registers no proxy: the gateway discovery
+      route above is native and every other path under the prefix is a 404.
       Proxies all HTTP methods to the model-serving-api service. Strips the
       /api/service/model-serving prefix and forwards the remaining path,
       including nested segments (e.g. /api/service/model-serving/a/b/c).

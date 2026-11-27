@@ -211,7 +211,22 @@ describe('RHAII host gateway discovery', () => {
   });
 
   it('should surface a denied Gateway list as an error, not as no gateways', async () => {
-    fetchMock.mockResolvedValue(response({ kind: 'Status', code: 403 }, 403));
+    // The sanitized Kubernetes Status the Core BFF returns for a denied Gateway list.
+    fetchMock.mockResolvedValue(
+      response(
+        {
+          kind: 'Status',
+          apiVersion: 'v1',
+          metadata: {},
+          status: 'Failure',
+          message: 'the requested operation is forbidden',
+          reason: 'Forbidden',
+          details: { group: 'gateway.networking.k8s.io', kind: 'gateways' },
+          code: 403,
+        },
+        403,
+      ),
+    );
     const { result } = renderHook(() => useGetGatewayOptions('model-project'), {
       wrapper: HostApiProvider,
     });

@@ -18,11 +18,21 @@ const (
 	defaultModelServingHostFmt = "https://model-serving-api.%s.svc.cluster.local:443"
 )
 
+// servesModelServingNatively reports whether this BFF answers the model-serving
+// API itself instead of proxying it to model-serving-api. Only a confirmed xKS
+// platform does (configured, or positively detected): a platform guessed after
+// an inconclusive probe may still be OpenShift, where model-serving-api exists
+// and the proxy keeps ODH and RHOAI behaviour unchanged. The RHAII bundle passes
+// --platform-type=XKS, so it is always confirmed. See docs/model-serving-xks.md.
+func (app *App) servesModelServingNatively() bool {
+	return app.config.PlatformType.IsXKS() && app.platformConfirmed
+}
+
 func (app *App) initModelServingProxy() error {
 	// xKS deploys no model-serving-api. Its gateway discovery is a native route
 	// (registerModelServingRoutes) and the rest of the prefix is not served, so
 	// no request can be forwarded to a host that does not exist.
-	if app.config.PlatformType.IsXKS() {
+	if app.servesModelServingNatively() {
 		if app.config.ModelServingServiceHost != "" {
 			app.logger.Warn("MODEL_SERVING_HOST is ignored on xKS: model-serving routes are served natively")
 		}

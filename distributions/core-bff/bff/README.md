@@ -60,7 +60,7 @@ make run LOG_LEVEL=DEBUG
 | `-dashboard-config-name` | `DASHBOARD_CONFIG_NAME` | Name of the OdhDashboardConfig CR (default `odh-dashboard-config`) |
 | `-enabled-apps-cm` | `ENABLED_APPS_CM` | Name of the ConfigMap tracking enabled applications |
 | `-mf-remotes-config` | `MF_REMOTES_CONFIG` | Path to module federation remotes config file |
-| `-model-serving-host` | `MODEL_SERVING_HOST` | Override URL for model-serving proxy target (default: auto-constructed from namespace). OpenShift only: on xKS there is no proxy and the value is ignored (see `docs/model-serving-xks.md`). Must be an absolute base URL without a query or fragment; `https` unless `DEV_MODE=true`. A path is kept as the prefix routes are mounted under |
+| `-model-serving-host` | `MODEL_SERVING_HOST` | Override URL for model-serving proxy target (default: auto-constructed from namespace). Not used on a confirmed xKS platform, where there is no proxy; it is still validated at startup (see `docs/model-serving-xks.md`). Must be an absolute base URL without a query or fragment; `https` unless `DEV_MODE=true`. A path is kept as the prefix routes are mounted under |
 | `-prometheus-host` | `PROMETHEUS_HOST` | Full Prometheus/Thanos host URL override. Must be an absolute base URL without a query or fragment; `https` unless `DEV_MODE=true` |
 | `-prometheus-namespace` | `PROMETHEUS_NAMESPACE` | Prometheus/Thanos namespace (default `openshift-monitoring`) |
 | `-prometheus-instance` | `PROMETHEUS_INSTANCE` | Prometheus/Thanos instance name (default `thanos-querier`) |

@@ -30,7 +30,9 @@ const (
 )
 
 func (app *App) registerModelServingProxy(mux *http.ServeMux) {
-	if app.modelServingProxy != nil {
+	// The proxy prefix is a more specific ServeMux pattern than the API router,
+	// so a proxy mounted here would shadow the native gateway route.
+	if app.modelServingProxy != nil && !app.servesModelServingNatively() {
 		mux.Handle(ModelServingProxyPrefix, app.modelServingProxy)
 		mux.Handle(PathPrefix+ModelServingProxyPrefix, http.StripPrefix(PathPrefix, app.modelServingProxy))
 	}
@@ -39,7 +41,7 @@ func (app *App) registerModelServingProxy(mux *http.ServeMux) {
 func (app *App) registerModelServingRoutes(r *httprouter.Router) {
 	// xKS has no model-serving-api: the one route its journey needs is native,
 	// and every other path under the prefix falls through to the API 404.
-	if app.config.PlatformType.IsXKS() {
+	if app.servesModelServingNatively() {
 		r.GET(GatewayDiscoveryPath, app.secureRoute(app.GatewayDiscoveryHandler))
 	}
 

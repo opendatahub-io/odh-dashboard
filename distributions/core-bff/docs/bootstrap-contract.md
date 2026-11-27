@@ -197,6 +197,7 @@ Operations that follow the policy (all of them user-initiated):
 | `GET /api/components/remove`                                    | Enabled-apps ConfigMap update                                 |
 | `GET/PUT /api/cluster-settings`                                 | Culler and segment ConfigMaps, notebook-controller rollout    |
 | `PATCH /api/config`, `GET/PATCH /api/dashboardConfig/:ns/:name` | OdhDashboardConfig admin read and patch                       |
+| `GET /api/service/model-serving/api/v1/gateways`                | Gateway list and project namespace read, xKS only             |
 
 The Kubernetes HTTP and WebSocket proxies always use the caller's token, on every platform.
 
@@ -338,6 +339,15 @@ granting them to the dashboard service account does nothing. Each authenticated 
 
 Kubernetes grants both to every authenticated user through the default `system:basic-user`
 ClusterRole; a cluster that removes that binding must grant them back.
+
+Gateway discovery on xKS (`GET /api/service/model-serving/api/v1/gateways`, see
+[model-serving-xks.md](./model-serving-xks.md)) needs, for a caller who deploys models:
+
+| Resource                                           | Verbs         | Needed for                                                                                                                                                                                                                                                                                              |
+| -------------------------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `llminferenceservices` (`serving.kserve.io`)       | `create`      | The access review that gates the route. Without it the answer is an empty list.                                                                                                                                                                                                                         |
+| `gateways` (`gateway.networking.k8s.io`)           | `get`, `list` | The Gateway list, in all namespaces. The RHAII bundle ships the unbound `rhaii-dashboard-gateway-reader` ClusterRole for it; without it the answer is a `403`.                                                                                                                                          |
+| `namespaces` (core), the project namespace by name | `get`         | Only for listeners that select namespaces by label. Without it those listeners are left out and the BFF logs a warning. The built-in `view`, `edit` and `admin` ClusterRoles bound in the project grant it (a RoleBinding covers the project's own Namespace object); a custom deploy role must add it. |
 
 ## Consumers
 

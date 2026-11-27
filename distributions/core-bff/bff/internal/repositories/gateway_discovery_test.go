@@ -1,11 +1,15 @@
 package repositories
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"testing"
+	"time"
 
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -245,25 +249,25 @@ func TestGatewayDiscovery_EmptyIsNotNil(t *testing.T) {
 // repository sent (the client-go fake drops Limit and Continue).
 type pagedDyn struct {
 	dynamic.Interface
-	fn func(metav1.ListOptions) (*unstructured.UnstructuredList, error)
+	fn func(context.Context, metav1.ListOptions) (*unstructured.UnstructuredList, error)
 }
 
 type pagedResource struct {
 	dynamic.NamespaceableResourceInterface
-	fn func(metav1.ListOptions) (*unstructured.UnstructuredList, error)
+	fn func(context.Context, metav1.ListOptions) (*unstructured.UnstructuredList, error)
 }
 
 func (p pagedDyn) Resource(schema.GroupVersionResource) dynamic.NamespaceableResourceInterface {
 	return pagedResource{fn: p.fn}
 }
 
-func (p pagedResource) List(_ context.Context, opts metav1.ListOptions) (*unstructured.UnstructuredList, error) {
-	return p.fn(opts)
+func (p pagedResource) List(ctx context.Context, opts metav1.ListOptions) (*unstructured.UnstructuredList, error) {
+	return p.fn(ctx, opts)
 }
 
 func TestGatewayDiscovery_FollowsContinueTokens(t *testing.T) {
 	var continues []string
-	dyn := pagedDyn{fn: func(opts metav1.ListOptions) (*unstructured.UnstructuredList, error) {
+	dyn := pagedDyn{fn: func(_ context.Context, opts metav1.ListOptions) (*unstructured.UnstructuredList, error) {
 		continues = append(continues, opts.Continue)
 		assert.Equal(t, int64(gatewayListPageSize), opts.Limit)
 		list := &unstructured.UnstructuredList{}
@@ -285,7 +289,7 @@ func TestGatewayDiscovery_FollowsContinueTokens(t *testing.T) {
 
 func TestGatewayDiscovery_StopsAnEndlessList(t *testing.T) {
 	calls := 0
-	dyn := pagedDyn{fn: func(metav1.ListOptions) (*unstructured.UnstructuredList, error) {
+	dyn := pagedDyn{fn: func(context.Context, metav1.ListOptions) (*unstructured.UnstructuredList, error) {
 		calls++
 		list := &unstructured.UnstructuredList{}
 		list.SetContinue(fmt.Sprintf("page-%d", calls))
@@ -294,6 +298,53 @@ func TestGatewayDiscovery_StopsAnEndlessList(t *testing.T) {
 	_, err := callerRepo(t, fake.NewSimpleClientset(), dyn).Discover(context.Background(), "project")
 	require.Error(t, err)
 	assert.Equal(t, gatewayListMaxPages, calls)
+}
+
+// Discovery is bounded like model-serving-api's, so a slow API server answers
+// with a timeout instead of holding the wizard request open.
+func TestGatewayDiscovery_HasADeadline(t *testing.T) {
+	var remaining time.Duration
+	dyn := pagedDyn{fn: func(ctx context.Context, _ metav1.ListOptions) (*unstructured.UnstructuredList, error) {
+		deadline, ok := ctx.Deadline()
+		require.True(t, ok, "the Gateway list must run under a deadline")
+		remaining = time.Until(deadline)
+		return &unstructured.UnstructuredList{}, nil
+	}}
+	_, err := callerRepo(t, fake.NewSimpleClientset(), dyn).Discover(context.Background(), "project")
+	require.NoError(t, err)
+	assert.LessOrEqual(t, remaining, gatewayDiscoveryTimeout)
+	assert.Greater(t, remaining, time.Duration(0))
+}
+
+func TestGatewayDiscovery_LogsSkippedSelectorListeners(t *testing.T) {
+	selectorGateway := func() *unstructured.Unstructured {
+		return testGateway("gw-ns", "gw", []any{
+			testListener("all", map[string]any{"from": "All"}),
+			testListener("sel-1", map[string]any{"from": "Selector", "selector": map[string]any{}}),
+			testListener("sel-2", map[string]any{"from": "Selector", "selector": map[string]any{}}),
+		}, nil, nil)
+	}
+	discoverWithLog := func(t *testing.T, typed *fake.Clientset) string {
+		t.Helper()
+		var buf bytes.Buffer
+		ctx := context.WithValue(context.Background(), constants.TraceLoggerKey, slog.New(slog.NewTextHandler(&buf, nil)))
+		_, err := callerRepo(t, typed, newGatewayDyn(selectorGateway())).Discover(ctx, "project")
+		require.NoError(t, err)
+		return buf.String()
+	}
+
+	denied := fake.NewSimpleClientset()
+	denied.PrependReactor("get", "namespaces", func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, k8serrors.NewForbidden(schema.GroupResource{Resource: "namespaces"}, "project", errors.New("denied"))
+	})
+	out := discoverWithLog(t, denied)
+	assert.Contains(t, out, "level=WARN")
+	assert.Contains(t, out, "namespace=project")
+	assert.Contains(t, out, "code=NAMESPACE_FORBIDDEN")
+	assert.Contains(t, out, "skippedListeners=2")
+
+	assert.Empty(t, discoverWithLog(t, fake.NewSimpleClientset(namespaceWithLabels("project", nil))),
+		"a readable namespace skips nothing and logs nothing")
 }
 
 // Under the caller policy a missing caller credential fails the request; the

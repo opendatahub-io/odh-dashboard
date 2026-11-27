@@ -52,6 +52,7 @@ func newXKSGatewayApp(t *testing.T) *App {
 	})
 	return newTestApp(func(a *App) {
 		a.config.PlatformType = config.PlatformXKS
+		a.platformConfirmed = true
 		a.repositories = repositories.NewRepositories(repositories.RepositoriesConfig{
 			Platform:          config.PlatformXKS,
 			PlatformConfirmed: true,
@@ -294,6 +295,52 @@ func TestModelServingRoutes_OpenShiftKeepsTheProxy(t *testing.T) {
 	mux.ServeHTTP(rr, req)
 	assert.Equal(t, http.StatusTeapot, rr.Code, "OpenShift must proxy the gateway path to model-serving-api")
 	assert.Equal(t, "/api/v1/gateways?namespace=test-ns-a", recvWithin(t, upstreamHit))
+}
+
+// A platform guessed as xKS after an inconclusive probe may be OpenShift, where
+// model-serving-api exists: the proxy stays and no native route is added, so
+// ODH and RHOAI keep their behaviour when detection fails.
+func TestModelServingRoutes_UnconfirmedXKSKeepsTheProxy(t *testing.T) {
+	upstreamHit := make(chan string, 1)
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		upstreamHit <- r.URL.Path
+		w.WriteHeader(http.StatusTeapot)
+	}))
+	defer upstream.Close()
+
+	app := newXKSGatewayApp(t)
+	app.platformConfirmed = false
+	app.config.ModelServingServiceHost = upstream.URL
+	app.config.DevMode = true
+	require.NoError(t, app.initModelServingProxy())
+	require.NotNil(t, app.modelServingProxy)
+	mux := app.newServiceMux()
+
+	for _, path := range []string{GatewayDiscoveryPath + "?namespace=test-ns-a", ModelServingProxyPrefix + "api/v1/samples/llm-d?type=router"} {
+		req := reqWithIdentity(httptest.NewRequest(http.MethodGet, path, nil),
+			&k8s.RequestIdentity{UserID: "user@example.com", Token: k8s.NewBearerToken(adminToken)})
+		rr := httptest.NewRecorder()
+		mux.ServeHTTP(rr, req)
+		assert.Equal(t, http.StatusTeapot, rr.Code, path)
+		recvWithin(t, upstreamHit)
+	}
+}
+
+// A proxy set on a confirmed xKS app (for example by a future init path) must
+// not shadow the native route: registration skips it.
+func TestModelServingRoutes_XKSNeverMountsAProxy(t *testing.T) {
+	app := newXKSGatewayApp(t)
+	app.modelServingProxy = http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		t.Error("the model-serving proxy must not serve on confirmed xKS")
+		w.WriteHeader(http.StatusTeapot)
+	})
+	mux := app.newServiceMux()
+	req := reqWithIdentity(httptest.NewRequest(http.MethodGet, GatewayDiscoveryPath+"?namespace=test-ns-b", nil),
+		&k8s.RequestIdentity{UserID: "user@example.com", Token: k8s.NewBearerToken(adminToken)})
+	rr := httptest.NewRecorder()
+	mux.ServeHTTP(rr, req)
+	assert.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, []string{"opendatahub/shared-gateway/http/Ready"}, gatewayKeys(t, rr))
 }
 
 // The repository the xKS app wires uses the caller's clients.

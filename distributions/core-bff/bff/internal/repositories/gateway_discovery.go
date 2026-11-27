@@ -3,6 +3,10 @@ package repositories
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"time"
+
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/constants"
 
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -17,6 +21,10 @@ const (
 	gatewayListPageSize = 500
 	// gatewayListMaxPages stops a list whose continue tokens never end.
 	gatewayListMaxPages = 100
+	// gatewayDiscoveryTimeout bounds the whole discovery (every list page and
+	// the namespace read). model-serving-api uses 5s for a cached list; the
+	// caller's direct, paged list gets the access-review budget instead.
+	gatewayDiscoveryTimeout = 10 * time.Second
 )
 
 // Gateway API AllowedRoutes.Namespaces.From values.
@@ -75,6 +83,9 @@ type gatewayListener struct {
 // those listeners are left out rather than guessed: the namespace labels are
 // unknown, so the listener is not shown as usable.
 func (r *GatewayDiscoveryRepository) Discover(ctx context.Context, namespace string) ([]models.GatewayRef, error) {
+	ctx, cancel := context.WithTimeout(ctx, gatewayDiscoveryTimeout)
+	defer cancel()
+
 	gateways, err := r.listGateways(ctx)
 	if err != nil {
 		return nil, err
@@ -82,10 +93,19 @@ func (r *GatewayDiscoveryRepository) Discover(ctx context.Context, namespace str
 
 	var nsLabels labels.Set
 	selectorsUsable := false
-	if needsNamespaceLabels(gateways) {
-		nsLabels, selectorsUsable, err = r.namespaceLabels(ctx, namespace)
+	if selectorListeners := countSelectorListeners(gateways); selectorListeners > 0 {
+		var reason string
+		nsLabels, selectorsUsable, reason, err = r.namespaceLabels(ctx, namespace)
 		if err != nil {
 			return nil, err
+		}
+		if !selectorsUsable {
+			// Not an error for the caller, but an install that grants Gateway
+			// read without namespace get loses every label-selector listener,
+			// so say so where an operator looks.
+			discoveryLogger(ctx).Warn("gateway discovery left out label-selector listeners: the caller cannot read the namespace",
+				slog.String("namespace", namespace), slog.String("code", reason),
+				slog.Int("skippedListeners", selectorListeners))
 		}
 	}
 
@@ -151,32 +171,45 @@ func decodeGateway(u *unstructured.Unstructured) (gatewayObject, error) {
 	return gw, nil
 }
 
-// namespaceLabels reads the labels of namespace. usable is false when the
-// namespace cannot be read by these credentials or no longer exists.
-func (r *GatewayDiscoveryRepository) namespaceLabels(ctx context.Context, namespace string) (labels.Set, bool, error) {
+// namespaceLabels reads the labels of namespace. usable is false, with a
+// reason code, when the namespace cannot be read by these credentials or no
+// longer exists.
+func (r *GatewayDiscoveryRepository) namespaceLabels(ctx context.Context, namespace string) (labels.Set, bool, string, error) {
 	typed, err := r.clients.typed(ctx)
 	if err != nil {
-		return nil, false, err
+		return nil, false, "", err
 	}
 	ns, err := typed.CoreV1().Namespaces().Get(ctx, namespace, metav1.GetOptions{})
-	if err != nil {
-		if k8serrors.IsForbidden(err) || k8serrors.IsNotFound(err) {
-			return nil, false, nil
-		}
-		return nil, false, fmt.Errorf("failed to get namespace %q: %w", namespace, err)
+	switch {
+	case err == nil:
+		return labels.Set(ns.Labels), true, "", nil
+	case k8serrors.IsForbidden(err):
+		return nil, false, "NAMESPACE_FORBIDDEN", nil
+	case k8serrors.IsNotFound(err):
+		return nil, false, "NAMESPACE_NOT_FOUND", nil
+	default:
+		return nil, false, "", fmt.Errorf("failed to get namespace %q: %w", namespace, err)
 	}
-	return labels.Set(ns.Labels), true, nil
 }
 
-func needsNamespaceLabels(gateways []gatewayObject) bool {
+func countSelectorListeners(gateways []gatewayObject) int {
+	n := 0
 	for i := range gateways {
 		for _, l := range gateways[i].Spec.Listeners {
 			if from := listenerFrom(l); from != nil && *from == gatewayRoutesFromSelector {
-				return true
+				n++
 			}
 		}
 	}
-	return false
+	return n
+}
+
+// discoveryLogger is the request's trace logger when there is one.
+func discoveryLogger(ctx context.Context) *slog.Logger {
+	if logger, ok := ctx.Value(constants.TraceLoggerKey).(*slog.Logger); ok && logger != nil {
+		return logger
+	}
+	return slog.Default()
 }
 
 func listenerFrom(l gatewayListener) *string {
