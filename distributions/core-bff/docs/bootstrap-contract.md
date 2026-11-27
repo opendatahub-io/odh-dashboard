@@ -326,8 +326,12 @@ else: no ClusterRole is bound to it. `bff/internal/bundlecontract` renders the b
 kustomize library the dashboard operator uses, parses this table, and fails when the rendered
 service account is granted a verb the table does not list or lacks one it lists, when the bundle
 binds any other role or subject, uses a wildcard, `resourceNames`, a non-resource URL or an
-aggregated ClusterRole, or when the Deployment leaves the production profile. To change the
-service account's access, change this table first; a row whose resource cell reads
+aggregated or aggregating ClusterRole, renders a kind the guard does not check (extend its
+allowlist with the reason when the bundle needs a new kind), or when the Deployment leaves the
+production profile: the explicit xKS platform, caller credentials with the ordered token headers,
+no development or mock settings, and Kubernetes credentials that come only from the projected token
+of the pod's own ServiceAccount (no kubeconfig, no other mount under `/var/run/secrets`). To change
+the service account's access, change this table first; a row whose resource cell reads
 `` `resource` (`group`), cluster-wide `` is checked as a cluster-scoped grant. Decided in
 [RHAI-50761](https://redhat.atlassian.net/browse/RHAI-50761):
 
