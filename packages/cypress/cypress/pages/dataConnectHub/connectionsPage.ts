@@ -1,3 +1,4 @@
+import { connectionRowMatches, connectionTypeCardMatches } from './connectionSelectors';
 import { appChrome } from '../appChrome';
 
 const DATA_CONNECT_HUB_DEV_FEATURE_FLAGS = 'devFeatureFlags=dataConnectHub=true';
@@ -58,13 +59,18 @@ class DataConnectHubConnectionsPage {
   }
 
   /**
-   * Selectable wizard cards expose a visually hidden radio that carries the connection type name.
-   * The card body is not clickable in that mode, so select the input directly.
+   * Selectable wizard cards render a visually hidden radio with no accessible name (PatternFly only
+   * forwards aria-label when no label is supplied), and the card body is not clickable. Locate the
+   * card by its exact title, then select and verify its radio and the enabled Next button.
    */
   selectConnectionType(name: string) {
-    return this.findCreateConnectionTearsheet()
-      .findByRole('radio', { name })
-      .click({ force: true });
+    this.findCreateConnectionTearsheet()
+      .findAllByTestId(/--ConnectionTypeCard$/)
+      .filter((_index, card) => connectionTypeCardMatches(card, name))
+      .find('input[type="radio"]')
+      .click({ force: true })
+      .should('be.checked');
+    this.findWizardNextButton().should('be.enabled');
   }
 
   findWizardNextButton() {
@@ -120,7 +126,9 @@ class DataConnectHubConnectionsPage {
   }
 
   findConnectionTableRow(name: string) {
-    return this.findConnectionsTable().contains('tbody tr', name);
+    return this.findConnectionsTable()
+      .find('tbody tr')
+      .filter((_index, row) => connectionRowMatches(row, name));
   }
 
   findConnectionDetails() {
