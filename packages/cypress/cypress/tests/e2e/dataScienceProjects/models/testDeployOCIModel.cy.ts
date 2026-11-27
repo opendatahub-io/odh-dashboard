@@ -15,6 +15,7 @@ import {
   checkInferenceServiceState,
   verifyModelExternalToken,
 } from '../../../../utils/oc_commands/modelServing';
+import { ensureServingRuntimeTemplate } from '../../../../utils/oc_commands/templates';
 import type { DeployOCIModelData } from '../../../../types';
 import { loadDeployOCIModelFixture } from '../../../../utils/dataLoader';
 import { generateTestUUID } from '../../../../utils/uuidGenerator';
@@ -31,10 +32,10 @@ let servingRuntime: string;
 const uuid = generateTestUUID();
 let secretDetailsFile: string;
 
-const updateSecretDetailsFile = (secretValue: string) => {
+const updateSecretDetailsFile = (secretValue: string, registryHost: string) => {
   const updatedContent = {
     auths: {
-      'quay.io': {
+      [registryHost]: {
         auth: secretValue,
       },
     },
@@ -54,23 +55,29 @@ describe(
 
     retryableBefore(() => {
       cy.log('Loading test data');
-      return loadDeployOCIModelFixture('e2e/dataScienceProjects/testDeployOCIModel.yaml').then(
-        (fixtureData: DeployOCIModelData) => {
+      return loadDeployOCIModelFixture('e2e/dataScienceProjects/testDeployOCIModel.yaml')
+        .then((fixtureData: DeployOCIModelData) => {
           testData = fixtureData;
           projectName = `${testData.projectName}-${uuid}`;
           connectionName = testData.connectionName;
+          ociRegistryHost = testData.ociRegistryHost;
           // Build pull-secret from env value and write to temp file (removed in after hook)
           const secretValue = Cypress.env('OCI_SECRET_VALUE');
-          updateSecretDetailsFile(secretValue);
-          ociRegistryHost = testData.ociRegistryHost;
-          modelDeploymentURI = Cypress.env('OCI_MODEL_URI');
+          updateSecretDetailsFile(secretValue, ociRegistryHost);
+          modelDeploymentURI = testData.modelOciUri ?? (Cypress.env('OCI_MODEL_URI') as string);
           modelDeploymentName = testData.modelDeploymentName;
           modelFormat = testData.modelFormat;
           servingRuntime = testData.servingRuntime;
           cy.log(`Loaded project name: ${projectName}`);
+
+          return ensureServingRuntimeTemplate(
+            testData.servingRuntimeName,
+            testData.servingRuntimeYamlPath,
+          );
+        })
+        .then(() => {
           createCleanProject(projectName);
-        },
-      );
+        });
     });
 
     after(() => {
@@ -144,8 +151,7 @@ describe(
           .then((val) => {
             resourceName = val as string;
           });
-        modelServingWizard.findModelFormatSelectOption(modelFormat).click();
-        modelServingWizard.selectServingRuntimeOption(servingRuntime);
+        modelServingWizard.selectServingRuntimeAndFormat(servingRuntime, modelFormat);
         modelServingWizard.findNextButton().click();
 
         cy.step('Step 3: Advanced settings');
