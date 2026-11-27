@@ -289,7 +289,7 @@ fields such as `outcome`, `summary`, `prior_review_sha`, or
 | `findings`  | array   | conditional     | Array of finding objects (min 1 item when present)|
 | `producers` | object  | yes (non-failure) | Dispatch mirror, `raised` history, adapters, expanded `challenger` (see below) |
 | `product_ask` | object | conditional     | Product-ask section object (`status`, optional alignment fields, optional per-issue `issues[]`; the host computes top-level status from per-issue statuses) |
-| `checks`    | array   | conditional     | Readiness check objects (`id`, `status`, `summary`, …) |
+| `checks`    | array   | conditional     | Readiness check objects (`id`, `status`, `summary`, …): one per registry-declared sub-check |
 | `todo`      | array   | no              | Follow-up item strings or `{category,text}` objects |
 | `inspected` | object  | no              | `{summary?, could_not_verify?}` |
 | `risk`      | object  | yes (non-failure) | `{level, why}` blast-radius rating |
@@ -315,6 +315,7 @@ fields such as `outcome`, `summary`, `prior_review_sha`, or
 | `adapters`   | object[] | yes | `{id, status}` (`ok` / `none` / `skipped` / `error`); optional `reason` |
 | `skipped`    | object[] | yes | `{id, reason}` for producers not run |
 | `raised`     | object | yes | As-raised findings arrays keyed by findings-producer id |
+| `check_ids`  | object | no | Sub-check ids each check producer returned, keyed by producer id |
 | `challenger` | object | yes | At least `{status}`; when `ran`, include counts and `removed_findings` |
 | `returned`   | string[] | no | Registry ids that returned |
 

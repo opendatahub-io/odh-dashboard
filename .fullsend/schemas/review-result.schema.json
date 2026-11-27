@@ -21,6 +21,7 @@
     "product_ask": { "$ref": "#/$defs/product_ask" },
     "checks": {
       "type": "array",
+      "description": "Flattened readiness rows. A check:* producer that declares several checks in dimensions.json contributes one row per declared check id; a producer without a declared set contributes one row whose id is the producer id. Order is host-controlled: dispatch order, then registry declaration order.",
       "items": { "$ref": "#/$defs/readiness_check" }
     },
     "todo": {
@@ -208,6 +209,14 @@
             "items": { "$ref": "#/$defs/finding" }
           }
         },
+        "check_ids": {
+          "type": "object",
+          "description": "Sub-check ids each check producer returned, keyed by producer id, so ledger accounting covers every rendered row instead of only the producer id. A current producer must record this. Ids must belong to that producer's registry-declared checks; the host drops a row whose id no producer declares and floors a declared-but-unreturned id to could-not-verify. Enforcement never depends on this field being present: a missing, empty or inconsistent entry is still held to the registry declaration.",
+          "additionalProperties": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          }
+        },
         "challenger": { "$ref": "#/$defs/challenger" }
       }
     },
@@ -248,6 +257,7 @@
     },
     "readiness_check": {
       "type": "object",
+      "description": "One sticky Checks row. id is a registry-declared sub-check id when the producer declares checks[], otherwise the producer id.",
       "additionalProperties": false,
       "required": ["id", "status", "summary"],
       "properties": {

@@ -1,16 +1,16 @@
 ---
 name: test-impact-review
-description: "Assess whether a pull request or local change has assurance-grade test impact: durable automation, efficient tier, and deep testing evidence. Use when reviewing test impact, automation sufficiency, test efficiency, or merge readiness."
+description: "Assess whether a pull request or local change has assurance-grade test impact: durable automation, efficient tier, deep testing evidence, and the visual proof the change requires. Use when reviewing test impact, automation sufficiency, test efficiency, visual evidence, or merge readiness."
 argument-hint: "[PR number | path | branch]"
 ---
 
 # Test Impact Review
 
-Assurance-grade readiness check for how the change is tested. Scores **Automation**, **Efficiency**, and **Evidence depth**. This is narrower than a test run and is a readiness check only (not a code-finding producer): it judges durable automation, tier/efficiency, and whether the available proof covers the change and protects feature integrity while those tests stay green. Available proof means author-supplied description evidence, committed automation in the diff, plus suites that required PR status checks run for the changed packages; this skill judges whether that combined proof is adequate for the actual changes.
+Assurance-grade readiness check for how the change is tested. Scores **Automation**, **Efficiency**, **Evidence depth**, and **Visual evidence**. This is narrower than a test run and is a readiness check only (not a code-finding producer): it judges durable automation, tier/efficiency, and whether the available proof covers the change and protects feature integrity while those tests stay green. Available proof means author-supplied description evidence, committed automation in the diff, plus suites that required PR status checks run for the changed packages; this skill judges whether that combined proof is adequate for the actual changes.
 
 ## Invocation contract
 
-This skill owns the test-impact criteria and status mapping. A caller may provide an invocation meta-prompt that changes context acquisition, output format, and side-effect rules, but not these criteria. Without one, use the direct CLI defaults and return the Markdown report in [Report](#report).
+This skill owns the test-impact criteria, the declared check ids, and the status mapping. A caller may provide an invocation meta-prompt that changes context acquisition, output format, and side-effect rules, but not these criteria. Without one, use the direct CLI defaults and return the Markdown report in [Report](#report).
 
 ## Inputs and direct CLI defaults
 
@@ -41,7 +41,7 @@ so visual proof cannot be inspected there — record that rather than assuming i
 
 ## Review procedure
 
-Classify changed paths (product code vs docs / manifests / generated / lockfiles / CI config). Then score the three aspects below. Evaluate substance in the PR body end-to-end (ignore HTML comments); testing proof may appear under any heading, but a heading alone is not enough.
+Classify changed paths (product code vs docs / manifests / generated / lockfiles / CI config). Then score the four aspects below. Evaluate substance in the PR body end-to-end (ignore HTML comments); testing proof may appear under any heading, but a heading alone is not enough.
 
 **Do not** treat “a `.test.` / `.spec.` / `.cy.` file changed” as an automatic pass. **Do not** treat a substantive testing rationale in the PR description alone as an automatic pass — use it as input to Evidence depth.
 
@@ -72,9 +72,7 @@ Dig into available testing evidence (author-supplied and required-CI suites, plu
 - **Required-CI suites need no author call-out.** Treat them as proving themselves, per the [required-CI presumption](#inputs-and-direct-cli-defaults). Do not fail, warn, or report “could not verify” because the description does not restate that run, and never ask the author to paste CI output into prose. This skill does not inspect CI status or confirm the checks are green — the merge gate does that; do not add a CI row or caveat here.
 - **Committed automation counts as runtime proof.** A unit, component, or Cypress test that drives the changed scenario and asserts the outcome is evidence depth even before it executes: read its steps and judge whether it covers the change. Do not downgrade because the test “has not run” locally or CI has not reported — required-CI status checks and the merge gate own execution. When such automation covers the flow, an author-reported manual check is optional and neither stronger nor additionally required.
 - **Author-supplied proof is still required for what required CI cannot show:** cluster or manual checks, suites outside required CI, and test-quality judgments (see Automation and Efficiency). Missing proof for any of these stays ❌ as below.
-- **Visual proof is scoped by the [visual-evidence triage](#visual-evidence-triage).** Missing a required visual artifact is at most ⚠️ and never the sole ❌. An artifact that is claimed or attached but off-surface, wrong state, or otherwise does not show the change → ❌. `none` waives only the visual artifact; other Evidence depth proof may still be required.
-- **Inspect attached images before crediting them.** When the change produces UI or visual behavior and the PR body or thread carries screenshots, open the local copies listed in the context file and judge whether they depict the changed behavior. A media link, filename, or caption alone is not evidence. If a listed image is missing, unreadable, or unrelated to the claim, score that proof as absent and say so explicitly. Record the limitation in the check result as `Could not verify image evidence: <detail>` so the orchestrator can carry it into `inspected.could_not_verify`.
-- **Stills prove static state only.** A screenshot can show rendering, layout, and a selected state; it cannot demonstrate first paint, live OS or media-query transitions, interaction, or sequence. Do not let a still close a gap that needs a recording or an automated test.
+- **Visual proof is scored by the [Visual evidence](#4-visual-evidence) aspect**, not here. `none` in that triage waives only the visual artifact; other Evidence depth proof may still be required.
 - Testing proof **not called out in the PR description** → ❌, even when the tree already has good automation. Silent “tests exist in the tree” is not enough. Exception: suites covered by required CI, per the first bullet.
 - Proof present but does not cover the changed behavior, or green tests would not protect integrity → ❌.
 - Proof present but thin / partially matched to the change → ⚠️.
@@ -82,9 +80,21 @@ Dig into available testing evidence (author-supplied and required-CI suites, plu
 - **Still scored** for docs, manifests, lockfiles, CI config, and similar: require verification proof (install/deploy check, override rationale, etc.) that fits the change. Verification performed by required CI satisfies this where it covers the change, and for non-behavioral edits (localization strings, docs, formatting) an explicit scope statement such as “localization only; no behavior change” is sufficient. Otherwise the proof belongs in the description. Missing proof → ❌.
 - **➖** only when no PR body is available (cannot evaluate description call-out). Do **not** mark the whole check ➖ merely because the head is docs/manifest/lockfile-only.
 
+### 4. Visual evidence
+
+Score the visual artifact this head requires, using the [visual-evidence triage](#visual-evidence-triage) below. Name the triage class in the summary so a reader can see why an artifact was or was not required.
+
+- **Inspect attached images before crediting them.** When the change produces UI or visual behavior and the PR body or thread carries screenshots, open the local copies listed in the context file and judge whether they depict the changed behavior. A media link, filename, or caption alone is not evidence. If a listed image is missing, unreadable, or unrelated to the claim, do not credit it.
+- Class `none` → ➖.
+- The accepted artifact for the class is present and shows the change → ✅.
+- The accepted artifact is missing → ⚠️. Absence alone is never ❌.
+- An artifact is attached but does not show the change → ❌.
+- An artifact is attached but cannot be inspected → `could-not-verify`, with `Could not verify image evidence: <detail>` in the summary.
+- **Stills prove static state only.** A screenshot can show rendering, layout, and a selected state; it cannot demonstrate first paint, live OS or media-query transitions, interaction, or sequence. Do not let a still close a gap that needs a recording or an automated test.
+
 ### Visual-evidence triage
 
-Decide what artifact could falsify this head before asking for one. Classify the change itself, not its file extension and not the package it lives in. Record `Visual delta: [class] -- [reason]` in the Evidence depth cell (and in check `details` when the caller uses JSON output).
+Decide what artifact could falsify this head before asking for one. Classify the change itself, not its file extension and not the package it lives in. The resulting class decides what this aspect requires and which status it may return.
 
 **Gate:** could a visual artifact (still or recording) fail while every committed assertion that actually covers this change still passes? If no → `none`. If yes → choose `screenshot` or `recording` from the table. Mixed heads take the strongest class: `recording` > `screenshot` > `none`.
 
@@ -101,25 +111,40 @@ Rules:
 
 ## Status mapping
 
-Overall status follows the applicable aspects (ignore ➖): any ❌ → failed; else any ⚠️ → warning; else passed when at least one aspect was scored. If every aspect is ➖, the check is not applicable.
+The mappings in this section apply to the direct-CLI Markdown report only.
+
+For the single-row report, overall status follows the applicable aspects (ignore ➖), in this precedence: any ❌ → failed; else any `could-not-verify` → could not verify; else any ⚠️ → warning; else passed when at least one aspect was scored. If every aspect is ➖, the check is not applicable. An attached but uninspectable artifact is `could-not-verify`, so it can never roll up to passed.
 
 | Status | Meaning |
 | --- | --- |
 | ✅ passed | Every applicable aspect is ✅ |
 | ⚠️ warning | At least one applicable aspect is ⚠️, and every other applicable aspect is ✅ or ⚠️ |
 | ❌ failed | At least one applicable aspect is ❌ |
+| ❔ could not verify | No aspect failed, and at least one applicable aspect is `could-not-verify` (e.g. an attached artifact that could not be opened). The direct-CLI report cannot confirm the requirement, so it must not claim passed. |
 | ➖ not applicable | Nothing to review (e.g. empty change and no PR body), or every aspect is ➖ |
+
+## Check ids
+
+Each id below names an aspect this skill scores. When the caller supplies declared checks (`Output checks`), return one object per id under the caller's check output contract; without declared checks, return the single-row Markdown report in [Report](#report).
+
+| Declared id | Aspect | Statuses it may return |
+| --- | --- | --- |
+| `test-impact-automation` | Automation | `pass`, `warning`, `fail`, `not-applicable` |
+| `test-impact-efficiency` | Efficiency | `pass`, `warning`, `fail`, `not-applicable` |
+| `test-impact-evidence` | Evidence depth | `pass`, `warning`, `fail`, `not-applicable` |
+| `test-impact-visual` | Visual evidence | `pass`, `warning`, `fail`, `not-applicable`, `could-not-verify` |
 
 ## Report
 
 ```md
 ## Test Impact Review
 
-**Status:** ✅ passed | ⚠️ warning | ❌ failed | ➖ not applicable
+**Status:** ✅ passed | ⚠️ warning | ❌ failed | ❔ could not verify | ➖ not applicable
 
 | Item | Status | Evidence |
 | --- | --- | --- |
 | Automation | <status> | <summary> |
 | Efficiency | <status> | <summary> |
-| Evidence depth | <status> | <summary; include `Visual delta: [class] -- [reason]`> |
+| Evidence depth | <status> | <summary> |
+| Visual evidence | <status> | <summary, naming the triage class> |
 ```

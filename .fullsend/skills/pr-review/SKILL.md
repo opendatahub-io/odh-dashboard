@@ -17,7 +17,8 @@ carried from that revision. Local change: dimensions come from
 `/sandbox/workspace/odh-review/dimensions.json`. Discriminator is `output`:
 `findings` (LLM + CLI → merge + challenger), `context` (host
 snapshot or pre-dispatch LLM brief, not challenger), `section:<name>`
-(schema field, not challenger), `check:<name>` (readiness result), and
+(schema field, not challenger), `check:<name>` (one or more readiness rows, one
+per declared `checks[]` id), and
 `signal:<name>` (schema members named by `result_fields`). This file must not
 hardcode dimension names, count, kind, or schema member names.
 
@@ -68,6 +69,7 @@ Each `dimensions[]` object:
 | `kind` | `llm-subagent`, `llm-skill`, or `cli-adapter` |
 | `output` | `findings` (default) · `context` · `section:<name>` · `check:<name>` · `signal:<name>` |
 | `result_fields` | Schema members a `section:*` or `signal:*` row returns; for `section:*`, defaults to the section named by `output` |
+| `checks` | `check:*` rows only: the sub-checks this producer must return, as `[{ "id", "label" }]`. Ids are machine keys, labels are host-owned display text. Omitted → a single check whose id is the row id (unchanged single-check producers) |
 | `include_findings` | For a `section:*` LLM, also collect its returned `findings[]` into synthesis |
 | `dispatch` | `always` or `conditional` |
 | `when` | For `conditional` LLM rows: when this dimension is in scope |
@@ -1011,11 +1013,14 @@ was selected in step 3c:
 4-check). Compose each check prompt like a structured-output row:
 `definition`, `meta-prompts/common-review.md`, the row's `meta_prompt`,
 `Output id` / `Output kind`, spawned with the step 4 item 2 dispatch
-shape. Context: shared context file and the step
-3g brief named the way step 4 does (not `producers.json`, not final
-findings). Validate `check.id` equals `row.id` when the return arrives
-and merge into `producers.json` `checks`. On timeout or malformed JSON,
-record the same `could-not-verify` object as step 5b.
+shape. Also supply `Output checks`, the row's registry-declared
+`{id,label}` set (or `[{"id": row.id, "label": row.label}]` when the row
+declares none): the producer returns one check object per supplied id.
+Context: shared context file and the step 3g brief named the way step 4
+does (not `producers.json`, not final findings). Validate `checks[].id`
+against that supplied set when the return arrives and merge into
+`producers.json` `checks` plus `check_ids.<row.id>`. On timeout or
+malformed JSON, record the same `could-not-verify` object(s) as step 5b.
 
 If a structured-output LLM times out or returns malformed JSON, record its
 explicit unavailable result. Do **not** fail the review and do **not** add a
@@ -1045,6 +1050,7 @@ cat > "${FULLSEND_OUTPUT_DIR}/producers.json" <<'JSON'
   "returned": [],
   "raised": {},
   "checks": {},
+  "check_ids": {},
   "sections": {},
   "challenger": { "status": "pending" }
 }
@@ -1062,6 +1068,9 @@ As each return arrives, rewrite `producers.json` to accumulate:
 - `raised.<id>` — as-raised findings array for that findings producer
   (stamp `dimension` at collect)
 - `checks.<id>` / `sections.*` — check/section returns
+- `check_ids.<producer id>` — the sub-check ids that producer returned
+  (one per declared `checks[]` id). This is how the host knows a
+  declared sub-check ran without treating it as its own producer.
 - `returned` — ids that produced a parseable result
 - `challenger` — replaced after step 6d (object with `status`, never a
   string). Leaving `status` at `pending` means "never rewritten", not a
@@ -1070,8 +1079,10 @@ As each return arrives, rewrite `producers.json` to accumulate:
 The challenger is not a producer and is never listed as one. Every
 registry row must appear in exactly one of `dispatched`, `skipped`, or
 `adapters`. A skipped producer is not a passed check: the host turns a
-`checks[]` row into `could-not-verify` when its id is absent from
-`result.producers.dispatched` and adapter ids. Writing the ledger
+`checks[]` row into `could-not-verify` when the producer that declares it
+is absent from `result.producers.dispatched` and adapter ids, and it
+floors a declared sub-check the producer never returned to
+`could-not-verify` too. Writing the ledger
 honestly is therefore cheaper than writing it optimistically.
 
 ### 5. Collect findings
@@ -1156,10 +1167,22 @@ Keep structured-output results separate from findings synthesis. Read each
 `cli-adapter` row from its `producer_file`; do not run its `runner` in the
 sandbox. Also read structured LLM returns when such a row was dispatched.
 
-- For every `check:<name>` row, validate that `check.id` equals the row id
-  and append it to `checks[]`. On malformed, absent, or unavailable host
-  output, append
-  `{ "id": "<row id>", "status": "could-not-verify", "summary": "The producer did not return a valid check result." }`.
+- For every `check:<name>` row, take the returned `checks[]` array (a
+  single-element array stays valid; a lone legacy `check` object is
+  treated as a one-element array) and append each object to the top-level
+  `checks[]`, preserving its `id`, `status`, `summary` and `details`.
+  Every returned id must be one of the row's registry-declared
+  `checks[]` ids (or the row id itself when the row declares none). None
+  of the cases below becomes an extra row: drop an unknown id, collapse a
+  duplicate id to its first occurrence (that surviving row keeps its own
+  status — a dropped duplicate does not fail the producer), and write
+  `{ "id": "<declared id>", "status": "could-not-verify", "summary": "The producer did not return a valid check result." }`
+  for **each** declared id the producer did not return (a dropped unknown
+  id never stands in for a declared one). On malformed, absent, or
+  unavailable host output, write that same object for every declared check
+  of the row. Record each producer's returned sub-check ids in
+  `producers.json` `check_ids`.
+
 ### 6. Synthesis
 
 Collate, deduplicate, and merge **all collected findings arrays**
@@ -1276,8 +1299,8 @@ With a runtime note (pi) a dispatched child cannot be interrupted and
 may outlast the budget. In pipeline mode with `REMAINING` under 900,
 write `agent-result.json` as step 7 describes before dispatching the
 challenger, from the 6a–6c set, with the step 5b `could-not-verify`
-object for any check that has not returned and the 6g failure map for
-the signal members; step 7 overwrites it. A valid result on disk is what
+object for every declared sub-check that has not returned and the 6g
+failure map for the signal members; step 7 overwrites it. A valid result on disk is what
 gets posted if the sandbox is killed.
 
 1. Compose the spawn prompt from:
@@ -1728,7 +1751,9 @@ and sections (step 4-check). **Do not re-dispatch checks here.**
 
 1. Findings path done (challenger object written — ran, skipped, or failed)
 2. All selected sections returned (or explicit unavailable)
-3. All selected checks returned (or explicit `could-not-verify`)
+3. All selected checks returned — every registry-declared `checks[]` id
+   present in `producers.json` `checks` and `check_ids` (or explicit
+   `could-not-verify` for the ones that did not return)
 
 **Signals.** For every selected LLM row whose `output` starts with
 `signal:`:
@@ -1853,12 +1878,15 @@ Every non-failure result must include:
   - `dispatched` / `skipped` / `returned` from the lean ledger
   - `adapters` — status objects (`id`, `status`, optional `reason`)
   - `raised` — as-raised finding history per findings-producer id
+  - `check_ids` — sub-check ids each check producer returned, keyed by
+    producer id (the ledger's `check_ids`, not the working `checks`
+    accumulator)
   - `challenger` — expanded object including `removed_findings`
     (`removed` = `len(removed_findings)`, including merge losers)
   - **Exclude** working-store `checks` and `sections` from this object
 - Signal members: each name in each selected `signal:*` row's `result_fields` that the row returned, or that the step 6g failure map defines. If the row omitted a name and the map does not define it, omit that member and record the gap in `inspected.could_not_verify`. Do not invent or re-derive levels in the orchestrator. The host may still floor signal levels after you write the file.
 - Section members: every name in each selected `section:*` row's `result_fields` (or the section named by `output` when `result_fields` is omitted), projected from `producers.json` `sections`. When that row was not run because its `context_file` was missing or the snapshot `status` was `none` / `error`, write the schema member as `{"status":"none"}` when the schema allows `status`.
-- `checks[]` from `check:*` returns in `producers.json` `checks` (top-level array, not nested under `producers`). Preserve `could-not-verify` rather than converting a check into a finding.
+- `checks[]` from `check:*` returns in `producers.json` `checks` (top-level array, not nested under `producers`): one entry per returned sub-check, so a producer that declares three checks contributes three rows. Preserve `could-not-verify` rather than converting a check into a finding. Do not roll several sub-checks into one row.
 - Image-verification limitations: when a `check:*` result states that image
   or visual evidence could not be inspected (missing, unreadable, or unrelated
   to the claim, e.g. a `Could not verify image evidence:` line), copy that

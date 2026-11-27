@@ -1,5 +1,5 @@
 {
-  "comment": "Review dimension registry. The orchestrator dispatches by output kind only: findings + section:* + check:* together (required), challenger after all findings raised, then every signal:* row (after challenger + all checks + all sections). It must not special-case producer names. Context adapters are trusted host data and never enter challenger synthesis. Host post-review uses optional label for human-facing Check/Producer names; id remains the machine key. The Producers sticky table uses output (Type), result.producers.raised for findings Result, and result_fields (signal/section Result cells).",
+  "comment": "Review dimension registry. The orchestrator dispatches by output kind only: findings + section:* + check:* together (required), challenger after all findings raised, then every signal:* row (after challenger + all checks + all sections). It must not special-case producer names. Context adapters are trusted host data and never enter challenger synthesis. Host post-review uses optional label for human-facing Check/Producer names; id remains the machine key. The Producers sticky table uses output (Type), result.producers.raised for findings Result, and result_fields (signal/section Result cells). A check:* row may declare optional checks[] sub-checks ({id,label}); the producer then returns one check object per declared id and each renders as its own Checks-table row. A row without checks[] is a single check whose id is the row id, exactly as before.",
   "dimensions": [
     {
       "id": "investigator",
@@ -222,7 +222,13 @@
       "failure_severity": "info",
       "budget_priority": 3,
       "re_review": "full",
-      "notes": "Assurance-grade readiness check: Automation, Efficiency, Evidence depth. Overall status follows the applicable aspects. Check status may be fail → request-changes. Readiness check only; excluded from challenger input."
+      "checks": [
+        { "id": "test-impact-automation", "label": "Test: Automation" },
+        { "id": "test-impact-efficiency", "label": "Test: Efficiency" },
+        { "id": "test-impact-evidence", "label": "Test: Evidence depth" },
+        { "id": "test-impact-visual", "label": "Test: Visual evidence" }
+      ],
+      "notes": "Assurance-grade readiness check: Automation, Efficiency, Evidence depth, Visual evidence, returned as one check object per declared checks[] id so each aspect gets its own Checks row. Per-aspect status keeps its meaning (not-applicable where an aspect has nothing to score). Any aspect may be fail → request-changes. Readiness checks only; excluded from challenger input."
     },
     {
       "id": "pr-description-review",
@@ -235,7 +241,12 @@
       "failure_severity": "info",
       "budget_priority": 4,
       "re_review": "full",
-      "notes": "Scores the PR body for substance independently of code findings."
+      "checks": [
+        { "id": "pr-description-problem", "label": "PR description: Problem" },
+        { "id": "pr-description-solution", "label": "PR description: Solution" },
+        { "id": "pr-description-evidence", "label": "PR description: Evidence" }
+      ],
+      "notes": "Scores the PR body for substance independently of code findings, one check object per declared checks[] id (Problem, Solution, Evidence) so each aspect gets its own Checks row."
     },
     {
       "id": "rating",

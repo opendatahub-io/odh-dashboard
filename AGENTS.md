@@ -148,7 +148,7 @@ Skills provide multi-step workflows. They live in `.claude/skills/`. Read the re
 | **Jira Eval Review**               | `skills/jira-eval-review/`             | Evaluating PR code changes against Jira acceptance criteria for per-criterion verdicts |
 | **Jira PR Review**                 | `skills/jira-pr-review/`               | Reviewing a PR against its Jira product ask and explicit acceptance criteria |
 | **Product Ask Review**             | `skills/product-ask-review/`           | Evaluating whether a PR's stated work fulfills the current Jira product ask |
-| **Test Impact Review**             | `skills/test-impact-review/`           | Assurance-grade test impact: Automation, Efficiency, and Evidence depth |
+| **Test Impact Review**             | `skills/test-impact-review/`           | Assurance-grade test impact: Automation, Efficiency, Evidence depth, and Visual evidence |
 | **PR Description Review**          | `skills/pr-description-review/`        | Scoring a PR body for substance readiness: Problem, Solution, and Evidence |
 | **Fullsend Findings**              | `skills/fullsend-findings/`            | Author helper for Fullsend sticky findings — interactive (one-by-one / number / accept-all) or yolo (validate → fix → polish: final review if multi-fix + always code-simplifier → commit → push → description) |
 | **CI Status Review**               | `skills/ci-status-review/`             | Interpreting PR CI state and applicability, delegating failed-test classification to `/ci-flake-classifier` |

@@ -27,7 +27,7 @@ change set.
    **together** (required). CLI **`findings`** / **`context`** envelopes are
    loaded from disk; adapter status is transferred into `producers.adapters`.
    As each return arrives, the orchestrator rewrites `producers.json`
-   (`raised`, checks, sections, `returned`).
+   (`raised`, checks, `check_ids`, sections, `returned`).
 5. After **all findings** are raised, the **challenger** adjudicates the
    merged findings set only. The orchestrator expands stub
    `removed_findings` and writes the expanded `challenger` object into
@@ -95,7 +95,7 @@ Host-rendered provenance under Review details. Sourced from
 | Type | Result cell |
 | --- | --- |
 | `findings` | As-raised from `producers.raised.<id>`: `N findings: cat1, cat2` or `No findings.` (not post-challenger survivors) |
-| `check` | `pass — <summary>` (status + summary); skipped rows use the skip reason |
+| `check` | One sub-check: `pass — <summary>` (status + summary). Several: `3 checks: 2 pass, 1 warning` (per-status counts; per-aspect detail lives in Status → Checks). Skipped rows use the skip reason |
 | `signal` | `risk high · confidence medium` from `result_fields` levels (no `why` prose) |
 | `section` | e.g. `product_ask aligned` from each `result_fields` member’s `status` |
 | `context` | `Context available.` / adapter reason token / unavailable defaults |
@@ -155,9 +155,9 @@ Producer **Ran** icons (`result.producers`):
 | `requires-manual-review` | Host (post-review) | Internal `comment`, or approve downgraded for draft / protected paths. |
 | `rejected` | Host (post-review) | Internal `reject` from finding category `approach-rejected`. PR is closed. |
 
-Internal `request-changes` (blocking findings **or** a check with `status:
-fail`) posts GitHub `CHANGES_REQUESTED` and applies **no** outcome label. Sticky
-Status uses “Waiting on author” prose.
+Internal `request-changes` (blocking findings **or** any check row with
+`status: fail`) posts GitHub `CHANGES_REQUESTED` and applies **no** outcome
+label. Sticky Status uses “Waiting on author” prose.
 
 Control labels that must not appear in agent `label_actions`:
 `ready-for-merge`, `requires-manual-review`, `rejected`, `ready-for-review`,
@@ -191,6 +191,16 @@ judgment; `low` / `info` can ride with `approve`. Category `approach-rejected`
 | `fail` | `request-changes`; refuse approve |
 | `could-not-verify` | Refuse approve; `comment` → `requires-manual-review`; also caps high confidence via incompleteness |
 
+The Checks table renders `not-applicable` as `➖ N/A`; the result keeps the
+machine value.
+
+The table has **one row per returned sub-check**. A `check:*` producer declares
+its sub-checks in `dimensions.json` `checks[]`; each row is labelled from that
+declaration (never from model-authored text) and ordered by dispatch order, then
+declaration order. The disposition above applies per row: one `fail` row
+requests changes even when the producer's other rows pass, and one
+`could-not-verify` row blocks approval.
+
 ### Adapters
 
 | Adapter `status` | Host disposition |
@@ -208,9 +218,14 @@ refuses approve regardless of findings.
 | Check | Role |
 | --- | --- |
 | `pr-description-review` | Surface: Problem / Solution / Evidence — is meaningful test evidence present on the face of the PR body? |
-| `test-impact-review` | Depth: **Automation**, **Efficiency**, **Evidence depth** — durable automation (incl. edge cases); efficient tier (unit over Cypress mock; heavy Cypress / unit-light fails unless the description justifies); dig into proof so it covers the change and protects integrity while tests stay green. Suites exercised by required PR status checks need no description call-out; missing author-supplied proof for what required CI cannot show → Evidence depth `fail` even if tests exist in the tree. Visual proof is owned here via visual-evidence triage (`screenshot` / `recording` / `none`); a missing visual artifact caps at `warning` and never solely fails the check. |
+| `test-impact-review` | Depth: **Automation**, **Efficiency**, **Evidence depth**, **Visual evidence** — durable automation (incl. edge cases); efficient tier (unit over Cypress mock; heavy Cypress / unit-light fails unless the description justifies); dig into proof so it covers the change and protects integrity while tests stay green. Suites exercised by required PR status checks need no description call-out; missing author-supplied proof for what required CI cannot show → Evidence depth `fail` even if tests exist in the tree. Visual proof is its own row, scoped by visual-evidence triage (`screenshot` / `recording` / `none`); a missing visual artifact caps at `warning` and never solely fails the row, while an artifact that does not show the change fails it. |
 
-`test-impact-review` may return **`fail`**, which maps to `request-changes`. Per-aspect N/A: Automation/Efficiency may be N/A for non-product-code heads (lockfile/manifest/docs with nothing to unit-test), or when there are no tests to evaluate for Efficiency; **Evidence depth remains required** for those heads, satisfied by required-CI coverage or — for non-behavioral edits such as localization strings, docs, or formatting — an explicit scope statement (e.g. “localization only; no behavior change”). The check does not inspect current CI status; the merge gate enforces it. Do not N/A the whole check solely because the change is non-code.
+Both producers render one row per aspect (`test-impact-automation`,
+`test-impact-efficiency`, `test-impact-evidence`, `test-impact-visual`;
+`pr-description-problem`, `pr-description-solution`, `pr-description-evidence` —
+see [Declared sub-checks](#declared-sub-checks)).
+
+`test-impact-review` may return **`fail`** on any aspect row, which maps to `request-changes`. Per-aspect N/A: Automation/Efficiency may be N/A for non-product-code heads (lockfile/manifest/docs with nothing to unit-test), or when there are no tests to evaluate for Efficiency; Visual evidence is N/A when visual-evidence triage classifies the head as `none`; **Evidence depth remains required** for those heads, satisfied by required-CI coverage or — for non-behavioral edits such as localization strings, docs, or formatting — an explicit scope statement (e.g. “localization only; no behavior change”). The check does not inspect current CI status; the merge gate enforces it. Do not N/A the whole check solely because the change is non-code.
 
 Committed tests that exercise the changed scenario are runtime evidence: the check judges their steps and assertions, not whether they have executed. Required-CI status checks and the merge gate own execution, so an unrun or not-yet-green test is not an evidence gap.
 
@@ -243,7 +258,7 @@ renders category labels as plain text (not markdown headers).
 | `findings` | Code defects → challenger | Parallel with sections + checks (LLM + CLI envelopes) | `findings-output.md` |
 | `context` | Trusted host snapshot; or, with `stage: pre-dispatch`, an LLM brief every later reviewer reads | Host adapter; or alone, before dispatch | none; `context-output.md` for the LLM brief |
 | `section:*` | Schema object (e.g. `product_ask`) | Parallel with findings + checks | `section-output.md` |
-| `check:*` | Readiness row → `checks[]` | Parallel with findings + sections; before signals | `check-output.md` |
+| `check:*` | Readiness row(s) → `checks[]`, one per declared sub-check | Parallel with findings + sections; before signals | `check-output.md` |
 | `signal:*` | Schema members from `result_fields` | After challenger + all checks + all sections; gets `producers.json` | `signal-output.md` |
 `result_fields` names the schema properties a `section:*` or `signal:*` row
 projects onto the result. For `section:*`, if omitted, default to the name after
@@ -273,12 +288,45 @@ at harness pin `2da538b` (v0.48.1). Everything else is an ODH overlay producer.
 | pr-description-review | PR description | `check:pr-description` | ODH | `sub-agents/pr-description-review/SKILL.md` |
 | rating | Rating | `signal:rating` (`risk`, `confidence`) | ODH | `sub-agents/rating.md` |
 
+### Declared sub-checks
+
+A `check:*` row may declare the checks its producer returns. Each declared
+`{id,label}` becomes one row of the sticky `### Checks` table, labelled from
+the registry — the model never names a row. A row with no `checks[]` is a
+single check whose id is the row id (the pre-multi-check contract), so
+single-check producers need no change.
+
+A producer that returns more than one check **must** declare them. Sub-check
+ids come from the registry, never from `result.producers.check_ids`: the host
+drops a row whose id no producer declares (recording the limit), and a
+producer that declares sub-checks but answers its own id is an incomplete
+current result. The host holds every current result to the declared set no
+matter what the ledger says — a missing, explicitly empty, or inconsistent
+`check_ids` entry cannot drop it back to the legacy single row. The
+pre-multi-check single-row shape is accepted only when the host opts into it
+explicitly with `FULLSEND_LEGACY_SINGLE_CHECK=1` for a legacy replay, never
+because a model-authored field is absent.
+
+| Producer | Declared check ids |
+| --- | --- |
+| `test-impact-review` | `test-impact-automation` (Automation), `test-impact-efficiency` (Efficiency), `test-impact-evidence` (Evidence depth), `test-impact-visual` (Visual evidence) |
+| `pr-description-review` | `pr-description-problem` (Problem), `pr-description-solution` (Solution), `pr-description-evidence` (Evidence) |
+
+Gating, dispatch, ledger accounting and retry stay per **producer**: the
+producer id is the dispatch key and `result.producers.check_ids` records the
+sub-check ids it returned. Only the rendered and gated rows multiply. Any
+`fail` sub-check still yields `request-changes` (check-fail), any
+`could-not-verify` sub-check still blocks approval and caps confidence, and
+`not-applicable` sub-checks never add TODO noise.
+
 ### Adding a producer
 
 1. Add a definition under `sub-agents/` (or a host `scripts/*.sh` for
    `cli-adapter`).
 2. Add a row to `dimensions.json` with the correct `output` kind, a human
-   `label`, and `meta_prompt` / `result_fields` as required.
+   `label`, and `meta_prompt` / `result_fields` as required. A `check:*`
+   producer that evaluates several independent aspects declares them in
+   `checks[]` (`[{id,label}]`) and returns one check object per id.
 3. Run `.fullsend/scripts/validate-dimensions.sh`.
 4. Update the inventory table above.
 
@@ -423,9 +471,9 @@ Canonical schema: [`.fullsend/schemas/review-result.schema.json`](../../schemas/
 | `pr_number`, `repo`, `head_sha`, `schema_version` | Orchestrator | Identity; `schema_version` is `"3"` |
 | `change_summary` | Orchestrator | From shared PR context, not prior-review text |
 | `findings[]` | Findings producers + challenger survivors | Disposition + sticky Findings |
-| `producers` | Orchestrator (from `producers.json`) | Raised history, adapter status, challenger audit, ledger projection — omit working-store `checks`/`sections` (those become top-level); post-review does not re-read side files |
+| `producers` | Orchestrator (from `producers.json`) | Raised history, adapter status, challenger audit, `check_ids` ledger projection — omit working-store `checks`/`sections` (those become top-level); post-review does not re-read side files |
 | `product_ask` | `section:product_ask` | Omit sticky section when `none` |
-| `checks[]` | `check:*` rows | Readiness; disposition-affecting |
+| `checks[]` | `check:*` rows | One entry per returned sub-check (`id`, `status`, `summary`, `details`); the host labels it from the registry. Disposition-affecting |
 | `risk`, `confidence` | `signal:*` via `result_fields` | Sticky Signals table |
 | `todo[]` | Orchestrator final pass | Sticky TODO by category; omit when empty |
 | `inspected` | Orchestrator (+ host limits) | `summary` / `could_not_verify` only — no `producers` |
@@ -443,7 +491,7 @@ For dispatched LLM producers, compose the kind contract after
 | [`common-review.md`](../../meta-prompts/common-review.md) | Shared preface for LLM producers |
 | [`findings-output.md`](../../meta-prompts/findings-output.md) | `findings` |
 | [`section-output.md`](../../meta-prompts/section-output.md) | `section:*` |
-| [`check-output.md`](../../meta-prompts/check-output.md) | `check:*` |
+| [`check-output.md`](../../meta-prompts/check-output.md) | `check:*` (one check object per declared `checks[]` id) |
 | [`signal-output.md`](../../meta-prompts/signal-output.md) | `signal:*` (producer contract) |
 | [`context-output.md`](../../meta-prompts/context-output.md) | `context` with `stage: pre-dispatch` (investigator brief) |
 | [`challenger-justifications.md`](../../meta-prompts/challenger-justifications.md) | Challenger spawn-only: PR `## Justifications` → `justified` action |

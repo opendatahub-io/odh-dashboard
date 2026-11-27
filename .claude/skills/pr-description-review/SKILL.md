@@ -12,7 +12,7 @@ It scores what the author supplied, not whether it is true. It does not inspect 
 
 ## Invocation contract
 
-This skill owns the substance-readiness criteria and status mapping. A caller may provide an invocation meta-prompt that changes context acquisition, output format, and side-effect rules, but not these criteria. Without one, use the direct CLI defaults and return the Markdown report in [Report](#report).
+This skill owns the substance-readiness criteria, the declared check ids, and the status mapping. A caller may provide an invocation meta-prompt that changes context acquisition, output format, and side-effect rules, but not these criteria. Without one, use the direct CLI defaults and return the Markdown report in [Report](#report).
 
 ## Inputs and direct CLI defaults
 
@@ -48,7 +48,9 @@ One classic `## Description` may satisfy **both** Problem and Solution when both
 
 ## Status mapping
 
-The overall status is the worst aspect status: any ❌ makes the review failed, otherwise any ⚠️ makes it a warning.
+The mapping in this section applies to the direct-CLI Markdown report only.
+
+For the single-row report, the overall status is the worst aspect status: any ❌ makes the review failed, otherwise any ⚠️ makes it a warning.
 
 | Status | Meaning |
 | --- | --- |
@@ -56,6 +58,16 @@ The overall status is the worst aspect status: any ❌ makes the review failed, 
 | ⚠️ warning | All aspects present but at least one is thin or vague |
 | ❌ failed | At least one aspect is absent or placeholder-only |
 | ➖ not applicable | No PR body is available |
+
+## Check ids
+
+Each id below names an aspect this skill scores. When the caller supplies declared checks (`Output checks`), return one object per id under the caller's check output contract; without declared checks, return the single-row Markdown report in [Report](#report).
+
+| Declared id | Aspect | Statuses it may return |
+| --- | --- | --- |
+| `pr-description-problem` | Problem | `pass`, `warning`, `fail`, `not-applicable` |
+| `pr-description-solution` | Solution | `pass`, `warning`, `fail`, `not-applicable` |
+| `pr-description-evidence` | Evidence | `pass`, `warning`, `fail`, `not-applicable` |
 
 ## Report
 
