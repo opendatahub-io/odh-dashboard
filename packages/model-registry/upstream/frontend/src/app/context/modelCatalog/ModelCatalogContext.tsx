@@ -37,7 +37,28 @@ import {
 } from '~/app/pages/modelCatalog/utils/performanceFilterUtils';
 import { getEffectiveSortBy } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import useEmptyCategoryTracking from '~/app/hooks/useEmptyCategoryTracking';
+import type {
+  ModelCatalogFilterAppliedType,
+  ModelCatalogPerformanceFilterAppliedType,
+  ModelCatalogPerformanceFilterLatencyMetric,
+} from '~/app/pages/modelCatalog/tracking';
 import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
+
+export type PendingFilterAppliedTracking = {
+  filterType: ModelCatalogFilterAppliedType;
+  filterValue: string | number;
+  isSelected: boolean;
+};
+
+export type PendingVramFilterAppliedTracking = {
+  action: 'applied' | 'reset';
+};
+
+export type PendingPerformanceFilterAppliedTracking = {
+  filterType: ModelCatalogPerformanceFilterAppliedType;
+  action: 'applied' | 'reset';
+  latencyMetric?: ModelCatalogPerformanceFilterLatencyMetric;
+};
 
 const MODEL_CATALOG_HOST_PATH = `${URL_PREFIX}/api/${BFF_API_VERSION}/model_catalog`;
 
@@ -85,6 +106,14 @@ type ModelCatalogExtension = {
   categoriesResolved: boolean;
   reportCategoryEmpty: (label: string, isEmpty: boolean) => void;
   setCategoryCount: (count: number) => void;
+  pendingFilterAppliedTracking: PendingFilterAppliedTracking | null;
+  setPendingFilterAppliedTracking: (pending: PendingFilterAppliedTracking | null) => void;
+  pendingVramFilterAppliedTracking: PendingVramFilterAppliedTracking | null;
+  setPendingVramFilterAppliedTracking: (pending: PendingVramFilterAppliedTracking | null) => void;
+  pendingPerformanceFilterAppliedTracking: PendingPerformanceFilterAppliedTracking | null;
+  setPendingPerformanceFilterAppliedTracking: (
+    pending: PendingPerformanceFilterAppliedTracking | null,
+  ) => void;
 };
 
 export type ModelCatalogContextType = CatalogContextValue<CatalogFilterOptionsList> &
@@ -109,11 +138,28 @@ function useModelCatalogSetup(providerState: CatalogProviderState) {
     React.useState(false);
   const [lastViewedModelName, setLastViewedModelName] = React.useState<string | null>(null);
   const [sortBy, setSortBy] = React.useState<ModelCatalogSortOption | null>(null);
+  const [pendingFilterAppliedTracking, setPendingFilterAppliedTracking] =
+    React.useState<PendingFilterAppliedTracking | null>(null);
+  const [pendingVramFilterAppliedTracking, setPendingVramFilterAppliedTracking] =
+    React.useState<PendingVramFilterAppliedTracking | null>(null);
+  const [pendingPerformanceFilterAppliedTracking, setPendingPerformanceFilterAppliedTrackingState] =
+    React.useState<PendingPerformanceFilterAppliedTracking | null>(null);
   const { emptyCategoryLabels, categoriesResolved, reportCategoryEmpty, setCategoryCount } =
     useEmptyCategoryTracking();
 
   const location = useLocation();
   const isOnDetailsPage = location.pathname.includes(ModelDetailsTab.PERFORMANCE_INSIGHTS);
+
+  // Details Performance Insights must not queue catalog-grid performance filter events.
+  const setPendingPerformanceFilterAppliedTracking = React.useCallback(
+    (pending: PendingPerformanceFilterAppliedTracking | null) => {
+      if (pending !== null && isOnDetailsPage) {
+        return;
+      }
+      setPendingPerformanceFilterAppliedTrackingState(pending);
+    },
+    [isOnDetailsPage],
+  );
 
   const applyNamedQueryDefaults = React.useCallback(
     (namedQuery: NamedQuery) => {
@@ -159,9 +205,16 @@ function useModelCatalogSetup(providerState: CatalogProviderState) {
   }, [baseSetFilterData]);
 
   const clearAllFilters = React.useCallback(() => {
+    setPendingFilterAppliedTracking(null);
+    setPendingVramFilterAppliedTracking(null);
+    setPendingPerformanceFilterAppliedTracking(null);
     clearBasicFilters();
     resetPerformanceFiltersToDefaults();
-  }, [clearBasicFilters, resetPerformanceFiltersToDefaults]);
+  }, [
+    clearBasicFilters,
+    resetPerformanceFiltersToDefaults,
+    setPendingPerformanceFilterAppliedTracking,
+  ]);
 
   const setPerformanceViewEnabled = React.useCallback(
     (enabled: boolean) => {
@@ -303,6 +356,12 @@ function useModelCatalogSetup(providerState: CatalogProviderState) {
       categoriesResolved,
       reportCategoryEmpty,
       setCategoryCount,
+      pendingFilterAppliedTracking,
+      setPendingFilterAppliedTracking,
+      pendingVramFilterAppliedTracking,
+      setPendingVramFilterAppliedTracking,
+      pendingPerformanceFilterAppliedTracking,
+      setPendingPerformanceFilterAppliedTracking,
     }),
     [
       selectedSource,
@@ -324,6 +383,10 @@ function useModelCatalogSetup(providerState: CatalogProviderState) {
       categoriesResolved,
       reportCategoryEmpty,
       setCategoryCount,
+      pendingFilterAppliedTracking,
+      pendingVramFilterAppliedTracking,
+      pendingPerformanceFilterAppliedTracking,
+      setPendingPerformanceFilterAppliedTracking,
     ],
   );
 

@@ -10,6 +10,12 @@ import {
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 import { ModelCatalogSortOption } from '~/concepts/modelCatalog/const';
 import { getActiveLatencyFieldName } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
+import { useUserInteraction } from '~/concepts/userInteraction';
+import {
+  MODEL_CATALOG_EVENTS,
+  ModelCatalogSortChangedProperties,
+  toSortChangedOption,
+} from '~/app/pages/modelCatalog/tracking';
 
 type ModelCatalogSortDropdownProps = {
   performanceViewEnabled: boolean;
@@ -21,6 +27,7 @@ const ModelCatalogSortDropdown: React.FC<ModelCatalogSortDropdownProps> = ({
   testId = 'model-catalog-sort-dropdown',
 }) => {
   const { sortBy, setSortBy, filters } = React.useContext(ModelCatalogContext);
+  const { trackSimpleEvent } = useUserInteraction();
   const [isOpen, setIsOpen] = React.useState(false);
 
   const activeLatencyField = getActiveLatencyFieldName(filters);
@@ -45,6 +52,10 @@ const ModelCatalogSortDropdown: React.FC<ModelCatalogSortDropdownProps> = ({
   ) => {
     if (isValidSortOption(value)) {
       setSortBy(value);
+      const properties: ModelCatalogSortChangedProperties = {
+        sortOption: toSortChangedOption(value),
+      };
+      trackSimpleEvent(MODEL_CATALOG_EVENTS.SORT_CHANGED, properties);
     }
     setIsOpen(false);
   };

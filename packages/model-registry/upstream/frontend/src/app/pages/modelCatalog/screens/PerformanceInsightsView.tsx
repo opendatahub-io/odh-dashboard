@@ -164,6 +164,7 @@ const PerformanceInsightsView: React.FC<PerformanceInsightsViewProps> = ({ model
                   performanceArtifacts={performanceArtifacts.items}
                   isLoading={!performanceArtifactsLoaded && performanceArtifacts.items.length === 0}
                   onSortChange={setTableSort}
+                  columnCustomizationSource="modelDetails"
                 />
               </FlexItem>
               {performanceArtifacts.loadMoreError && (

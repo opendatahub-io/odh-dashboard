@@ -15,7 +15,8 @@ import {
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
 
 const WorkloadTypeFilter: React.FC = () => {
-  const { filters, setFilters } = React.useContext(ModelCatalogContext);
+  const { filters, setFilters, setPendingPerformanceFilterAppliedTracking } =
+    React.useContext(ModelCatalogContext);
   const selectedUseCases = filters[ModelCatalogStringFilterKey.USE_CASE];
   const [isOpen, setIsOpen] = React.useState(false);
 
@@ -31,8 +32,16 @@ const WorkloadTypeFilter: React.FC = () => {
   const handleSelect = (value: string | undefined) => {
     if (value && isUseCaseOptionValue(value)) {
       setFilters((prev) => ({ ...prev, [ModelCatalogStringFilterKey.USE_CASE]: [value] }));
+      setPendingPerformanceFilterAppliedTracking({
+        filterType: 'workload',
+        action: 'applied',
+      });
     } else {
       setFilters((prev) => ({ ...prev, [ModelCatalogStringFilterKey.USE_CASE]: [] }));
+      setPendingPerformanceFilterAppliedTracking({
+        filterType: 'workload',
+        action: 'reset',
+      });
     }
     setIsOpen(false);
   };

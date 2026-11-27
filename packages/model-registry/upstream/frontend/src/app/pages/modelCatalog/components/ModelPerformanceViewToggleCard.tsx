@@ -12,11 +12,23 @@ import {
 } from '@patternfly/react-core';
 import { ChartBarIcon } from '@patternfly/react-icons';
 import { ModelCatalogContext } from '~/app/context/modelCatalog/ModelCatalogContext';
+import { useUserInteraction } from '~/concepts/userInteraction';
+import {
+  MODEL_CATALOG_EVENTS,
+  ModelCatalogPerformanceViewToggledProperties,
+} from '~/app/pages/modelCatalog/tracking';
 import './ModelPerformanceViewToggleCard.scss';
 
 const ModelPerformanceViewToggleCard: React.FC = () => {
   const { performanceViewEnabled, setPerformanceViewEnabled, filterOptionsLoaded } =
     React.useContext(ModelCatalogContext);
+  const { trackSimpleEvent } = useUserInteraction();
+
+  const handlePerformanceViewChange = (_event: unknown, checked: boolean) => {
+    setPerformanceViewEnabled(checked);
+    const properties: ModelCatalogPerformanceViewToggledProperties = { isEnabled: checked };
+    trackSimpleEvent(MODEL_CATALOG_EVENTS.PERFORMANCE_VIEW_TOGGLED, properties);
+  };
 
   return (
     <Card style={{ minWidth: '280px' }}>
@@ -37,7 +49,7 @@ const ModelPerformanceViewToggleCard: React.FC = () => {
                   isChecked={performanceViewEnabled}
                   isReversed
                   isDisabled={!filterOptionsLoaded}
-                  onChange={(_event, checked) => setPerformanceViewEnabled(checked)}
+                  onChange={handlePerformanceViewChange}
                   data-testid="model-performance-view-toggle"
                   className="model-performance-switch"
                 />

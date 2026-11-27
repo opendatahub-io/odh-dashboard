@@ -31,6 +31,11 @@ import {
 } from '~/app/pages/modelCatalog/utils/workloadTypeUtils';
 import { isValueDifferentFromDefault } from '~/app/pages/modelCatalog/utils/modelCatalogUtils';
 import { formatLatency } from '~/app/pages/modelCatalog/utils/performanceMetricsUtils';
+import {
+  toFilterAppliedType,
+  toPerformanceFilterAppliedType,
+  toPerformanceFilterLatencyMetric,
+} from '~/app/pages/modelCatalog/tracking';
 
 type ModelCatalogActiveFiltersProps = {
   filtersToShow: ModelCatalogFilterKey[];
@@ -50,9 +55,30 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({
     setFilters,
     resetSinglePerformanceFilterToDefault,
     getPerformanceFilterDefaultValue,
+    setPendingFilterAppliedTracking,
+    setPendingVramFilterAppliedTracking,
+    setPendingPerformanceFilterAppliedTracking,
   } = React.useContext(ModelCatalogContext);
 
   const isPatternfly = STYLE_THEME === Theme.Patternfly;
+
+  const queuePerformanceFilterReset = (categoryKey: string) => {
+    const filterType = toPerformanceFilterAppliedType(categoryKey);
+    if (!filterType) {
+      return;
+    }
+    setPendingPerformanceFilterAppliedTracking({
+      filterType,
+      action: 'reset',
+      ...(isLatencyFilterKey(categoryKey)
+        ? {
+            latencyMetric: toPerformanceFilterLatencyMetric(
+              parseLatencyFilterKey(categoryKey).metric,
+            ),
+          }
+        : {}),
+    });
+  };
 
   const handleRemoveFilter = (categoryKey: string, labelKey: string) => {
     if (!isCatalogFilterKey(categoryKey)) {
@@ -61,17 +87,47 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({
 
     if (isPerformanceFilterKey(categoryKey)) {
       resetSinglePerformanceFilterToDefault(categoryKey);
+      queuePerformanceFilterReset(categoryKey);
       return;
     }
 
+    const filterType = toFilterAppliedType(categoryKey);
+
     if (isEnumMember(categoryKey, ModelCatalogStringFilterKey)) {
       const currentValues = filters[categoryKey];
+      const nextValues = Array.isArray(currentValues)
+        ? currentValues.filter((v) => String(v) !== String(labelKey))
+        : [];
       if (Array.isArray(currentValues)) {
-        const newValues = currentValues.filter((v) => String(v) !== String(labelKey));
-        setFilters((prev) => ({ ...prev, [categoryKey]: newValues }));
+        setFilters((prev) => ({ ...prev, [categoryKey]: nextValues }));
+      }
+      if (categoryKey === ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION) {
+        setPendingPerformanceFilterAppliedTracking({
+          filterType: 'hardware',
+          action: nextValues.length === 0 ? 'reset' : 'applied',
+        });
+      } else if (filterType) {
+        setPendingFilterAppliedTracking({
+          filterType,
+          filterValue: labelKey,
+          isSelected: false,
+        });
       }
     } else {
+      const previousValue = filters[categoryKey];
       setFilters((prev) => ({ ...prev, [categoryKey]: undefined }));
+      if (
+        categoryKey === ModelCatalogNumberFilterKey.MIN_VRAM &&
+        typeof previousValue === 'number'
+      ) {
+        setPendingVramFilterAppliedTracking({ action: 'reset' });
+      } else if (filterType && typeof previousValue === 'number') {
+        setPendingFilterAppliedTracking({
+          filterType,
+          filterValue: previousValue,
+          isSelected: false,
+        });
+      }
     }
   };
 
@@ -82,13 +138,39 @@ const ModelCatalogActiveFilters: React.FC<ModelCatalogActiveFiltersProps> = ({
 
     if (isPerformanceFilterKey(categoryKey)) {
       resetSinglePerformanceFilterToDefault(categoryKey);
+      queuePerformanceFilterReset(categoryKey);
       return;
     }
 
+    const filterType = toFilterAppliedType(categoryKey);
+
     if (isEnumMember(categoryKey, ModelCatalogStringFilterKey)) {
+      const previousValues = filters[categoryKey];
       setFilters((prev) => ({ ...prev, [categoryKey]: [] }));
+      if (categoryKey === ModelCatalogStringFilterKey.HARDWARE_CONFIGURATION) {
+        queuePerformanceFilterReset(categoryKey);
+      } else if (filterType && Array.isArray(previousValues) && previousValues.length > 0) {
+        setPendingFilterAppliedTracking({
+          filterType,
+          filterValue: previousValues[0],
+          isSelected: false,
+        });
+      }
     } else {
+      const previousValue = filters[categoryKey];
       setFilters((prev) => ({ ...prev, [categoryKey]: undefined }));
+      if (
+        categoryKey === ModelCatalogNumberFilterKey.MIN_VRAM &&
+        typeof previousValue === 'number'
+      ) {
+        setPendingVramFilterAppliedTracking({ action: 'reset' });
+      } else if (filterType && typeof previousValue === 'number') {
+        setPendingFilterAppliedTracking({
+          filterType,
+          filterValue: previousValue,
+          isSelected: false,
+        });
+      }
     }
   };
 

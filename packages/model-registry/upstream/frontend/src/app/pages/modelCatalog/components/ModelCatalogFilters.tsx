@@ -20,7 +20,11 @@ import {
   type FilterPanelItem,
   type StringFilterPanelItem,
 } from '~/app/shared/components/catalog';
-import { MODEL_CATALOG_EVENTS, getToggledFilterValue } from '~/app/pages/modelCatalog/tracking';
+import {
+  MODEL_CATALOG_EVENTS,
+  getToggledFilterValue,
+  toFilterAppliedType,
+} from '~/app/pages/modelCatalog/tracking';
 import ModelPerformanceViewToggleCard from './ModelPerformanceViewToggleCard';
 import SidebarSliderFilter from './SidebarSliderFilter';
 
@@ -49,8 +53,14 @@ const LABEL_MAPPINGS: Record<string, Record<string, string>> = {
 };
 
 const ModelCatalogFilters: React.FC = () => {
-  const { filterOptions, filterOptionsLoaded, filterOptionsLoadError, filters, setFilters } =
-    React.useContext(ModelCatalogContext);
+  const {
+    filterOptions,
+    filterOptionsLoaded,
+    filterOptionsLoadError,
+    filters,
+    setFilters,
+    setPendingFilterAppliedTracking,
+  } = React.useContext(ModelCatalogContext);
   const { trackSimpleEvent } = useUserInteraction();
 
   const onFilterChange = React.useCallback(
@@ -62,7 +72,7 @@ const ModelCatalogFilters: React.FC = () => {
 
       const previousValues = filters[match];
       const toggledValue = getToggledFilterValue(previousValues, values);
-      const isArgumentSelected = toggledValue ? values.includes(toggledValue) : false;
+      const isSelected = toggledValue ? values.includes(toggledValue) : false;
 
       setFilters((prev) => ({ ...prev, [match]: values }));
 
@@ -70,13 +80,23 @@ const ModelCatalogFilters: React.FC = () => {
       // argumentSelected: argument display name when checked, false when unchecked.
       if (match === ModelCatalogStringFilterKey.VALIDATED_CONFIGURATION && toggledValue) {
         trackSimpleEvent(MODEL_CATALOG_EVENTS.VALIDATED_ARGUMENTS_FILTER_APPLIED, {
-          argumentSelected: isArgumentSelected
+          argumentSelected: isSelected
             ? LABEL_MAPPINGS[match][toggledValue] || toggledValue
             : false,
         });
+        return;
+      }
+
+      const filterType = toFilterAppliedType(match);
+      if (filterType && toggledValue) {
+        setPendingFilterAppliedTracking({
+          filterType,
+          filterValue: toggledValue,
+          isSelected,
+        });
       }
     },
-    [filters, setFilters, trackSimpleEvent],
+    [filters, setFilters, setPendingFilterAppliedTracking, trackSimpleEvent],
   );
 
   const selectedStringFilters = React.useMemo(() => {
