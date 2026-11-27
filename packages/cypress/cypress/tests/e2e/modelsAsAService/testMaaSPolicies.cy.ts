@@ -1,3 +1,4 @@
+import type { CreateAPIKeyResponse } from '@odh-dashboard/maas/types/api-key';
 import {
   checkMaaSSubscriptionState,
   checkMaaSAuthPolicyState,
@@ -43,6 +44,7 @@ import { loadMaaSFixture } from '../../../utils/dataLoader';
 import { createDataConnectionUri } from '../../../utils/oc_commands/dataConnection';
 import { checkLLMInferenceServiceState } from '../../../utils/oc_commands/modelServing';
 import { getClipboardContent } from '../../../utils/clipboardUtils';
+import { formatApiKeyDisplayDate, formatApiKeyExpirationDate } from '../../../utils/dateUtils';
 
 const uuid = generateTestUUID();
 let testData: ModelAsAServiceTestData;
@@ -61,12 +63,6 @@ let apiKeyExpirationTime: string;
 let policiesModelsCount: number;
 let policiesGroupsCount: number;
 let tokenLimit: string;
-const today = new Date().toLocaleDateString('en-US', {
-  month: 'short',
-  day: 'numeric',
-  year: 'numeric',
-});
-let expiryDate: string;
 
 const CLIPBOARD_WRITE_TEXT_STUB_ALIAS = 'clipboardWriteText';
 
@@ -90,9 +86,6 @@ describe('An admin can manage MaaS authorization policies and control model acce
         tokenLimit = `${tokenRateLimit.limit} / ${tokenRateLimit.window} ${tokenRateLimit.unit}`;
         apiKeyName = `${subscriptionName}-api-key`;
         apiKeyExpirationTime = testData.apiKeyExpirationTime;
-        expiryDate = new Date(
-          new Date().setDate(new Date().getDate() + parseInt(apiKeyExpirationTime, 10)),
-        ).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
       })
       .then(() => {
         cy.log(`Create clean project`);
@@ -322,6 +315,11 @@ describe('An admin can manage MaaS authorization policies and control model acce
         createApiKeyModal.findSubmitButton().should('be.disabled');
         createApiKeyModal.setAfterDays(Number(apiKeyExpirationTime));
         createApiKeyModal.findSubmitButton().should('be.enabled');
+        // The creation response contains the one-time API key.
+        cy.intercept(
+          { method: 'POST', pathname: '**/maas/api/v1/api-keys', times: 1 },
+          { log: false },
+        ).as('createApiKeyForDateChecks');
         createApiKeyModal.findSubmitButton().click();
 
         cy.step('Read the API key from the success dialog');
@@ -341,8 +339,24 @@ describe('An admin can manage MaaS authorization policies and control model acce
           apiKeyRow.findStatus().should('contain.text', ApiKeyStatus.active);
           apiKeyRow.findSubscription().should('contain.text', subscriptionName);
           apiKeyRow.findOwner().should('contain.text', LDAP_ADMIN_USER.USERNAME);
-          apiKeyRow.findCreationDate().should('contain.text', today);
-          apiKeyRow.findExpirationDate().should('contain.text', expiryDate);
+          cy.wait<unknown, { data?: Pick<CreateAPIKeyResponse, 'createdAt'> }>(
+            '@createApiKeyForDateChecks',
+            { log: false },
+          ).then(({ response }) => {
+            const keyCreatedAt = new Date(response?.body.data?.createdAt ?? '');
+            expect(keyCreatedAt.getTime(), 'API key creation timestamp').to.satisfy(
+              Number.isFinite,
+            );
+            apiKeyRow
+              .findCreationDate()
+              .should('contain.text', formatApiKeyDisplayDate(keyCreatedAt));
+            apiKeyRow
+              .findExpirationDate()
+              .should(
+                'contain.text',
+                formatApiKeyExpirationDate(apiKeyExpirationTime, keyCreatedAt),
+              );
+          });
 
           cy.step('Try and inference with the model using the copied API key');
           verifyMaaSModelInferenceUsingCopiedApiKeyFromModal(
