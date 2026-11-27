@@ -1570,7 +1570,7 @@ describe('CreateConnectionWizard', () => {
     expect(screen.queryByRole('heading', { name: 'Verify connection' })).toBeNull();
   });
 
-  it('filters projects where the user cannot create connections', async () => {
+  it('filters projects without connection creation prerequisites', async () => {
     const user = userEvent.setup();
     mockUseNamespaces.mockReturnValue([
       [
@@ -1614,7 +1614,7 @@ describe('CreateConnectionWizard', () => {
     await user.click(screen.getByTestId('connection-project-access-popover-link'));
     expect(
       await screen.findByText(
-        'This list includes only projects in which you have permission to create connections. To request changes to your permissions, contact your administrator.',
+        'This list includes only projects in which you have permission to create connections and read connection types. To request changes to your permissions, contact your administrator.',
       ),
     ).toBeTruthy();
   });
