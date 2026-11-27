@@ -71,6 +71,19 @@ function DatasetCompatibilityCheck({
     currentTraining.sampleSize &&
     currentTest.sampleSize,
   );
+  // Retain the latest completed pair so a later failed/empty refresh cannot rewind the dialog.
+  if (
+    openSamples &&
+    hasCurrentSamples &&
+    !isChecking &&
+    !isPaused &&
+    !hasError &&
+    currentTraining &&
+    currentTest &&
+    (openSamples.training !== currentTraining || openSamples.test !== currentTest)
+  ) {
+    setOpenSamples({ training: currentTraining, test: currentTest });
+  }
   // Preserve the open dialog and its child portal if a refetch returns an empty file.
   const training = hasCurrentSamples ? currentTraining : openSamples?.training;
   const test = hasCurrentSamples ? currentTest : openSamples?.test;

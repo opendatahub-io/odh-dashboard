@@ -73,14 +73,14 @@ describe('useS3GetFileRowCountQuery', () => {
     );
 
     expect(result.current.data).toBeUndefined();
-    await waitFor(() => expect(result.current.data).toBe(144));
+    await waitFor(() => expect(result.current.data?.rowCount).toBe(144));
     expect(global.fetch).toHaveBeenCalledTimes(1);
     expect(global.fetch).toHaveBeenCalledWith(
       expect.stringContaining('view=row-count'),
       expect.anything(),
     );
     rerender();
-    expect(result.current.data).toBe(144);
+    expect(result.current.data?.rowCount).toBe(144);
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
@@ -110,7 +110,7 @@ describe('useS3GetFileRowCountQuery', () => {
     const first = renderHook(useDataset, { wrapper: Wrapper });
     await waitFor(() => {
       expect(first.result.current.schema.data).toEqual(columns);
-      expect(first.result.current.count.data).toBe(144);
+      expect(first.result.current.count.data?.rowCount).toBe(144);
     });
     expect(global.fetch).toHaveBeenCalledTimes(2);
     first.unmount();
@@ -119,10 +119,62 @@ describe('useS3GetFileRowCountQuery', () => {
     // Flush effects and queued query notifications so background requests are observable.
     await act(() => Promise.resolve());
     expect(second.result.current.schema.data).toEqual(columns);
-    expect(second.result.current.count.data).toBe(144);
+    expect(second.result.current.count.data?.rowCount).toBe(144);
     expect(second.result.current.schema.isFetching).toBe(false);
     expect(second.result.current.count.isFetching).toBe(false);
     expect(global.fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('should keep the counted schema snapshot distinct from a later schema-only refresh', async () => {
+    let name = 'original';
+    let rowCount = 144;
+    jest.mocked(global.fetch).mockImplementation(
+      async (url) =>
+        ({
+          ok: true,
+          headers: { get: () => null },
+          blob: async () =>
+            new Blob([
+              JSON.stringify({
+                data:
+                  typeof url === 'string' && url.includes('view=row-count')
+                    ? { row_count: rowCount }
+                    : { columns: [{ name, type: 'string', task_type: 'binary' }] },
+              }),
+            ]),
+        }) as unknown as Response,
+    );
+    const { result } = renderHook(
+      () => ({
+        schema: useS3GetFileSchemaQuery('ns', 'secret', 'bucket', 'data.csv'),
+        count: useS3GetFileRowCountQuery('ns', 'secret', 'bucket', 'data.csv'),
+      }),
+      { wrapper: createWrapper().Wrapper },
+    );
+    await waitFor(() => expect(result.current.count.data?.rowCount).toBe(144));
+    const originalSnapshot = result.current.count.data;
+    expect(originalSnapshot?.schemaUpdatedAt).toBe(result.current.schema.dataUpdatedAt);
+    name = 'replacement';
+    rowCount = 250;
+    await act(async () => {
+      await result.current.schema.refetch();
+    });
+    await waitFor(() => expect(result.current.schema.data[0]?.name).toBe('replacement'));
+    expect(result.current.count.data).toBe(originalSnapshot);
+    expect(result.current.count.data?.schemaUpdatedAt).not.toBe(
+      result.current.schema.dataUpdatedAt,
+    );
+    // A schema-only refresh makes no count request, so it cannot form a refetch cycle.
+    expect(
+      jest
+        .mocked(global.fetch)
+        .mock.calls.filter(([url]) => typeof url === 'string' && url.includes('view=row-count')),
+    ).toHaveLength(1);
+    await act(async () => {
+      await result.current.count.refetch();
+    });
+    await waitFor(() => expect(result.current.count.data?.rowCount).toBe(250));
+    expect(result.current.count.data?.schemaUpdatedAt).toBe(result.current.schema.dataUpdatedAt);
   });
 
   it('should refresh a cached separate-mode schema before counting the file in automatic mode', async () => {
@@ -172,7 +224,7 @@ describe('useS3GetFileRowCountQuery', () => {
     );
     expect(result.current.count.data).toBeUndefined();
     await act(async () => releaseRefresh());
-    await waitFor(() => expect(result.current.count.data).toBe(250));
+    await waitFor(() => expect(result.current.count.data?.rowCount).toBe(250));
     expect(result.current.schema.data[0]?.name).toBe('replacement');
     expect(global.fetch).toHaveBeenCalledTimes(3);
   });
@@ -214,10 +266,10 @@ describe('useS3GetFileRowCountQuery', () => {
       ({ file }) => useS3GetFileRowCountQuery('test-namespace', 'test-secret', 'test-bucket', file),
       { initialProps: { file: 'first.csv' }, wrapper: createWrapper().Wrapper },
     );
-    await waitFor(() => expect(result.current.data).toBe(144));
+    await waitFor(() => expect(result.current.data?.rowCount).toBe(144));
     rerender({ file: 'second.csv' });
     expect(result.current.data).toBeUndefined();
-    await waitFor(() => expect(result.current.data).toBe(250));
+    await waitFor(() => expect(result.current.data?.rowCount).toBe(250));
   });
 
   it('should remain disabled for separate datasets', () => {

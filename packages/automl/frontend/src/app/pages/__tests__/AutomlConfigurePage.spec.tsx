@@ -86,7 +86,11 @@ jest.mock('@odh-dashboard/autox-core/ui/hooks', () => ({
 }));
 
 jest.mock('~/app/hooks/useS3GetFileRowCountQuery', () => ({
-  useS3GetFileRowCountQuery: jest.fn(() => ({ data: 144, isFetching: false, error: null })),
+  useS3GetFileRowCountQuery: jest.fn(() => ({
+    data: { rowCount: 144, schemaUpdatedAt: undefined },
+    isFetching: false,
+    error: null,
+  })),
 }));
 
 jest.mock('~/app/hooks/useS3GetFileSchemaQuery', () => ({

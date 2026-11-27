@@ -139,6 +139,38 @@ describe('DatasetCompatibilityCheck', () => {
     expect(screen.getAllByLabelText('Go to next page')[0]).toBeDisabled();
   });
 
+  it('should retain the latest successful pair after a later empty or failed refresh', () => {
+    const input = props();
+    const { rerender } = render(<DatasetCompatibilityCheck {...input} />);
+    fireEvent.click(screen.getByRole('button', { name: 'View details' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Data preview' }));
+    const training = { ...sample(), sampleRows: [['latest training']], sampleSize: 1 };
+    const test = { ...sample(), sampleRows: [['latest test']], sampleSize: 1 };
+    rerender(<DatasetCompatibilityCheck {...input} training={training} test={test} />);
+    const trainingTable = screen.getByRole('grid', { name: 'Training data preview' });
+    expect(trainingTable).toHaveTextContent('latest training');
+    rerender(
+      <DatasetCompatibilityCheck
+        {...input}
+        training={{ ...training, sampleRows: [], sampleSize: 0 }}
+        test={test}
+      />,
+    );
+    expect(screen.getByRole('grid', { name: 'Training data preview' })).toBe(trainingTable);
+    expect(trainingTable).toHaveTextContent('latest training');
+    expect(screen.getByRole('grid', { name: 'Test data preview' })).toHaveTextContent(
+      'latest test',
+    );
+    expect(screen.getByText('Compatibility check could not be refreshed')).toBeInTheDocument();
+    rerender(
+      <DatasetCompatibilityCheck {...input} training={undefined} test={undefined} hasError />,
+    );
+    expect(trainingTable).toHaveTextContent('latest training');
+    expect(screen.getByRole('grid', { name: 'Test data preview' })).toHaveTextContent(
+      'latest test',
+    );
+  });
+
   it('should preserve the open comparison, focus, and sample page during refresh', () => {
     const input = props();
     const { rerender } = render(<DatasetCompatibilityCheck {...input} />);

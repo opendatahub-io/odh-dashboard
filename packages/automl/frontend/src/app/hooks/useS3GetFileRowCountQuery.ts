@@ -3,6 +3,11 @@ import * as z from 'zod';
 import { useS3FileFetchers } from '@odh-dashboard/autox-core/ui/hooks';
 import { getS3FileSchemaQueryKey } from './useS3GetFileSchemaQuery';
 
+type RowCountSnapshot = {
+  rowCount: number;
+  schemaUpdatedAt: number | undefined;
+};
+
 const RowCountResponseSchema = z.object({
   data: z.object({
     // eslint-disable-next-line camelcase -- matches API response field name
@@ -16,7 +21,7 @@ export function useS3GetFileRowCountQuery(
   bucket?: string,
   key?: string,
   enabled = true,
-): UseQueryResult<number, Error> {
+): UseQueryResult<RowCountSnapshot, Error> {
   const { fetchS3Json } = useS3FileFetchers();
   const queryClient = useQueryClient();
   return useQuery({
@@ -30,6 +35,9 @@ export function useS3GetFileRowCountQuery(
         queryKey: getS3FileSchemaQueryKey(namespace, secretName, bucket, key),
         exact: true,
       });
+      const schemaUpdatedAt = queryClient.getQueryState(
+        getS3FileSchemaQueryKey(namespace, secretName, bucket, key),
+      )?.dataUpdatedAt;
       signal.throwIfAborted();
       const result = await fetchS3Json<unknown>(namespace, key, {
         signal,
@@ -42,7 +50,7 @@ export function useS3GetFileRowCountQuery(
       if (!parsed.success) {
         throw new Error('Unexpected API response: CSV row count is missing or invalid');
       }
-      return parsed.data.data.row_count;
+      return { rowCount: parsed.data.data.row_count, schemaUpdatedAt };
     },
     enabled: enabled && Boolean(namespace && secretName && key),
     // Match the schema query: returning to the form reuses the selected file snapshot.

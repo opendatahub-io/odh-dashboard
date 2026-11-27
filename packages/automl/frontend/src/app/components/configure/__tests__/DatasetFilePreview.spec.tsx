@@ -1,7 +1,7 @@
 /* eslint-disable camelcase -- API column names */
 import React from 'react';
 import '@testing-library/jest-dom';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import FileExplorer from '@odh-dashboard/internal/concepts/fileExplorer/FileExplorer/FileExplorer';
 import {
@@ -131,7 +131,7 @@ describe('DatasetFilePreview accessibility in a stack', () => {
         document.body.removeEventListener('keydown', onBubbledKeyDown);
       }
       expect(screen.queryByRole('dialog', { name: 'Preview data.csv' })).not.toBeInTheDocument();
-      expect(trigger).toHaveFocus();
+      await waitFor(() => expect(trigger).toHaveFocus());
       if (parent === 'explorer') {
         expect(screen.getByRole('dialog', { name: 'Select file or folder' })).toBeInTheDocument();
         expect(

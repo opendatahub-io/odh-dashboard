@@ -424,7 +424,7 @@ describe('AutomlConfigure', () => {
     jest.clearAllMocks();
     mockNotificationError.mockClear();
     jest.mocked(useS3GetFileRowCountQuery).mockReturnValue({
-      data: 144,
+      data: { rowCount: 144, schemaUpdatedAt: undefined },
       isFetching: false,
       error: null,
     } as ReturnType<typeof useS3GetFileRowCountQuery>);
@@ -1131,6 +1131,101 @@ describe('AutomlConfigure', () => {
       expect(screen.getByTestId('training-data-load-success')).toBeVisible();
     });
 
+    it('should hide an old row count after a schema-only refresh until the snapshots match', () => {
+      const schemaQuery = {
+        data: MOCK_COLUMNS,
+        sample: {
+          columns: MOCK_COLUMNS,
+          sampleRows: [MOCK_COLUMNS.map(() => 'value')],
+          sampleSize: 1,
+          parseWarnings: 0,
+        },
+        dataUpdatedAt: 100,
+        isLoading: false,
+        isFetching: false,
+        resetSchemaCache: mockResetSchemaCache,
+      };
+      mockuseS3GetFileSchemaQuery.mockReturnValue(
+        schemaQuery as unknown as ReturnType<typeof useS3GetFileSchemaQuery>,
+      );
+      const countQuery = {
+        data: { rowCount: 144, schemaUpdatedAt: 100 },
+        isFetching: false,
+        error: null,
+      };
+      jest
+        .mocked(useS3GetFileRowCountQuery)
+        .mockReturnValue(countQuery as ReturnType<typeof useS3GetFileRowCountQuery>);
+      const { rerender } = renderComponent();
+      fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+      fireEvent.click(screen.getByTestId('browse-bucket-button'));
+      fireEvent.click(screen.getByTestId('file-explorer-select-file'));
+      expect(screen.getByTestId('training-data-load-success')).toHaveTextContent('144 rows');
+      mockuseS3GetFileSchemaQuery.mockReturnValue({
+        ...schemaQuery,
+        dataUpdatedAt: 200,
+      } as unknown as ReturnType<typeof useS3GetFileSchemaQuery>);
+      rerender(<AutomlConfigure />);
+      expect(screen.queryByTestId('training-data-load-success')).not.toBeInTheDocument();
+      jest.mocked(useS3GetFileRowCountQuery).mockReturnValue({
+        ...countQuery,
+        data: { rowCount: 250, schemaUpdatedAt: 200 },
+      } as ReturnType<typeof useS3GetFileRowCountQuery>);
+      rerender(<AutomlConfigure />);
+      expect(screen.getByTestId('training-data-load-success')).toHaveTextContent('250 rows');
+    });
+
+    it('should close the explorer and preview on scope changes without reopening them on return', () => {
+      const explorer = jest.mocked(S3FileExplorer);
+      const originalImplementation = explorer.getMockImplementation();
+      if (!originalImplementation) {
+        throw new Error('Missing explorer mock');
+      }
+      explorer.mockImplementation(({ isOpen, renderFilePreview }) =>
+        isOpen ? (
+          <div data-testid="file-explorer-modal">
+            {renderFilePreview?.({ name: 'data.csv', path: '/data.csv', type: 'csv' })}
+          </div>
+        ) : null,
+      );
+      const schemaQuery = {
+        data: MOCK_COLUMNS,
+        sample: {
+          columns: MOCK_COLUMNS,
+          sampleRows: [MOCK_COLUMNS.map(() => 'value')],
+          sampleSize: 1,
+          parseWarnings: 0,
+        },
+        isLoading: false,
+        isFetching: false,
+        resetSchemaCache: mockResetSchemaCache,
+      };
+      mockuseS3GetFileSchemaQuery.mockReturnValue(
+        schemaQuery as unknown as ReturnType<typeof useS3GetFileSchemaQuery>,
+      );
+      try {
+        const { rerender } = renderComponent();
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        fireEvent.click(screen.getByTestId('browse-bucket-button'));
+        fireEvent.click(screen.getByRole('button', { name: 'View file' }));
+        expect(screen.getByRole('dialog', { name: 'Preview data.csv' })).toBeInTheDocument();
+        rerender(<AutomlConfigure />);
+        expect(screen.getByRole('dialog', { name: 'Preview data.csv' })).toBeInTheDocument();
+        expect(screen.getByTestId('file-explorer-modal')).toBeInTheDocument();
+        mockUseParams.mockReturnValue({ namespace: 'other-namespace' });
+        rerender(<AutomlConfigure />);
+        expect(screen.queryByRole('dialog', { name: 'Preview data.csv' })).not.toBeInTheDocument();
+        expect(screen.queryByTestId('file-explorer-modal')).not.toBeInTheDocument();
+        mockUseParams.mockReturnValue({ namespace: 'test-namespace' });
+        rerender(<AutomlConfigure />);
+        fireEvent.click(screen.getByTestId('aws-secret-selector-select-secret-1'));
+        expect(screen.queryByRole('dialog', { name: 'Preview data.csv' })).not.toBeInTheDocument();
+        expect(screen.queryByTestId('file-explorer-modal')).not.toBeInTheDocument();
+      } finally {
+        explorer.mockImplementation(originalImplementation);
+      }
+    });
+
     it.each([
       { state: 'counting', data: undefined, isFetching: true, error: null },
       { state: 'failed', data: undefined, isFetching: false, error: new Error('Count failed') },
@@ -1294,7 +1389,7 @@ describe('AutomlConfigure', () => {
       jest.mocked(useS3GetFileRowCountQuery).mockImplementation(
         (_namespace, _secret, _bucket, key) =>
           ({
-            data: key === 'uploaded-key.csv' ? 250 : 144,
+            data: { rowCount: key === 'uploaded-key.csv' ? 250 : 144, schemaUpdatedAt: undefined },
             isFetching: false,
             error: null,
           }) as ReturnType<typeof useS3GetFileRowCountQuery>,

@@ -362,6 +362,7 @@ function AutomlConfigure({
     error: columnsError,
     resetSchemaCache,
     sample: trainingSample,
+    dataUpdatedAt: trainingSchemaUpdatedAt,
     refetch: refetchTrainingSample,
   } = useS3GetFileSchemaQuery(
     namespace ?? '',
@@ -461,7 +462,7 @@ function AutomlConfigure({
     setFilePreview({ fileKey, scope: previewScope, trigger: event.currentTarget });
 
   const {
-    data: trainingDataRowCount,
+    data: trainingRowCountSnapshot,
     isFetching: isFetchingRowCount,
     error: rowCountError,
     refetch: refetchRowCount,
@@ -472,6 +473,10 @@ function AutomlConfigure({
     trainingQueryFileKey,
     datasetSplitMode !== DATASET_SPLIT_SEPARATE,
   );
+
+  const trainingDataRowCount = trainingRowCountSnapshot?.rowCount;
+  const isTrainingRowCountCurrent =
+    trainingRowCountSnapshot?.schemaUpdatedAt === trainingSchemaUpdatedAt;
 
   // KFP MySQL rejects non-ASCII column names in PipelineRuntimeManifest — hide them from picks.
   const columns = React.useMemo(
@@ -550,6 +555,8 @@ function AutomlConfigure({
 
   // reset selected file values if namespace, secret or bucket changes (skips mount to preserve reconfigure)
   useReconfigureSafeEffect(() => {
+    setFilePreview(undefined);
+    setIsFileExplorerOpen(false);
     trainingDataUploadSeqRef.current += 1;
     testDataUploadSeqRef.current += 1;
     setIsTrainingDataFileUploading(false);
@@ -958,6 +965,7 @@ function AutomlConfigure({
                             !columnsError &&
                             !isFetchingRowCount &&
                             !rowCountError &&
+                            isTrainingRowCountCurrent &&
                             trainingDataRowCount !== undefined &&
                             trainingSample &&
                             trainingSample.sampleSize > 0 &&
