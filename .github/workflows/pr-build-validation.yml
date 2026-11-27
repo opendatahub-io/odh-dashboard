@@ -897,8 +897,9 @@ jobs:
           echo "::endgroup::"
 
   # Smoke-test the PR-built RHAII image in its own Kind cluster. The harness
-  # renders the production RHAII bundle (with its reduced RBAC) minus the
-  # Gateway-only objects; it does not exercise the operator path.
+  # renders the production RHAII bundle minus the Gateway-only objects and
+  # checks unauthenticated routes only; it does not exercise the operator path
+  # or the service-account RBAC.
   rhaii-runtime-validation:
     name: 'Phase 2-3: RHAII Image Runtime Smoke Validation'
     runs-on: ubuntu-latest

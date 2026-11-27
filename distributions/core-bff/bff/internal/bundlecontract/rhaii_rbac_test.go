@@ -84,6 +84,86 @@ func TestRHAIIBundle_DeploymentKeepsTheContractPreconditions(t *testing.T) {
 
 var nameValueArg = regexp.MustCompile(`^--[a-z0-9-]+=`)
 
+// saMountPath is where client-go's in-cluster config reads the token.
+const saMountPath = "/var/run/secrets/kubernetes.io/serviceaccount"
+
+// credentialViolations pins where the pod's Kubernetes identity comes from.
+// The BFF resolves a kubeconfig (KUBECONFIG, then ~/.kube/config) before the
+// in-cluster config, and the in-cluster config trusts whatever token file is
+// mounted at saMountPath. Either could make the "service-account" client a
+// different principal than the one the Role binds, without touching
+// serviceAccountName. So: no kubeconfig or API-endpoint env, no .kube path, and
+// the only mount under /var/run/secrets is a projected volume carrying this
+// pod's own ServiceAccount token, the cluster CA and the namespace.
+func credentialViolations(pod corev1.PodSpec) []string {
+	var v []string
+	fail := func(format string, a ...any) { v = append(v, fmt.Sprintf(format, a...)) }
+	volumes := map[string]corev1.Volume{}
+	for _, vol := range pod.Volumes {
+		volumes[vol.Name] = vol
+	}
+	for _, c := range append(append([]corev1.Container{}, pod.InitContainers...), pod.Containers...) {
+		for _, e := range c.Env {
+			switch e.Name {
+			case "KUBECONFIG", "HOME", "KUBERNETES_SERVICE_HOST", "KUBERNETES_SERVICE_PORT", "KUBERNETES_MASTER":
+				fail("container %q sets %s, which changes the Kubernetes credentials or endpoint", c.Name, e.Name)
+			}
+		}
+		if len(c.EnvFrom) > 0 {
+			fail("container %q uses envFrom, which could set the Kubernetes credentials or endpoint", c.Name)
+		}
+		for _, m := range c.VolumeMounts {
+			path := strings.TrimRight(m.MountPath, "/")
+			switch {
+			case strings.Contains(path, ".kube"):
+				fail("container %q mounts %s, a kubeconfig location", c.Name, m.MountPath)
+			case path == saMountPath:
+				if !isOwnServiceAccountToken(volumes[m.Name]) || m.SubPath != "" {
+					fail("container %q mounts %q at %s; only the projected ServiceAccount token may be mounted there", c.Name, m.Name, saMountPath)
+				}
+			case strings.HasPrefix(path, "/var/run/secrets") || strings.HasPrefix(saMountPath, path+"/") || path == "":
+				fail("container %q mounts %s over the ServiceAccount credentials path", c.Name, m.MountPath)
+			}
+		}
+	}
+	return v
+}
+
+// isOwnServiceAccountToken accepts exactly the projected volume the bundle
+// ships: a token for the pod's own ServiceAccount, the cluster CA bundle and
+// the downward-API namespace.
+func isOwnServiceAccountToken(vol corev1.Volume) bool {
+	p := vol.Projected
+	if p == nil || len(p.Sources) != 3 {
+		return false
+	}
+	var token, ca, ns bool
+	for _, src := range p.Sources {
+		switch {
+		case src.ServiceAccountToken != nil && src.ServiceAccountToken.Path == "token":
+			token = true
+		case src.ConfigMap != nil && src.ConfigMap.Name == "kube-root-ca.crt":
+			ca = true
+		case src.DownwardAPI != nil && len(src.DownwardAPI.Items) == 1 && src.DownwardAPI.Items[0].FieldRef != nil &&
+			src.DownwardAPI.Items[0].FieldRef.FieldPath == "metadata.namespace":
+			ns = true
+		}
+	}
+	return token && ca && ns
+}
+
+// imageRepo drops the tag and digest, so a sidecar cannot run the dashboard
+// image under another tag.
+func imageRepo(image string) string {
+	if i := strings.Index(image, "@"); i >= 0 {
+		image = image[:i]
+	}
+	if i := strings.LastIndex(image, ":"); i > strings.LastIndex(image, "/") {
+		image = image[:i]
+	}
+	return image
+}
+
 // profileViolations lists how the Deployment departs from the production
 // profile the service-account contract assumes.
 func profileViolations(d appsv1.Deployment) []string {
@@ -110,11 +190,12 @@ func profileViolations(d appsv1.Deployment) []string {
 	if c == nil {
 		return append(v, "the Deployment has no rhaii-dashboard container")
 	}
+	v = append(v, credentialViolations(pod)...)
 	for _, other := range pod.Containers {
 		if len(other.Command) > 0 {
 			fail("container %q overrides the image entrypoint with %v", other.Name, other.Command)
 		}
-		if other.Name != c.Name && other.Image == c.Image {
+		if other.Name != c.Name && imageRepo(other.Image) == imageRepo(c.Image) {
 			fail("container %q runs the dashboard image outside the checked profile", other.Name)
 		}
 	}
@@ -142,13 +223,14 @@ func profileViolations(d appsv1.Deployment) []string {
 	}
 	// No DEV_MODE fallback to the service account, no mocked clients, no
 	// single-header mode, no admission override, no namespace override.
-	for _, name := range []string{"auth-token-header", "auth-token-prefix", "admission-mode", "dev-mode", "mock-k8s-client", "insecure-skip-verify", "namespace"} {
+	for _, name := range []string{"auth-token-header", "auth-token-prefix", "admission-mode", "dev-mode", "mock-k8s-client", "mock-http-client", "mock-bff-clients", "insecure-skip-verify", "namespace"} {
 		if lastFlagValue(args, name) != nil {
 			fail("--%s must not be set in the bundle", name)
 		}
 	}
 	forbiddenEnv := map[string]bool{"ODH_PLATFORM_TYPE": true, "AUTH_METHOD": true, "AUTH_TOKEN_HEADERS": true, "AUTH_TOKEN_HEADER": true,
-		"AUTH_TOKEN_PREFIX": true, "ADMISSION_MODE": true, "DEV_MODE": true, "MOCK_K8S_CLIENT": true, "INSECURE_SKIP_VERIFY": true}
+		"AUTH_TOKEN_PREFIX": true, "ADMISSION_MODE": true, "DEV_MODE": true, "MOCK_K8S_CLIENT": true, "MOCK_HTTP_CLIENT": true, "MOCK_BFF_CLIENTS": true,
+		"INSECURE_SKIP_VERIFY": true}
 	namespaceFromPod := false
 	for _, e := range c.Env {
 		if forbiddenEnv[e.Name] {
@@ -478,6 +560,16 @@ func serviceAccountGrants(b bundle) ([]grant, []string) {
 			}
 		}
 	}
+	// An aggregation label folds a bundle ClusterRole into a built-in one
+	// (view, edit, admin), widening every holder of that role cluster-wide,
+	// whether or not the bundle binds it.
+	for _, cr := range b.clusterRoles {
+		for label := range cr.Labels {
+			if strings.HasPrefix(label, "rbac.authorization.k8s.io/aggregate-to-") {
+				violations = append(violations, fmt.Sprintf("ClusterRole/%s carries the aggregation label %s", cr.Name, label))
+			}
+		}
+	}
 	for _, rb := range b.roleBindings {
 		bind("RoleBinding/"+rb.Name, false, rb.RoleRef, rb.Subjects)
 	}
@@ -685,6 +777,40 @@ targets:
 		assert.Contains(t, strings.Join(profileViolations(b.deployment(t)), "\n"), "init containers")
 	})
 
+	for name, patch := range map[string]string{
+		"kubeconfig env": `- op: add
+  path: /spec/template/spec/containers/0/env/-
+  value: {name: KUBECONFIG, value: /creds/config}`,
+		"token volume swapped for a Secret": `- op: replace
+  path: /spec/template/spec/volumes/1
+  value: {name: dashboard-sa-token, secret: {secretName: privileged-sa-token}}`,
+		"extra mount under /var/run/secrets": `- op: add
+  path: /spec/template/spec/containers/0/volumeMounts/-
+  value: {name: tmp, mountPath: /var/run/secrets/other}`,
+		"kubeconfig mount": `- op: add
+  path: /spec/template/spec/containers/0/volumeMounts/-
+  value: {name: tmp, mountPath: /home/user/.kube}`,
+		"sidecar on another tag of the dashboard image": `- op: add
+  path: /spec/template/spec/containers/-
+  value: {name: twin, image: "quay.io/opendatahub/rhaii-dashboard:other", args: [--dev-mode]}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			b := overlay(t, head+"patches:\n  - target: {kind: Deployment, name: rhaii-dashboard}\n    patch: |\n"+indent(patch, "      ")+"\n", nil)
+			v := profileViolations(b.deployment(t))
+			t.Log(v)
+			assert.NotEmpty(t, v)
+		})
+	}
+
+	t.Run("aggregation label on a ClusterRole", func(t *testing.T) {
+		fs := filesys.MakeFsInMemory()
+		require.NoError(t, copyDirInto(fs, bundleDir, "/bundle"))
+		require.NoError(t, fs.WriteFile("/overlay/kustomization.yaml", []byte(head+"  - agg.yaml\n")))
+		require.NoError(t, fs.WriteFile("/overlay/agg.yaml", []byte("apiVersion: rbac.authorization.k8s.io/v1\nkind: ClusterRole\nmetadata:\n  name: agg\n  labels: {rbac.authorization.k8s.io/aggregate-to-view: \"true\"}\nrules: [{apiGroups: [\"\"], resources: [secrets], verbs: [get]}]\n")))
+		_, violations := serviceAccountGrants(renderBundle(t, fs, "/overlay"))
+		assert.Contains(t, strings.Join(violations, "\n"), "aggregation label")
+	})
+
 	t.Run("unchecked kind", func(t *testing.T) {
 		fs := filesys.MakeFsInMemory()
 		require.NoError(t, copyDirInto(fs, bundleDir, "/bundle"))
@@ -720,6 +846,10 @@ func TestKustomizeMatchesTheOperator(t *testing.T) {
 	}
 	assert.Equal(t, version("../../../../../dashboard-operator/go.mod"), version("../../go.mod"),
 		"bump sigs.k8s.io/kustomize/api in distributions/core-bff/bff/go.mod to the operator's version")
+}
+
+func indent(s, prefix string) string {
+	return prefix + strings.ReplaceAll(s, "\n", "\n"+prefix)
 }
 
 func copyDirInto(fs filesys.FileSystem, src, dst string) error {
