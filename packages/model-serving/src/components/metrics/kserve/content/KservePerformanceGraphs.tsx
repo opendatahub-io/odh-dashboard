@@ -1,4 +1,4 @@
-import { Stack, StackItem } from '@patternfly/react-core/dist/esm';
+import { Alert, Stack, StackItem } from '@patternfly/react-core';
 import React from 'react';
 import { TimeframeTitle } from '@odh-dashboard/ui-core/types/metrics';
 import KserveRequestCountGraph from './KserveRequestCountGraph';
@@ -69,8 +69,16 @@ const KservePerformanceGraphs: React.FC<KservePerformanceGraphsProps> = ({
       );
     }
 
-    // TODO: add an unsupported graph type error state.
-    return null;
+    return (
+      <Alert
+        isInline
+        variant="warning"
+        title="Unsupported graph type"
+        data-testid="unsupported-graph-type"
+      >
+        {graphDefinition.title} cannot be displayed because its graph type is not supported.
+      </Alert>
+    );
   };
 
   return (
