@@ -22,6 +22,14 @@ type DscResource = {
   };
 };
 
+type DashboardResource = {
+  spec?: {
+    managementState?: string;
+    maasPortal?: { managementState?: string };
+  };
+  status?: { maasPortalUrl?: string };
+};
+
 export type MaaSPortalDscSnapshot = {
   name: string;
   namespace?: string;
@@ -33,6 +41,120 @@ const shellQuote = (value: string): string => `'${value.replace(/'/g, `'\\''`)}'
 
 const dscResourceArgs = (dsc: MaaSPortalDscSnapshot): string =>
   `${shellQuote(dsc.name)}${dsc.namespace ? ` -n ${shellQuote(dsc.namespace)}` : ''}`;
+
+const dashboardResource = 'dashboards.components.platform.opendatahub.io/default-dashboard';
+
+export const getRequiredApplicationsNamespace = (): string => {
+  const applicationsNamespace = Cypress.env('APPLICATIONS_NAMESPACE');
+  if (
+    typeof applicationsNamespace !== 'string' ||
+    applicationsNamespace !== applicationsNamespace.trim() ||
+    applicationsNamespace.length > 63 ||
+    !/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(applicationsNamespace)
+  ) {
+    throw new Error(
+      'APPLICATIONS_NAMESPACE must be a valid Kubernetes namespace without surrounding whitespace',
+    );
+  }
+  return applicationsNamespace;
+};
+
+const waitForJsonPath = (
+  resource: string,
+  jsonPath: string,
+  expectedValue: string,
+  description: string,
+): Cypress.Chainable<null> =>
+  execWithOutput(
+    `oc wait ${resource} --for=jsonpath='${jsonPath}'=${expectedValue} --timeout=600s --output=name`,
+    610,
+  ).then((result) => {
+    if (result.exitCode !== 0) {
+      throw new Error(`${description}: ${result.stderr || result.stdout}`);
+    }
+    return cy.wrap(null);
+  });
+
+const getDeploymentNames = (applicationsNamespace: string): Cypress.Chainable<string[]> =>
+  cy
+    .exec(`oc get deployment -n ${shellQuote(applicationsNamespace)} -o json`, {
+      failOnNonZeroExit: false,
+    })
+    .then((result) => {
+      if (result.exitCode !== 0) {
+        throw new Error(`Unable to list deployments: ${result.stderr || result.stdout}`);
+      }
+      const deployments = JSON.parse(result.stdout) as {
+        items?: Array<{ metadata?: { name?: string } }>;
+      };
+      return cy.wrap(
+        (deployments.items ?? [])
+          .map((deployment) => deployment.metadata?.name)
+          .filter((name): name is string => Boolean(name)),
+      );
+    });
+
+const coreDashboardNames = (deploymentNames: string[]): string[] =>
+  deploymentNames.filter((name) => name === 'odh-dashboard' || name === 'rhods-dashboard');
+
+const waitForCoreDashboardDeploymentsRemoved = (
+  applicationsNamespace: string,
+): Cypress.Chainable<null> =>
+  getDeploymentNames(applicationsNamespace).then((deploymentNames) =>
+    coreDashboardNames(deploymentNames).reduce(
+      (chain, deploymentName) =>
+        chain.then(() =>
+          execWithOutput(
+            `oc wait deployment/${shellQuote(deploymentName)} -n ${shellQuote(
+              applicationsNamespace,
+            )} --for=delete --timeout=600s --output=name`,
+            610,
+          ).then((result) => {
+            const output = result.stderr || result.stdout;
+            if (result.exitCode !== 0 && !/not found/i.test(output)) {
+              throw new Error(
+                `Core Dashboard Deployment ${deploymentName} was not removed: ${output}`,
+              );
+            }
+            return cy.wrap(null);
+          }),
+        ),
+      cy.wrap(null),
+    ),
+  );
+
+const waitForCoreDashboardDeploymentAvailable = (
+  applicationsNamespace: string,
+): Cypress.Chainable<null> =>
+  getDeploymentNames(applicationsNamespace).then((deploymentNames) => {
+    const coreDeployments = coreDashboardNames(deploymentNames);
+    if (!coreDeployments.length) {
+      throw new Error(
+        `Core Dashboard Deployment was not recreated in ${applicationsNamespace} during DSC restore`,
+      );
+    }
+    return coreDeployments.reduce(
+      (chain, deploymentName) =>
+        chain.then(() =>
+          execWithOutput(
+            `oc wait deployment/${shellQuote(deploymentName)} -n ${shellQuote(
+              applicationsNamespace,
+            )} --for=condition=Available --timeout=600s --output=name`,
+            610,
+          ).then((result) => {
+            if (result.exitCode !== 0) {
+              throw new Error(
+                `Core Dashboard Deployment ${deploymentName} did not become Available: ${
+                  result.stderr || result.stdout
+                }`,
+              );
+            }
+            return cy.wrap(null);
+          }),
+        ),
+      cy.wrap(null),
+    );
+  });
 
 const getDSC = (): Cypress.Chainable<DSC | null> => {
   const ocCommand = 'oc get datasciencecluster -o json';
@@ -169,56 +291,55 @@ export const waitForMaaSPortalOnlyInstall = (
   applicationsNamespace: string,
   snapshot: MaaSPortalDscSnapshot,
 ): Cypress.Chainable<string> =>
-  execWithOutput(
-    `oc wait datasciencecluster ${dscResourceArgs(
-      snapshot,
-    )} --for=jsonpath='{.spec.components.dashboard.standard.managementState}'=Removed --timeout=600s --output=name`,
-    610,
+  waitForJsonPath(
+    `datasciencecluster ${dscResourceArgs(snapshot)}`,
+    '{.spec.components.dashboard.standard.managementState}',
+    'Removed',
+    'DataScienceCluster dashboard.standard managementState did not become Removed',
   )
-    .then((dashboardStateResult) => {
-      if (dashboardStateResult.exitCode !== 0) {
-        throw new Error(
-          `DataScienceCluster dashboard.standard managementState did not become Removed: ${
-            dashboardStateResult.stderr || dashboardStateResult.stdout
-          }`,
-        );
-      }
-      return execWithOutput(
-        `oc wait datasciencecluster ${dscResourceArgs(
-          snapshot,
-        )} --for=jsonpath='{.spec.components.dashboard.maasPortal.managementState}'=Managed --timeout=600s --output=name`,
+    .then(() =>
+      waitForJsonPath(
+        `datasciencecluster ${dscResourceArgs(snapshot)}`,
+        '{.spec.components.dashboard.maasPortal.managementState}',
+        'Managed',
+        'DataScienceCluster MaaS Portal managementState did not become Managed',
+      ),
+    )
+    .then(() =>
+      waitForJsonPath(
+        dashboardResource,
+        '{.spec.managementState}',
+        'Removed',
+        'Dashboard managementState did not become Removed',
+      ),
+    )
+    .then(() =>
+      waitForJsonPath(
+        dashboardResource,
+        '{.spec.maasPortal.managementState}',
+        'Managed',
+        'Dashboard MaaS Portal managementState did not become Managed',
+      ),
+    )
+    .then(() => waitForCoreDashboardDeploymentsRemoved(applicationsNamespace))
+    .then(() =>
+      execWithOutput(
+        `oc wait ${dashboardResource} --for=condition=MaaSPortalAvailable=true --timeout=600s --output=name`,
         610,
-      );
-    })
-    .then((portalStateResult) => {
-      if (portalStateResult.exitCode !== 0) {
-        throw new Error(
-          `DataScienceCluster MaaS Portal managementState did not become Managed: ${
-            portalStateResult.stderr || portalStateResult.stdout
-          }`,
-        );
-      }
-      return execWithOutput(
-        'oc wait dashboards.components.platform.opendatahub.io/default-dashboard --for=condition=MaaSPortalAvailable --timeout=600s --output=name',
-        610,
-      );
-    })
-    .then((conditionResult) => {
-      if (conditionResult.exitCode !== 0) {
-        throw new Error(
-          `Dashboard did not report MaaSPortalAvailable: ${
-            conditionResult.stderr || conditionResult.stdout
-          }`,
-        );
-      }
-      return cy
-        .exec('oc get dashboards.components.platform.opendatahub.io/default-dashboard -o json', {
-          failOnNonZeroExit: true,
-        })
+      ).then((result) => {
+        if (result.exitCode !== 0) {
+          throw new Error(
+            `Dashboard did not report MaaSPortalAvailable: ${result.stderr || result.stdout}`,
+          );
+        }
+        return cy.wrap(null);
+      }),
+    )
+    .then(() =>
+      cy
+        .exec(`oc get ${dashboardResource} -o json`, { failOnNonZeroExit: true })
         .then((dashboardResult) => {
-          const dashboard = JSON.parse(dashboardResult.stdout) as {
-            status?: { maasPortalUrl?: string };
-          };
+          const dashboard = JSON.parse(dashboardResult.stdout) as DashboardResource;
           const portalUrl = dashboard.status?.maasPortalUrl?.trim();
           if (!portalUrl) {
             throw new Error('Dashboard status.maasPortalUrl is empty');
@@ -239,41 +360,29 @@ export const waitForMaaSPortalOnlyInstall = (
                   `DataScienceCluster does not reflect dashboard.standard=Removed and maasPortal=Managed (got standard=${standardState}, maasPortal=${portalState})`,
                 );
               }
-              return cy
-                .exec(`oc get deployment -n ${shellQuote(applicationsNamespace)} -o json`, {
-                  failOnNonZeroExit: true,
-                })
-                .then((deploymentResult) => {
-                  const deployments = JSON.parse(deploymentResult.stdout) as {
-                    items?: Array<{ metadata?: { name?: string } }>;
-                  };
-                  const deploymentNames = (deployments.items ?? [])
-                    .map((deployment) => deployment.metadata?.name)
-                    .filter((name): name is string => Boolean(name));
-                  const coreDeployments = deploymentNames.filter(
-                    (name) => name === 'odh-dashboard' || name === 'rhods-dashboard',
+              return getDeploymentNames(applicationsNamespace).then((deploymentNames) => {
+                if (coreDashboardNames(deploymentNames).length > 0) {
+                  throw new Error(
+                    `Core Dashboard Deployment(s) still exist in ${applicationsNamespace}`,
                   );
-                  if (coreDeployments.length > 0) {
-                    throw new Error(
-                      `Core Dashboard Deployment(s) still exist in ${applicationsNamespace}: ${coreDeployments.join(
-                        ', ',
-                      )}`,
-                    );
-                  }
-                  if (!deploymentNames.includes('maas-portal')) {
-                    throw new Error(
-                      `MaaS Portal Deployment is missing from ${applicationsNamespace}: expected maas-portal`,
-                    );
-                  }
-                  cy.log('Verified portal-only install: no core Dashboard Deployment exists');
-                  return cy.wrap(portalUrl);
-                });
+                }
+                if (!deploymentNames.includes('maas-portal')) {
+                  throw new Error(
+                    `MaaS Portal Deployment is missing in ${applicationsNamespace}: expected maas-portal`,
+                  );
+                }
+                cy.log('Verified portal-only install: no core Dashboard Deployment exists');
+                return cy.wrap(portalUrl);
+              });
             });
-        });
-    });
+        }),
+    );
 
 /** Restore the DSC state captured by configureMaaSPortalOnly. */
-export const restoreDsc = (snapshot: MaaSPortalDscSnapshot): Cypress.Chainable<null> => {
+export const restoreDsc = (
+  snapshot: MaaSPortalDscSnapshot,
+  applicationsNamespace: string,
+): Cypress.Chainable<null> => {
   const patch = {
     spec: {
       components: {
@@ -298,7 +407,49 @@ export const restoreDsc = (snapshot: MaaSPortalDscSnapshot): Cypress.Chainable<n
           `Failed to restore DSC after MaaS Portal E2E: ${result.stderr || result.stdout}`,
         );
       }
-      cy.log('Restored the original DSC dashboard.standard and MaaS Portal management states');
-      return cy.wrap(null);
+      const standardState = snapshot.standardManagementState;
+      const portalManagementState = snapshot.maasPortal?.managementState;
+      const restoredDashboard = standardState
+        ? waitForJsonPath(
+            dashboardResource,
+            '{.spec.managementState}',
+            standardState,
+            'Dashboard standard managementState was not restored',
+          )
+        : cy.wrap(null);
+      return restoredDashboard
+        .then(() => {
+          if (standardState !== 'Managed') {
+            return cy.wrap(null);
+          }
+          return execWithOutput(
+            `oc wait ${dashboardResource} --for=condition=Ready=true --timeout=600s --output=name`,
+            610,
+          ).then((dashboardResult) => {
+            if (dashboardResult.exitCode !== 0) {
+              throw new Error(
+                `Dashboard did not become Ready after DSC restore: ${
+                  dashboardResult.stderr || dashboardResult.stdout
+                }`,
+              );
+            }
+            return waitForCoreDashboardDeploymentAvailable(applicationsNamespace);
+          });
+        })
+        .then(() => {
+          if (typeof portalManagementState !== 'string') {
+            return cy.wrap(null);
+          }
+          return waitForJsonPath(
+            dashboardResource,
+            '{.spec.maasPortal.managementState}',
+            portalManagementState,
+            'Dashboard MaaS Portal managementState was not restored',
+          );
+        })
+        .then(() => {
+          cy.log('Restored and reconciled the original DSC dashboard states');
+          return cy.wrap(null);
+        });
     });
 };

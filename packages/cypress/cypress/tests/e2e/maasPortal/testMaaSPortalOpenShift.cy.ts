@@ -1,5 +1,6 @@
 // Uses TEST_USER_3 and discovers the Portal URL from Dashboard.status.maasPortalUrl.
-// The Portal must already be enabled; this spec does not mutate the DataScienceCluster.
+// When ENABLE_MAAS_PORTAL_ONLY_E2E is enabled, this spec temporarily configures the DSC
+// for portal-only operation and restores the captured state during cleanup.
 // The cluster needs MaaS, model serving, TEST_USER_3 in rhods-users, Dashboard.spec.gateway.domain,
 // and an operator/image capable of deploying the Portal.
 // In CI, the cluster URL serves its installed Portal build. The local E2E proxy serves the PR's
@@ -22,7 +23,13 @@ import {
   modelsAsAServiceNamespace,
   waitForMaaSModelReady,
 } from '../../../utils/oc_commands/maas';
-import { getEnabledOpenShiftMaaSPortalUrl } from '../../../utils/oc_commands/maasPortal';
+import {
+  configureMaaSPortalOnly,
+  getRequiredApplicationsNamespace,
+  restoreDsc,
+  waitForMaaSPortalOnlyInstall,
+  type MaaSPortalDscSnapshot,
+} from '../../../utils/oc_commands/dsc';
 import {
   addUserToProject,
   deleteOpenShiftProjectBestEffort,
@@ -42,15 +49,30 @@ const modelName = `portal-oc-model-${suffix}`;
 const subscriptionName = `portal-oc-sub-${suffix}`;
 const policyName = `portal-oc-policy-${suffix}`;
 const apiKeyName = `portal-oc-key-${suffix}`;
+const runPortalOnlyE2E =
+  Cypress.env('ENABLE_MAAS_PORTAL_ONLY_E2E') === true ||
+  Cypress.env('ENABLE_MAAS_PORTAL_ONLY_E2E') === 'true';
 
 describe('MaaS Portal API keys with OpenShift authentication', () => {
+  let dscSnapshot: MaaSPortalDscSnapshot | undefined;
   let portalUrl: string;
-  before(() => {
-    cy.step('Verify the gateway MaaS Portal is already enabled and available');
+  before(function setupPortalTest() {
+    if (!runPortalOnlyE2E) {
+      this.skip();
+    }
+
+    const applicationsNamespace = getRequiredApplicationsNamespace();
+
+    cy.step('Configure and verify the RHOAI portal-only DSC install');
     ensureAdminOcSession();
-    getEnabledOpenShiftMaaSPortalUrl().then((url) => {
-      portalUrl = url;
-    });
+    configureMaaSPortalOnly()
+      .then((snapshot) => {
+        dscSnapshot ??= snapshot;
+        return waitForMaaSPortalOnlyInstall(applicationsNamespace, snapshot);
+      })
+      .then((url) => {
+        portalUrl = url;
+      });
 
     cy.step('Create a temporary LLMInferenceService for the Portal test');
     createAndVerifyProject(projectName);
@@ -78,7 +100,15 @@ describe('MaaS Portal API keys with OpenShift authentication', () => {
   });
 
   after(() => {
+    if (!runPortalOnlyE2E) {
+      return;
+    }
+
     ensureAdminOcSession();
+    if (dscSnapshot) {
+      restoreDsc(dscSnapshot, Cypress.env('APPLICATIONS_NAMESPACE') as string);
+    }
+
     cy.step('Remove only the MaaS resources created by this test');
     cleanupSubscription(subscriptionName, modelsAsAServiceNamespace);
     cleanupAuthPolicy(policyName, modelsAsAServiceNamespace);
