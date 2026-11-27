@@ -208,9 +208,19 @@ export const findMaaSModelBySubscriptionRef = <T extends CatalogModelMatchFields
     return undefined;
   }
 
-  const exact = models.find((model) => model.id === refName);
-  if (exact) {
-    return exact;
+  // A short-name catalog-ID match cannot verify the namespace. When a refNamespace
+  // was supplied, only accept the exact match when the ref name is itself a
+  // fully-qualified catalog id that embeds the ref's namespace (e.g.
+  // publishers/team-b/models/qwen); otherwise skip it and rely on the
+  // namespace-verified branches below (publisher path, owned_by) — an ambiguous
+  // ref is left unresolved rather than risking another namespace's model.
+  const exactMatchIsNamespaceVerified =
+    !refNamespace || refName.includes(`/${refNamespace}/models/`);
+  if (exactMatchIsNamespaceVerified) {
+    const exact = models.find((model) => model.id === refName);
+    if (exact) {
+      return exact;
+    }
   }
 
   if (refNamespace) {
@@ -227,7 +237,15 @@ export const findMaaSModelBySubscriptionRef = <T extends CatalogModelMatchFields
   // Prefer exact namespace/name owned_by. Never take the first name-only hit across
   // namespaces (team-a/qwen vs team-b/qwen). Ambiguous short-name matches → skip.
   if (refNamespace) {
-    const byOwnedByExact = models.find((model) => model.owned_by === `${refNamespace}/${refName}`);
+    // owned_by is documented as `namespace/name`, but the upstream /models
+    // response example also shows a namespace-only owned_by with a short id
+    // (id: llama-2-7b-chat, owned_by: model-namespace). Accept that shape too,
+    // it's still namespace-verified, so it cannot cross namespaces.
+    const byOwnedByExact = models.find(
+      (model) =>
+        model.owned_by === `${refNamespace}/${refName}` ||
+        (model.owned_by === refNamespace && model.id === refName),
+    );
     if (byOwnedByExact) {
       return byOwnedByExact;
     }
@@ -247,6 +265,12 @@ export const findMaaSModelBySubscriptionRef = <T extends CatalogModelMatchFields
     }
   }
 
+  // Last-segment fallback cannot verify the namespace. When a refNamespace was supplied,
+  // leave the reference unresolved rather than risk returning another namespace's model
+  // (team-a/qwen vs team-b/qwen).
+  if (refNamespace) {
+    return undefined;
+  }
   return models.find(
     (model) => model.id.endsWith(`/models/${refName}`) || model.id.split('/').pop() === refName,
   );
@@ -320,17 +344,23 @@ export const buildApiKeyUsageExample = (
 
     const shellSafeKey = escapeDoubleQuotedShell(apiKey);
     const shellSafeModelId = escapeDoubleQuotedShell(modelID);
-    const requestURLString = requestURL.toString();
+    // Shell-quote the full URL so catalog-provided URLs containing shell metacharacters
+    // (e.g. command substitution) cannot execute when the example is copy-pasted.
+    // Escape embedded single quotes the POSIX way: ' → '\''
+    const shellSafeURL = `'${requestURL.toString().replaceAll("'", `'\\''`)}'`;
     const authHeader = '  -H "Authorization: Bearer $API_KEY" \\';
 
     if (kind === ApiKeyUsageExampleKind.Transcription) {
       return [
         `export API_KEY="${shellSafeKey}"`,
         '',
-        `curl -X POST ${requestURLString} \\`,
+        `curl -X POST --globoff ${shellSafeURL} \\`,
         authHeader,
         '  -F "file=@<path-to-audio-file>" \\',
-        `  -F "model=${shellSafeModelId}"`,
+        // --form-string sends the model id as a literal string; -F would let curl
+        // interpret multipart directives in catalog-provided ids (e.g. "@/etc/passwd"
+        // would upload a local file instead of sending the literal model id).
+        `  --form-string "model=${shellSafeModelId}"`,
       ].join('\n');
     }
 
@@ -342,7 +372,7 @@ export const buildApiKeyUsageExample = (
 
     return [
       `export API_KEY="${shellSafeKey}"`,
-      `curl -X POST ${requestURLString} \\`,
+      `curl -X POST --globoff ${shellSafeURL} \\`,
       '  -H "Content-Type: application/json" \\',
       authHeader,
       `  -d '${shellSafeBody}'`,

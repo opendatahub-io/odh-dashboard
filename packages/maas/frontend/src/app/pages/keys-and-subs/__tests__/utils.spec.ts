@@ -297,6 +297,80 @@ describe('findMaaSModelBySubscriptionRef', () => {
     expect(findMaaSModelBySubscriptionRef(colliding, { refName: 'qwen' })).toBeUndefined();
   });
 
+  it('should not accept a short catalog-ID match owned by another namespace when refNamespace is supplied', () => {
+    const catalog = [
+      {
+        id: 'qwen',
+        // eslint-disable-next-line camelcase
+        owned_by: 'team-a/qwen',
+      },
+    ];
+    // The short catalog id belongs to team-a; the ref names team-b, so the
+    // unverified exact match must be skipped and the ref left unresolved.
+    expect(
+      findMaaSModelBySubscriptionRef(catalog, { refName: 'qwen', refNamespace: 'team-b' }),
+    ).toBeUndefined();
+
+    // The same short id with namespace-compatible owned_by still resolves via
+    // the verified owned_by branch.
+    const compatible = [
+      {
+        id: 'qwen',
+        // eslint-disable-next-line camelcase
+        owned_by: 'team-b/qwen',
+      },
+    ];
+    expect(
+      findMaaSModelBySubscriptionRef(compatible, { refName: 'qwen', refNamespace: 'team-b' })?.id,
+    ).toBe('qwen');
+  });
+
+  it('should resolve a namespace-only owned_by catalog entry with a short id', () => {
+    // The openapi GET /models example shows owned_by as the bare namespace
+    // with a short id; this shape must still resolve for its own namespace.
+    const catalog = [
+      {
+        id: 'qwen',
+        // eslint-disable-next-line camelcase
+        owned_by: 'team-b',
+      },
+    ];
+    expect(
+      findMaaSModelBySubscriptionRef(catalog, { refName: 'qwen', refNamespace: 'team-b' })?.id,
+    ).toBe('qwen');
+
+    // But not for another namespace's ref — the namespace-only owned_by shape
+    // must not bypass the cross-namespace hardening.
+    expect(
+      findMaaSModelBySubscriptionRef(catalog, { refName: 'qwen', refNamespace: 'team-a' }),
+    ).toBeUndefined();
+  });
+
+  it('should still exact-match a fully-qualified path ref name when refNamespace is supplied', () => {
+    const catalog = [
+      {
+        id: 'publishers/team-b/models/qwen',
+        // eslint-disable-next-line camelcase
+        owned_by: 'team-b/qwen',
+      },
+    ];
+    expect(
+      findMaaSModelBySubscriptionRef(catalog, {
+        refName: 'publishers/team-b/models/qwen',
+        refNamespace: 'team-b',
+      })?.id,
+    ).toBe('publishers/team-b/models/qwen');
+
+    // A fully-qualified ref name from a different namespace than the ref's own
+    // is not trusted as an exact match.
+    expect(
+      findMaaSModelBySubscriptionRef(catalog, {
+        refName: 'publishers/team-b/models/qwen',
+        refNamespace: 'team-a',
+      }),
+    ).toBeUndefined();
+  });
+
   it('should resolve via entitlement only when only one model_ref', () => {
     expect(
       findMaaSModelBySubscriptionRef(models, {
@@ -330,6 +404,33 @@ describe('findMaaSModelBySubscriptionRef', () => {
     expect(findMaaSModelBySubscriptionRef(models, { refName: 'other-model' })?.id).toBe(
       'publishers/maas-models/models/other-model',
     );
+  });
+
+  it('should not cross namespaces in the last-segment fallback when a namespace was supplied', () => {
+    const colliding = [
+      {
+        id: 'publishers/team-a/models/qwen',
+        // eslint-disable-next-line camelcase
+        owned_by: 'team-a/qwen',
+      },
+    ];
+    // The team-b model is absent from the catalog; the team-a short-name hit must not
+    // be substituted for the team-b reference.
+    expect(
+      findMaaSModelBySubscriptionRef(colliding, {
+        refName: 'qwen',
+        refNamespace: 'team-b',
+      }),
+    ).toBeUndefined();
+  });
+
+  it('should return undefined for a missing namespace-qualified model even without collisions', () => {
+    expect(
+      findMaaSModelBySubscriptionRef(models, {
+        refName: 'other-model',
+        refNamespace: 'some-other-namespace',
+      }),
+    ).toBeUndefined();
   });
 
   it('should return undefined when no model matches', () => {
@@ -389,11 +490,30 @@ describe('buildApiKeyUsageExample', () => {
     );
     expect(example).toContain('/v1/audio/transcriptions');
     expect(example).toContain('-F "file=@<path-to-audio-file>"');
-    expect(example).toContain('-F "model=asr-model"');
+    expect(example).toContain('--form-string "model=asr-model"');
+    // The model field must not use -F, which lets curl interpret multipart
+    // directives in catalog-provided model ids.
+    expect(example).not.toContain('-F "model=');
     expect(example).not.toContain('Content-Type: application/json');
     expect(getApiKeyUsageExampleEndpointPath(ApiKeyUsageExampleKind.Transcription)).toBe(
       '/v1/audio/transcriptions',
     );
+  });
+
+  it('should send transcription model ids as literal form strings, not curl multipart directives', () => {
+    for (const maliciousId of ['@/etc/passwd', '<(id)', 'a;headers=@x']) {
+      const example = buildApiKeyUsageExample(
+        'https://maas.apps.example.com',
+        maliciousId,
+        'sk-test-key',
+        ApiKeyUsageExampleKind.Transcription,
+      );
+      // Only the intentional audio-file upload may use -F; the model id must be
+      // passed via --form-string so curl treats it as a literal string.
+      expect(example).toContain(`--form-string "model=${maliciousId}"`);
+      expect(example.match(/-F /g)).toHaveLength(1);
+      expect(example).toContain('-F "file=@<path-to-audio-file>"');
+    }
   });
 
   it('should not duplicate /v1 when the base URL already ends with it', () => {
@@ -402,8 +522,55 @@ describe('buildApiKeyUsageExample', () => {
       'chat-model',
       'sk-test-key',
     );
-    expect(example).toContain('curl -X POST https://maas.apps.example.com/v1/chat/completions');
+    expect(example).toContain(
+      "curl -X POST --globoff 'https://maas.apps.example.com/v1/chat/completions'",
+    );
     expect(example).not.toContain('/v1/v1/');
+  });
+
+  it('should disable curl URL globbing so bracket ranges are requested literally', () => {
+    // Braces are percent-encoded by URL serialization, but brackets survive it —
+    // without --globoff, curl would expand [a-b] into multiple requests.
+    const example = buildApiKeyUsageExample(
+      'https://gateway.example.com/models/[a-b]',
+      'chat-model',
+      'sk-test-key',
+    );
+    expect(example).toContain(
+      "curl -X POST --globoff 'https://gateway.example.com/models/[a-b]/v1/chat/completions'",
+    );
+  });
+
+  it('should shell-quote URLs containing shell metacharacters', () => {
+    const example = buildApiKeyUsageExample(
+      'https://gateway.example.com/$(id)',
+      'chat-model',
+      'sk-test-key',
+    );
+    expect(example).toContain(
+      `curl -X POST --globoff 'https://gateway.example.com/$(id)/v1/chat/completions'`,
+    );
+    // The metacharacters must be inside single quotes, not executed on copy-paste.
+    expect(example).not.toMatch(/curl -X POST --globoff [^']/);
+
+    const semicolonExample = buildApiKeyUsageExample(
+      'https://gateway.example.com/a;b',
+      'chat-model',
+      'sk-test-key',
+    );
+    expect(semicolonExample).toContain(
+      `curl -X POST --globoff 'https://gateway.example.com/a;b/v1/chat/completions'`,
+    );
+
+    const quoteExample = buildApiKeyUsageExample(
+      "https://gateway.example.com/it's",
+      'chat-model',
+      'sk-test-key',
+    );
+    // Embedded single quotes are escaped by ending/restarting the shell quote.
+    expect(quoteExample).toContain(
+      "curl -X POST --globoff 'https://gateway.example.com/it'\\''s/v1/chat/completions'",
+    );
   });
 
   it('should return empty string for invalid or incomplete inputs', () => {

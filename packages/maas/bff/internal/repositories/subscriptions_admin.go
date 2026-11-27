@@ -87,3 +87,50 @@ func ownerGroupsFromListItem(item models.SubscriptionListItem) []models.GroupRef
 	groups = append(groups, item.Owner.Groups...)
 	return groups
 }
+
+// ConvertK8sSubscriptionToListItem maps a K8s MaaSSubscription CR onto the
+// maas-api SubscriptionListItem shape, for admin resolution of subscriptions
+// the caller is not a member of. Model refs keep their namespace/name so the
+// frontend can resolve catalog models without cross-namespace guessing;
+// maas-api-only fields (roles, catalog model ids) are left empty.
+func ConvertK8sSubscriptionToListItem(sub models.MaaSSubscription) models.SubscriptionListItem {
+	modelRefs := make([]models.ModelRefInfo, len(sub.ModelRefs))
+	for i, ref := range sub.ModelRefs {
+		modelRefs[i] = models.ModelRefInfo{
+			Name:            ref.Name,
+			Namespace:       ref.Namespace,
+			DisplayName:     ref.DisplayName,
+			Description:     ref.Description,
+			TokenRateLimits: tokenRateLimitsFromK8s(ref.TokenRateLimits),
+			BillingRate:     billingRateFromK8s(ref.BillingRate),
+		}
+	}
+
+	owner := sub.Owner
+	return models.SubscriptionListItem{
+		SubscriptionIDHeader:    sub.Name,
+		SubscriptionDescription: sub.Description,
+		DisplayName:             sub.DisplayName,
+		InferencePriority:       sub.InferencePriority,
+		Owner:                   &owner,
+		ModelRefs:               modelRefs,
+	}
+}
+
+// tokenRateLimitsFromK8s maps K8s (camelCase perToken) rate limits onto the
+// passthrough shape and normalizes absent limits to an empty array, matching
+// the MyModelRefInfo.token_rate_limits OpenAPI schema (non-nullable).
+func tokenRateLimitsFromK8s(limits []models.TokenRateLimit) []models.TokenRateLimitInfo {
+	mapped := make([]models.TokenRateLimitInfo, len(limits))
+	for i, limit := range limits {
+		mapped[i] = models.TokenRateLimitInfo(limit)
+	}
+	return mapped
+}
+
+func billingRateFromK8s(rate *models.BillingRate) *models.BillingRateInfo {
+	if rate == nil {
+		return nil
+	}
+	return &models.BillingRateInfo{PerToken: rate.PerToken}
+}

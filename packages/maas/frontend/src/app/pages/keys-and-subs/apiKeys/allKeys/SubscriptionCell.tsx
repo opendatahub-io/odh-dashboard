@@ -55,10 +55,14 @@ const SubscriptionCell: React.FC<SubscriptionCellProps> = ({
         } satisfies SubscriptionDetailNavigatedProperties);
       }}
     >
-      <span data-testid="api-key-subscription">{displayLabel}</span>
+      <span data-testid="api-key-subscription" className="pf-v6-u-font-weight-bold">
+        {displayLabel}
+      </span>
     </Link>
   ) : (
-    <span data-testid="api-key-subscription">{displayLabel}</span>
+    <span data-testid="api-key-subscription" className="pf-v6-u-font-weight-bold">
+      {displayLabel}
+    </span>
   );
 
   if (!showGovernanceLink) {

@@ -48,6 +48,10 @@ const decodeDoubleQuotedShellValue = (value: string): string => {
   return decoded;
 };
 
+/** Decodes single-quote shell escaping emitted by the usage-example builder. */
+const decodeSingleQuotedShellValue = (value: string): string =>
+  value.replaceAll(`'\\''`, `'`).replaceAll(`'"'"'`, `'`);
+
 /** Strictly parses the Portal-generated curl example without evaluating shell content. */
 export const parseMaaSUsageExample = (usageExample: string): ParsedMaaSUsageExample => {
   const lines = usageExample
@@ -61,8 +65,10 @@ export const parseMaaSUsageExample = (usageExample: string): ParsedMaaSUsageExam
 
   const [exportLine, curlLine, contentTypeLine, authorizationLine, dataLine] = lines;
   const apiKeyMatch = /^export API_KEY="((?:\\.|[^"\\])*)"$/.exec(exportLine);
-  const quotedEndpointMatch = /^curl -X POST '(.*)' \\$/.exec(curlLine);
-  const unquotedEndpointMatch = /^curl -X POST ([^'\s]+) \\$/.exec(curlLine);
+  // The builder emits `curl -X POST --globoff '...'`; keep accepting older examples
+  // (quoted or unquoted URL, with or without --globoff).
+  const quotedEndpointMatch = /^curl -X POST (?:(?:--globoff) )?'(.*)' \\$/.exec(curlLine);
+  const unquotedEndpointMatch = /^curl -X POST (?:(?:--globoff) )?([^'\s]+) \\$/.exec(curlLine);
 
   if (!apiKeyMatch || (!unquotedEndpointMatch && !quotedEndpointMatch)) {
     throw new Error('Could not parse the API key or endpoint from the MaaS usage example');
@@ -85,7 +91,7 @@ export const parseMaaSUsageExample = (usageExample: string): ParsedMaaSUsageExam
     if (!endpointValue) {
       throw new Error('Missing endpoint URL');
     }
-    endpoint = new URL(endpointValue.replaceAll(`'"'"'`, `'`));
+    endpoint = new URL(decodeSingleQuotedShellValue(endpointValue));
   } catch {
     throw new Error('The copied MaaS usage example contains an invalid endpoint URL');
   }
@@ -95,7 +101,7 @@ export const parseMaaSUsageExample = (usageExample: string): ParsedMaaSUsageExam
 
   let requestBody: MaaSCompletionRequestBody;
   try {
-    const shellDecodedBody = requestBodyMatch[1].replaceAll(`'"'"'`, `'`);
+    const shellDecodedBody = decodeSingleQuotedShellValue(requestBodyMatch[1]);
     requestBody = JSON.parse(shellDecodedBody) as MaaSCompletionRequestBody;
   } catch {
     throw new Error('The copied MaaS usage example contains an invalid JSON request body');

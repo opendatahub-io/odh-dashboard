@@ -83,9 +83,7 @@ describe('API keys - Subscription Tab', () => {
     cy.wait('@initialSearch');
 
     apiKeysPage.findTitle().should('contain.text', 'API keys');
-    cy.contains('Manage API keys that can be used to authenticate with model endpoints.').should(
-      'exist',
-    );
+    cy.contains('Manage API keys used to authenticate with model endpoints.').should('exist');
 
     apiKeysPage.findApiKeysTab().should('have.attr', 'aria-selected', 'true');
     apiKeysPage.findTable().should('exist');

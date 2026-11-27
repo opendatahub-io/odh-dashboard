@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -83,6 +84,8 @@ func enrichSubscriptionsWithKeyCount(app *App, r *http.Request, subscriptions []
 
 // GetSubscriptionPassthroughHandler handles GET /api/v1/subscriptions/:id
 // Returns the single subscription matching the subscription_id_header, or 404 if not found.
+// MaaS admins additionally resolve subscriptions they are not members of via the
+// K8s MaaSSubscription CR, so Access details works for other users' keys.
 func GetSubscriptionPassthroughHandler(app *App, w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := r.Context()
 	id := ps.ByName("id")
@@ -91,6 +94,13 @@ func GetSubscriptionPassthroughHandler(app *App, w http.ResponseWriter, r *http.
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return
+	}
+	if item == nil {
+		item, err = adminResolvedSubscription(app, r, id)
+		if err != nil {
+			app.serverErrorResponse(w, r, err)
+			return
+		}
 	}
 	if item == nil {
 		app.notFoundResponse(w, r)
@@ -103,6 +113,31 @@ func GetSubscriptionPassthroughHandler(app *App, w http.ResponseWriter, r *http.
 	if err := app.WriteJSON(w, http.StatusOK, response, nil); err != nil {
 		app.serverErrorResponse(w, r, err)
 	}
+}
+
+// adminResolvedSubscription resolves a subscription through the admin-authorized
+// K8s MaaSSubscription source when the caller is a MaaS admin and the maas-api
+// membership-scoped lookup could not resolve it. This lets administrators open
+// Access details for other users' keys on subscriptions they are not members of.
+// Returns nil for non-admins and unknown subscriptions; member authorization is
+// preserved because non-admins never reach the K8s source.
+func adminResolvedSubscription(app *App, r *http.Request, id string) (*models.SubscriptionListItem, error) {
+	isAdmin, err := isMaasAdminCheck(app, r)
+	if err != nil || !isAdmin {
+		return nil, err
+	}
+
+	subscriptions, err := app.repositories.Subscriptions.ListSubscriptions(r.Context())
+	if err != nil {
+		return nil, fmt.Errorf("list K8s subscriptions for admin resolution: %w", err)
+	}
+	for _, sub := range subscriptions {
+		if sub.Name == id {
+			item := repositories.ConvertK8sSubscriptionToListItem(sub)
+			return &item, nil
+		}
+	}
+	return nil, nil
 }
 
 // GetAPIKeyConfigHandler handles GET /api/v1/api-keys-config

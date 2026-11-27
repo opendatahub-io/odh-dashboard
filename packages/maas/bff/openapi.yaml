@@ -463,7 +463,7 @@ paths:
         - subscriptions
       summary: Get a single user subscription by ID (passthrough)
       operationId: getSubscription
-      description: Returns the MaaSSubscription the authenticated user has access to for the given subscription_id_header. Returns 404 if the subscription does not exist or the user has no access to it.
+      description: Returns the MaaSSubscription matching the given subscription_id_header that the authenticated user has access to. MaaS admins additionally resolve subscriptions through the Kubernetes MaaSSubscription source when the membership-scoped lookup does not find them. Returns 404 if the subscription does not exist or the user has no access to it.
       parameters:
         - name: id
           in: path
