@@ -573,7 +573,9 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
       >
         <DescriptionListGroup>
           <DescriptionListTerm>Connection name</DescriptionListTerm>
-          <DescriptionListDescription>{valueOrDash(name)}</DescriptionListDescription>
+          <DescriptionListDescription data-testid="review-connection-name">
+            {valueOrDash(name)}
+          </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
           <DescriptionListTerm>Description</DescriptionListTerm>
@@ -583,11 +585,13 @@ const ReviewStep: React.FC<ReviewStepProps> = ({
         </DescriptionListGroup>
         <DescriptionListGroup>
           <DescriptionListTerm>Project</DescriptionListTerm>
-          <DescriptionListDescription>{valueOrDash(namespace)}</DescriptionListDescription>
+          <DescriptionListDescription data-testid="review-project">
+            {valueOrDash(namespace)}
+          </DescriptionListDescription>
         </DescriptionListGroup>
         <DescriptionListGroup>
           <DescriptionListTerm>Connection type</DescriptionListTerm>
-          <DescriptionListDescription>
+          <DescriptionListDescription data-testid="review-connection-type">
             {valueOrDash(connectionType?.resource.name)}
             {connectionType && !connectionType.metadata.tenant_id ? (
               <Label variant="outline" color="grey" isCompact className="pf-v6-u-ml-sm">
@@ -767,7 +771,13 @@ const KeyValueInput: React.FC<KeyValueInputProps> = ({
           </Grid>
         );
       })}
-      <Button variant="link" isInline icon={<PlusCircleIcon />} onClick={onAdd}>
+      <Button
+        variant="link"
+        isInline
+        icon={<PlusCircleIcon />}
+        onClick={onAdd}
+        data-testid="add-connection-property-button"
+      >
         Add key-value pair
       </Button>
     </StackItem>
@@ -818,6 +828,7 @@ const CreateConnectionWizardFooter: React.FC<CreateConnectionWizardFooterProps> 
               variant="secondary"
               onClick={goToPrevStep}
               isDisabled={isFirstStep || isCreating}
+              data-testid="connection-wizard-back"
             >
               Back
             </Button>
@@ -838,6 +849,7 @@ const CreateConnectionWizardFooter: React.FC<CreateConnectionWizardFooterProps> 
                 variant="primary"
                 onClick={goToNextStep}
                 isDisabled={isCreating || isNextDisabled}
+                data-testid="connection-wizard-next"
               >
                 Next
               </Button>
