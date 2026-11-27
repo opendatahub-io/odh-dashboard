@@ -1,0 +1,26 @@
+# Users of the RHAII dashboard need this to choose a Gateway when they deploy
+# a model. Core BFF lists Gateways with the caller's own credentials on xKS
+# (distributions/core-bff/docs/model-serving-xks.md); it never uses its
+# ServiceAccount for this. The bundle deliberately does not bind the role:
+# the installer binds it, with a ClusterRoleBinding, to the same users or
+# groups that may use the dashboard. Without a binding the deployment wizard
+# reports that gateways cannot be fetched.
+#
+# Listeners that admit projects by a namespace label other than
+# kubernetes.io/metadata.name (allowedRoutes Selector) also need the caller to
+# `get` their project's Namespace object. The built-in
+# view, edit and admin roles bound in the project grant it; a custom deploy
+# role must add it. Without it those listeners are left out and the BFF logs a
+# warning. See distributions/core-bff/docs/bootstrap-contract.md,
+# "Caller permissions".
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: rhaii-dashboard-gateway-reader
+rules:
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gateways
+    verbs:
+      - list

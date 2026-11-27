@@ -184,6 +184,15 @@ rules:
       - odh-gateway
     verbs:
       - get
+  # Escalation for the RHAII gateway reader role
+  # (manifests/distributions/rhaii/cluster-role-gateway-reader.yaml), which
+  # Core BFF gateway discovery on xKS needs for dashboard users.
+  - apiGroups:
+      - gateway.networking.k8s.io
+    resources:
+      - gateways
+    verbs:
+      - list
   # Events
   - apiGroups:
       - ""

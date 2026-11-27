@@ -13,6 +13,10 @@ Local failures on unversioned native APIs and the Perses proxy use
 Existing Fastify consumers read the top-level `message` or string `error`; the Perses client reads
 `error` first. Keep this response format through proxy path rewriting, including both BFF aliases.
 MaaS and GenAI proxy failures retain the nested envelope. Upstream service responses pass through.
+A native route under the service prefix (the xKS gateway discovery,
+`/api/service/model-serving/api/v1/gateways`, see [model-serving-xks.md](./model-serving-xks.md))
+uses the nested envelope for local failures, like the proxies it stands in for, and the sanitized
+Kubernetes `v1.Status` for API server failures.
 
 | BFF cause                                 | HTTP      | Code                                  |
 | ----------------------------------------- | --------- | ------------------------------------- |

@@ -12,6 +12,7 @@ func DefaultCRDs() []*apiextensionsv1.CustomResourceDefinition {
 		CreateNIMAccountCRD(),
 		createOperatorMetadataCRD("datasciencecluster.opendatahub.io", "v2", "datascienceclusters", "DataScienceCluster", apiextensionsv1.ClusterScoped),
 		createOperatorMetadataCRD("operators.coreos.com", "v1alpha1", "subscriptions", "Subscription", apiextensionsv1.NamespaceScoped),
+		createGatewayCRD(),
 	}
 }
 
@@ -90,4 +91,15 @@ func CreateNIMAccountCRD() *apiextensionsv1.CustomResourceDefinition {
 			},
 		},
 	}
+}
+
+// createGatewayCRD creates a minimal Gateway API Gateway CRD for the native xKS
+// gateway discovery route. *.k8s.io groups need the API approval annotation;
+// the upstream CRDs carry the same one.
+func createGatewayCRD() *apiextensionsv1.CustomResourceDefinition {
+	crd := createOperatorMetadataCRD("gateway.networking.k8s.io", "v1", "gateways", "Gateway", apiextensionsv1.NamespaceScoped)
+	crd.Annotations = map[string]string{
+		"api-approved.kubernetes.io": "https://github.com/kubernetes-sigs/gateway-api/pull/2466",
+	}
+	return crd
 }

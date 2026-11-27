@@ -10,8 +10,12 @@ import (
 const (
 	// Model serving
 	ModelServingProxyPrefix = APIPathPrefix + "/service/model-serving/"
-	ServingRuntimesPath     = APIPathPrefix + "/servingRuntimes"
-	NamespaceMutationPath   = APIPathPrefix + "/namespaces/:name/:context"
+	// GatewayDiscoveryPath is model-serving-api's gateway discovery route under
+	// the proxy prefix. On xKS Core BFF serves it natively; on OpenShift the
+	// proxy forwards it (docs/model-serving-xks.md).
+	GatewayDiscoveryPath  = ModelServingProxyPrefix + "api/v1/gateways"
+	ServingRuntimesPath   = APIPathPrefix + "/servingRuntimes"
+	NamespaceMutationPath = APIPathPrefix + "/namespaces/:name/:context"
 
 	// Prometheus
 	PrometheusQueryPath      = APIPathPrefix + "/prometheus/query"
@@ -26,13 +30,21 @@ const (
 )
 
 func (app *App) registerModelServingProxy(mux *http.ServeMux) {
-	if app.modelServingProxy != nil {
+	// The proxy prefix is a more specific ServeMux pattern than the API router,
+	// so a proxy mounted here would shadow the native gateway route.
+	if app.modelServingProxy != nil && !app.servesModelServingNatively() {
 		mux.Handle(ModelServingProxyPrefix, app.modelServingProxy)
 		mux.Handle(PathPrefix+ModelServingProxyPrefix, http.StripPrefix(PathPrefix, app.modelServingProxy))
 	}
 }
 
 func (app *App) registerModelServingRoutes(r *httprouter.Router) {
+	// xKS has no model-serving-api: the one route its journey needs is native,
+	// and every other path under the prefix falls through to the API 404.
+	if app.servesModelServingNatively() {
+		r.GET(GatewayDiscoveryPath, app.secureRoute(app.GatewayDiscoveryHandler))
+	}
+
 	// Admin-only
 	r.POST(ServingRuntimesPath, app.secureAdminRoute(app.CreateServingRuntimeHandler))
 
