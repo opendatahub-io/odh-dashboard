@@ -28,12 +28,13 @@ import (
 )
 
 const (
-	Version         = "1.0.0"
-	PathPrefix      = "/data-connect-hub"
-	ApiPathPrefix   = "/api/v1"
-	HealthCheckPath = "/healthcheck"
-	UserPath        = ApiPathPrefix + "/user"
-	NamespacePath   = ApiPathPrefix + "/namespaces"
+	Version           = "1.0.0"
+	PathPrefix        = "/data-connect-hub"
+	ApiPathPrefix     = "/api/v1"
+	HealthCheckPath   = "/healthcheck"
+	BackendHealthPath = "/healthcheck/backend"
+	UserPath          = ApiPathPrefix + "/user"
+	NamespacePath     = ApiPathPrefix + "/namespaces"
 )
 
 type App struct {
@@ -260,12 +261,18 @@ func (app *App) Routes() http.Handler {
 	healthcheckMux := http.NewServeMux()
 	healthcheckRouter := httprouter.New()
 	healthcheckRouter.GET(HealthCheckPath, app.HealthcheckHandler)
+	healthcheckRouter.GET(BackendHealthPath, app.BackendHealthHandler)
 	healthcheckMux.Handle(HealthCheckPath, app.RecoverPanic(app.EnableTelemetry(healthcheckRouter)))
+	healthcheckMux.Handle(
+		BackendHealthPath,
+		app.RecoverPanic(app.EnableTelemetry(healthcheckRouter)),
+	)
 
 	// Combines the healthcheck endpoint with the rest of the routes
 	// Apply middleware to appMux which contains the API routes
 	combinedMux := http.NewServeMux()
 	combinedMux.Handle(HealthCheckPath, healthcheckMux)
+	combinedMux.Handle(BackendHealthPath, healthcheckMux)
 	combinedMux.Handle("/", app.RecoverPanic(app.EnableTelemetry(app.EnableCORS(app.InjectRequestIdentity(appMux)))))
 
 	return combinedMux

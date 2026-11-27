@@ -54,65 +54,16 @@ export type NamespaceKind = {
   displayName?: string;
 };
 
-export type Connection = {
-  metadata: {
-    id: string;
-    tenant_id?: string;
-    created_at?: string;
-    updated_at?: string;
-  };
-  resource: {
-    name: string;
-    data_connection_type_id: string;
-    data_connection_type?: ConnectionType;
-    format: 'tabular' | 'binary';
-    credentials_ref: { secret: string };
-    properties?: Record<string, string>;
-  };
-  status: {
-    state: 'ready' | 'ingestion_not_ready' | 'not_ready';
-    message?: string;
-    updated_at?: string;
-  };
-};
+export type { Connection } from '~/types/connection';
+export type {
+  ConnectionType,
+  ConnectionTypeCredentialField,
+  ConnectionTypeEnumValue,
+} from '~/types/connection-type';
 
 export type ConnectionNameAvailability = {
   available: boolean;
   conflicts_with: string[];
-};
-
-export type ConnectionTypeEnumValue = Labelled<string> & Valued<string>;
-
-export type ConnectionTypeCredentialField = {
-  name: string;
-  label: string;
-  description?: string | null;
-  required: boolean;
-  type: string;
-  enum_values?: ConnectionTypeEnumValue[] | null;
-  default_value?: string | null;
-};
-
-export type ConnectionType = {
-  metadata: {
-    id: string;
-    tenant_id?: string;
-    created_at: string;
-    updated_at: string;
-  };
-  resource: {
-    name: string;
-    provider: string;
-    description?: string | null;
-    credentials_fields: ConnectionTypeCredentialField[];
-    tags?: string[] | null;
-  };
-  status?: {
-    flight_ready: boolean;
-    flight_url?: string;
-    message?: string;
-    updated_at?: string;
-  };
 };
 
 export type TestCredentialsRequest = {
@@ -122,6 +73,7 @@ export type TestCredentialsRequest = {
 
 export type CreateConnectionRequest = {
   name: string;
+  description?: string | null;
   data_connection_type_id: string;
   format: 'tabular' | 'binary';
   credentials: {

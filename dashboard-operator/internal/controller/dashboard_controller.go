@@ -307,7 +307,7 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		} else if maasPortalManaged {
 			observabilityRetryAfter = r.reconcileObservability(ctx, dashboard, cm)
 		}
-		portalRetryAfter := r.reconcileMaaSPortalOperand(ctx, dashboard, cm, nextStatuses, observabilityDetectionErr == nil)
+		portalRetryAfter, portalErr := r.reconcileMaaSPortalOperandWithError(ctx, dashboard, cm, nextStatuses, observabilityDetectionErr == nil)
 		portalRetryAfter = minNonZeroDuration(portalRetryAfter, observabilityRetryAfter)
 
 		preserveObservability := maasPortalManaged && (observabilityDetectionErr != nil ||
@@ -317,7 +317,6 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 			return ctrl.Result{}, fmt.Errorf("failed to tear down resources: %w", err)
 		}
 
-		dashboard.Status.ObservedGeneration = dashboard.Generation
 		dashboard.Status.URL = ""
 		dashboard.Status.Distribution = nil
 
@@ -365,6 +364,9 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 		if maasPortalManaged && dashboard.Spec.Observability == nil && portalRetryAfter == 0 {
 			portalRetryAfter = observabilityRetryInterval
 		}
+		if legacyRedirectErr == nil && portalErr == nil {
+			dashboard.Status.ObservedGeneration = dashboard.Generation
+		}
 		if statusErr := r.updateStatusIfChanged(ctx, dashboard, previousStatus); statusErr != nil {
 			logger.Error(statusErr, "Failed to update status after removal")
 
@@ -381,9 +383,6 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	if rbacErr != nil {
 		logger.Error(rbacErr, "Failed to reconcile namespaced RBAC")
 	}
-
-	dashboard.Status.ObservedGeneration = dashboard.Generation
-
 	cfg := readOperatorConfig(ctx, r.apiReader(), r.Namespace)
 
 	distributionConfig, distErr := readDistributionConfig(ctx, r.apiReader(), r.Namespace)
@@ -400,6 +399,8 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 	}
 
 	result, err := r.reconcile(ctx, dashboard, cm, cfg, observabilityDetectionErr == nil)
+	var portalErr error
+	err, portalErr = splitMaaSPortalOperationError(err)
 	if legacyRedirectErr != nil {
 		legacyRedirectErr = fmt.Errorf("failed to reconcile legacy dashboard redirects: %w", legacyRedirectErr)
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
@@ -453,6 +454,9 @@ func (r *DashboardReconciler) Reconcile(ctx context.Context, req ctrl.Request) (
 
 	cm.Sort()
 
+	if err == nil && portalErr == nil {
+		dashboard.Status.ObservedGeneration = dashboard.Generation
+	}
 	if statusErr := r.updateStatusIfChanged(ctx, dashboard, previousStatus); statusErr != nil {
 		logger.Error(statusErr, "Failed to update status")
 	}
@@ -752,7 +756,7 @@ func (r *DashboardReconciler) reconcileDeployment(
 		logger.Error(err, "Failed to deploy federation ConfigMap")
 		return ctrl.Result{}, fmt.Errorf("federation ConfigMap: %w", err)
 	}
-	portalRetryAfter := r.reconcileMaaSPortalOperand(ctx, dashboard, cm, nextStatuses, observabilityKnown)
+	portalRetryAfter, portalErr := r.reconcileMaaSPortalOperandWithError(ctx, dashboard, cm, nextStatuses, observabilityKnown)
 
 	if err := r.patchDeploymentFederationHash(ctx, fedData); err != nil {
 		cm.MarkFalse(string(common.ConditionTypeProvisioningSucceeded),
@@ -775,6 +779,9 @@ func (r *DashboardReconciler) reconcileDeployment(
 	}
 
 	requeueAfter = minNonZeroDuration(requeueAfter, portalRetryAfter, observabilityRetryAfter)
+	if portalErr != nil {
+		return ctrl.Result{RequeueAfter: requeueAfter}, wrapMaaSPortalOperationError(portalErr)
+	}
 	return ctrl.Result{RequeueAfter: requeueAfter}, nil
 }
 

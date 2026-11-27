@@ -5,6 +5,16 @@ import { getUnifiedJobStatusSync } from './utils';
 import { UnifiedJobKind, isRayJob } from '../../types';
 import { KUEUE_QUEUE_LABEL } from '../../const';
 
+export const JOBS_TABLE_COLUMN_CLASS = {
+  project: 'mt-jobs-table__project',
+  nodes: 'mt-jobs-table__nodes',
+  clusterQueue: 'mt-jobs-table__cluster-queue',
+  rayCluster: 'mt-jobs-table__ray-cluster',
+  type: 'mt-jobs-table__type',
+  created: 'mt-jobs-table__created',
+  pauseResume: 'mt-jobs-table__pause-resume',
+} as const;
+
 export const getColumns = (nodeCountMap: Map<string, number>): SortableData<UnifiedJobKind>[] => [
   {
     field: 'name',
@@ -18,6 +28,7 @@ export const getColumns = (nodeCountMap: Map<string, number>): SortableData<Unif
   {
     field: 'project',
     label: 'Project',
+    className: JOBS_TABLE_COLUMN_CLASS.project,
     width: 10,
     sortable: (a: UnifiedJobKind, b: UnifiedJobKind): number =>
       a.metadata.namespace.localeCompare(b.metadata.namespace),
@@ -25,6 +36,7 @@ export const getColumns = (nodeCountMap: Map<string, number>): SortableData<Unif
   {
     field: 'nodes',
     label: 'Nodes',
+    className: JOBS_TABLE_COLUMN_CLASS.nodes,
     width: 10,
     sortable: (a: UnifiedJobKind, b: UnifiedJobKind): number => {
       const aId = a.metadata.uid || a.metadata.name;
@@ -39,6 +51,7 @@ export const getColumns = (nodeCountMap: Map<string, number>): SortableData<Unif
   {
     field: 'clusterQueue',
     label: 'Cluster queue',
+    className: JOBS_TABLE_COLUMN_CLASS.clusterQueue,
     width: 10,
     sortable: (a: UnifiedJobKind, b: UnifiedJobKind): number => {
       const aQueue = a.metadata.labels?.[KUEUE_QUEUE_LABEL] || '';
@@ -49,6 +62,7 @@ export const getColumns = (nodeCountMap: Map<string, number>): SortableData<Unif
   {
     field: 'rayCluster',
     label: 'Ray cluster',
+    className: JOBS_TABLE_COLUMN_CLASS.rayCluster,
     width: 10,
     sortable: (a: UnifiedJobKind, b: UnifiedJobKind): number => {
       const aCluster = isRayJob(a)
@@ -63,6 +77,7 @@ export const getColumns = (nodeCountMap: Map<string, number>): SortableData<Unif
   {
     field: 'type',
     label: 'Type',
+    className: JOBS_TABLE_COLUMN_CLASS.type,
     width: 10,
     sortable: (a: UnifiedJobKind, b: UnifiedJobKind): number =>
       (a.kind || '').localeCompare(b.kind || ''),
@@ -83,6 +98,7 @@ export const getColumns = (nodeCountMap: Map<string, number>): SortableData<Unif
   {
     field: 'created',
     label: 'Created',
+    className: JOBS_TABLE_COLUMN_CLASS.created,
     width: 10,
     sortable: (a: UnifiedJobKind, b: UnifiedJobKind): number => {
       const first = a.metadata.creationTimestamp;
@@ -103,6 +119,7 @@ export const getColumns = (nodeCountMap: Map<string, number>): SortableData<Unif
   {
     field: 'pauseResume',
     label: '',
+    className: JOBS_TABLE_COLUMN_CLASS.pauseResume,
     sortable: false,
   },
   {

@@ -5,9 +5,10 @@ import { useConnectionAccess } from '~/app/hooks/useConnectionAccess';
 
 const renderHookWithAccess = (
   checkAccess: HostApiCoreServices['checkAccess'],
-  verb: 'create' | 'delete',
+  verb: 'create' | 'delete' | 'get',
+  resource?: 'data-connections' | 'data-connection-types',
 ) =>
-  renderHook(() => useConnectionAccess('test-project', verb), {
+  renderHook(() => useConnectionAccess('test-project', verb, resource), {
     wrapper: ({ children }: { children: React.ReactNode }) => (
       <HostApiCoreContext.Provider value={{ checkAccess } as HostApiCoreServices}>
         {children}
@@ -38,6 +39,16 @@ describe('useConnectionAccess', () => {
     await waitFor(() => expect(result.current).toEqual({ isAllowed: false, loaded: true }));
     expect(checkAccess).toHaveBeenCalledWith(
       expect.objectContaining({ resource: 'data-connections', verb: 'delete' }),
+    );
+  });
+
+  it('checks get access for data connection types in the namespace', async () => {
+    const checkAccess = jest.fn(() => Promise.resolve(true));
+    const { result } = renderHookWithAccess(checkAccess, 'get', 'data-connection-types');
+
+    await waitFor(() => expect(result.current).toEqual({ isAllowed: true, loaded: true }));
+    expect(checkAccess).toHaveBeenCalledWith(
+      expect.objectContaining({ resource: 'data-connection-types', verb: 'get' }),
     );
   });
 

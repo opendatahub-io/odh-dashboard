@@ -65,6 +65,9 @@ const isConnection = (value: unknown): value is Connection => {
     (value.metadata.created_at === undefined || typeof value.metadata.created_at === 'string') &&
     (value.metadata.updated_at === undefined || typeof value.metadata.updated_at === 'string') &&
     typeof value.resource.name === 'string' &&
+    (value.resource.description === undefined ||
+      value.resource.description === null ||
+      typeof value.resource.description === 'string') &&
     typeof value.resource.data_connection_type_id === 'string' &&
     (value.resource.data_connection_type === undefined ||
       isConnectionType(value.resource.data_connection_type)) &&

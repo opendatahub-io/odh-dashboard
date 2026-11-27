@@ -3,6 +3,10 @@
   "name": "@odh-dashboard/data-connect-hub",
   "description": "Data Connect Hub plugin.",
   "version": "0.0.0",
+  "exports": {
+    "./types": "./frontend/src/types/index.ts",
+    "./EmbeddableConnectionWizard": "./frontend/src/app/components/EmbeddableConnectionWizard.tsx"
+  },
   "module-federation": {
     "name": "dataConnectHub",
     "remoteEntry": "/remoteEntry.js",
@@ -16,6 +20,10 @@
       {
         "path": "/data-connect-hub/healthcheck",
         "pathRewrite": "/healthcheck"
+      },
+      {
+        "path": "/data-connect-hub/healthcheck/backend",
+        "pathRewrite": "/healthcheck/backend"
       }
     ],
     "local": {
@@ -27,6 +35,9 @@
       "port": 9243
     }
   },
+  "e2eCiTags": [
+    "@DataConnectHubCI"
+  ],
   "scripts": {
     "test:contract": "BFF_MOCK_FLAGS='--mock-k8s-client --mock-http-client --auth-method=user_token' odh-ct-bff-consumer --bff-dir bff",
     "cypress:mock:build": "pnpm run cypress:server:build",

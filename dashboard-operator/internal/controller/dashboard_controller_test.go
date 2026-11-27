@@ -294,7 +294,7 @@ func TestReconcile(t *testing.T) {
 			wantErr:         true,
 			wantPhase:       common.PhaseNotReady,
 			wantProvisioned: boolPtr(false),
-			wantGeneration:  1,
+			wantGeneration:  0,
 		},
 		{
 			name:       "route not ready requeues",
@@ -1099,6 +1099,7 @@ func TestReconcile_StatusContract(t *testing.T) {
 		wantReady       bool
 		wantProvisioned bool
 		wantPhase       common.Phase
+		wantGeneration  int64
 	}{
 		{
 			name: "all conditions present on success",
@@ -1111,6 +1112,7 @@ func TestReconcile_StatusContract(t *testing.T) {
 			wantReady:       true,
 			wantProvisioned: true,
 			wantPhase:       common.PhaseReady,
+			wantGeneration:  1,
 		},
 		{
 			name: "conditions reflect render failure",
@@ -1121,6 +1123,7 @@ func TestReconcile_StatusContract(t *testing.T) {
 			wantReady:       false,
 			wantProvisioned: false,
 			wantPhase:       common.PhaseNotReady,
+			wantGeneration:  0,
 		},
 		{
 			name: "phase tracks condition happiness — route not ready",
@@ -1130,6 +1133,7 @@ func TestReconcile_StatusContract(t *testing.T) {
 			wantReady:       false,
 			wantProvisioned: true,
 			wantPhase:       common.PhaseNotReady,
+			wantGeneration:  1,
 		},
 	}
 
@@ -1178,7 +1182,7 @@ func TestReconcile_StatusContract(t *testing.T) {
 			require.NoError(t, cli.Get(context.Background(), types.NamespacedName{Name: v1alpha1.DashboardInstanceName}, updated))
 
 			assert.Equal(t, tt.wantPhase, updated.Status.Phase, "phase")
-			assert.Equal(t, int64(1), updated.Status.ObservedGeneration, "observedGeneration")
+			assert.Equal(t, tt.wantGeneration, updated.Status.ObservedGeneration, "observedGeneration")
 
 			if tt.wantReady {
 				assert.True(t, conditions.IsStatusConditionTrue(updated, string(common.ConditionTypeReady)), "Ready should be True")
@@ -1213,6 +1217,7 @@ func TestReconcile_ProvisioningFailureStatus(t *testing.T) {
 		{name: "preserve federation config failure", uploadFailure: true, laterFailure: "federation-config", wantReason: "FederationConfigMapFailed"},
 		{name: "preserve federation hash failure", uploadFailure: true, laterFailure: "federation-hash", wantReason: "FederationHashPatchFailed"},
 		{name: "preserve module failure", uploadFailure: true, laterFailure: "module", wantReason: "ModuleDeployFailed"},
+		{name: "preserve upload failure with portal failure", uploadFailure: true, laterFailure: "portal", wantReason: "ModelRegistryConfigFailed"},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
 			base := createMinimalManifests(t)
@@ -1238,6 +1243,25 @@ data:
 				require.NoError(t, os.MkdirAll(modulePath, 0755))
 				require.NoError(t, os.WriteFile(filepath.Join(modulePath, "kustomization.yaml"), []byte("invalid: ["), 0644))
 			}
+			if tt.laterFailure == "portal" {
+				rhoaiOverlay := filepath.Join(base, "rhoai")
+				require.NoError(t, os.MkdirAll(rhoaiOverlay, 0755))
+				require.NoError(t, os.WriteFile(filepath.Join(rhoaiOverlay, "kustomization.yaml"), []byte("resources:\n  - configmap.yaml\n  - upload-config.yaml\n"), 0644))
+				require.NoError(t, os.WriteFile(filepath.Join(rhoaiOverlay, "configmap.yaml"), []byte(`apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-config
+data:
+  key: value
+`), 0644))
+				require.NoError(t, os.WriteFile(filepath.Join(rhoaiOverlay, "upload-config.yaml"), []byte(`apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: model-registry-ui-config
+data:
+  images-oci-base-image: ""
+`), 0644))
+			}
 			dashboard := &v1alpha1.Dashboard{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       v1alpha1.DashboardInstanceName,
@@ -1247,6 +1271,10 @@ data:
 					Modules:                   modules,
 					ModelRegistryOCIBaseImage: "mirror.example.com/base:1",
 				},
+			}
+			if tt.laterFailure == "portal" {
+				dashboard.Spec.Gateway = &v1alpha1.GatewaySpec{Domain: "apps.example.com"}
+				dashboard.Spec.MaaSPortal = &v1alpha1.MaaSPortalSpec{ManagementState: "Managed"}
 			}
 			if tt.uploadFailure {
 				dashboard.Spec.ModelRegistryOCIBaseImage = "mirror.example.com/Busybox:1"
@@ -1283,6 +1311,9 @@ data:
 				Client: cli, Scheme: scheme, ManifestsBasePath: base,
 				Platform: cluster.OpenDataHub, Namespace: testNamespace, ApplicationsNamespace: testNamespace,
 			}
+			if tt.laterFailure == "portal" {
+				r.Platform = cluster.SelfManagedRhoai
+			}
 			ctx := context.Background()
 			req := ctrl.Request{NamespacedName: client.ObjectKeyFromObject(dashboard)}
 			_, err := r.Reconcile(ctx, req)
@@ -1296,6 +1327,8 @@ data:
 				require.ErrorIs(t, err, federationErr)
 			case "module":
 				require.ErrorContains(t, err, "failed to render manifests for module genAi")
+			case "portal":
+				require.ErrorContains(t, err, uploadErr.Error())
 			}
 			updated := &v1alpha1.Dashboard{}
 			require.NoError(t, cli.Get(ctx, req.NamespacedName, updated))
@@ -1411,6 +1444,7 @@ func TestReconcile_LegacyRedirectFailureDoesNotBlockCore(t *testing.T) {
 
 	updated := &v1alpha1.Dashboard{}
 	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(dashboard), updated))
+	assert.Zero(t, updated.Status.ObservedGeneration, "a failed reconcile must not advance observedGeneration")
 	assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
 	provisioning := conditions.FindStatusCondition(updated, string(common.ConditionTypeProvisioningSucceeded))
 	require.NotNil(t, provisioning)
@@ -1428,7 +1462,7 @@ func TestReconcile_RemovedLegacyRedirectFailureDoesNotBlockTeardown(t *testing.T
 		ObjectMeta: metav1.ObjectMeta{
 			Name:       v1alpha1.DashboardInstanceName,
 			UID:        types.UID("dashboard-uid"),
-			Generation: 1,
+			Generation: 8,
 			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
 		},
 		Spec: v1alpha1.DashboardSpec{
@@ -1437,6 +1471,7 @@ func TestReconcile_RemovedLegacyRedirectFailureDoesNotBlockTeardown(t *testing.T
 				ManagementSpec: common.ManagementSpec{ManagementState: common.Removed},
 			},
 		},
+		Status: v1alpha1.DashboardStatus{Status: common.Status{ObservedGeneration: 7}},
 	}
 	redirectConfig := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{
 		Name: "dashboard-redirect-config", Namespace: testNamespace,
@@ -1476,6 +1511,7 @@ func TestReconcile_RemovedLegacyRedirectFailureDoesNotBlockTeardown(t *testing.T
 
 	updated := &v1alpha1.Dashboard{}
 	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(dashboard), updated))
+	assert.Equal(t, int64(7), updated.Status.ObservedGeneration, "failed removal must preserve the previously observed generation")
 	assert.Equal(t, common.PhaseNotReady, updated.Status.Phase)
 	provisioning := conditions.FindStatusCondition(updated, string(common.ConditionTypeProvisioningSucceeded))
 	require.NotNil(t, provisioning)
@@ -1484,6 +1520,55 @@ func TestReconcile_RemovedLegacyRedirectFailureDoesNotBlockTeardown(t *testing.T
 	require.NotNil(t, degraded)
 	assert.Equal(t, metav1.ConditionTrue, degraded.Status)
 	assert.Equal(t, "LegacyRedirectCleanupFailed", degraded.Reason)
+}
+
+func TestReconcile_RemovedMaaSPortalCleanupFailurePreservesObservedGeneration(t *testing.T) {
+	s := testScheme(t)
+	cleanupErr := errors.New("forced MaaS Portal cleanup failure")
+	dashboard := &v1alpha1.Dashboard{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       v1alpha1.DashboardInstanceName,
+			Generation: 2,
+			Finalizers: []string{"components.platform.opendatahub.io/cleanup"},
+		},
+		Spec: v1alpha1.DashboardSpec{
+			ManagementSpec: common.ManagementSpec{ManagementState: common.Removed},
+			MaaSPortal:     &v1alpha1.MaaSPortalSpec{ManagementState: string(common.Removed)},
+		},
+		Status: v1alpha1.DashboardStatus{Status: common.Status{ObservedGeneration: 1}},
+	}
+	portalDeployment := &appsv1.Deployment{ObjectMeta: metav1.ObjectMeta{
+		Name:      "maas-portal",
+		Namespace: testNamespace,
+		Labels:    map[string]string{labels.PlatformPartOf: "maas-portal"},
+	}}
+	cli := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(dashboard, portalDeployment).
+		WithStatusSubresource(dashboard).
+		WithInterceptorFuncs(interceptor.Funcs{
+			Delete: func(ctx context.Context, delegate client.WithWatch, obj client.Object, options ...client.DeleteOption) error {
+				if obj.GetName() == portalDeployment.Name {
+					return cleanupErr
+				}
+				return delegate.Delete(ctx, obj, options...)
+			},
+		}).
+		Build()
+	r := &ctrlpkg.DashboardReconciler{
+		Client: cli, Scheme: s, Platform: cluster.SelfManagedRhoai,
+		ManifestsBasePath: createMinimalManifests(t), Namespace: testNamespace, ApplicationsNamespace: testNamespace,
+	}
+
+	_, err := r.Reconcile(context.Background(), ctrl.Request{NamespacedName: types.NamespacedName{Name: v1alpha1.DashboardInstanceName}})
+	require.NoError(t, err, "portal cleanup failures remain status-visible retry conditions")
+
+	updated := &v1alpha1.Dashboard{}
+	require.NoError(t, cli.Get(context.Background(), client.ObjectKeyFromObject(dashboard), updated))
+	assert.Equal(t, int64(1), updated.Status.ObservedGeneration)
+	condition := conditions.FindStatusCondition(updated, ctrlpkg.ConditionMaaSPortalAvailable)
+	require.NotNil(t, condition)
+	assert.Equal(t, "MaaSPortalCleanupFailed", condition.Reason)
 }
 
 func TestReconcileDegradedCondition(t *testing.T) {

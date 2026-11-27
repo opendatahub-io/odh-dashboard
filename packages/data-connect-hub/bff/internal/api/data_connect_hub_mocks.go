@@ -46,11 +46,13 @@ func mockConnection(namespace, connectionID string) (Connection, bool) {
 
 func mockConnections(namespace string) []Connection {
 	connections := make([]Connection, 2)
+	warehouseDescription := "Sales data warehouse"
 	connections[0].Metadata.ID = "550e8400-e29b-41d4-a716-446655440001"
 	connections[0].Metadata.TenantID = namespace
 	connections[0].Metadata.CreatedAt = "2026-09-07T16:00:00Z"
 	connections[0].Metadata.UpdatedAt = "2026-09-08T16:00:00Z"
 	connections[0].Resource.Name = "warehouse"
+	connections[0].Resource.Description = &warehouseDescription
 	connections[0].Resource.DataConnectionTypeID = "550e8400-e29b-41d4-a716-446655440003"
 	connections[0].Resource.Format = "tabular"
 	connections[0].Resource.CredentialsRef.Secret = "warehouse"

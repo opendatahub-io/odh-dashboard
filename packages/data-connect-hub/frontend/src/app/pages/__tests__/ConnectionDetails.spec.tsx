@@ -1,6 +1,6 @@
 import React from 'react';
 import { jest } from '@jest/globals';
-import { fireEvent, render as rtlRender, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render as rtlRender, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import * as ReactRouterDom from 'react-router-dom';
@@ -83,6 +83,7 @@ const connection: Connection = {
   },
   resource: {
     name: 'warehouse',
+    description: 'Sales data warehouse',
     data_connection_type_id: '550e8400-e29b-41d4-a716-446655440003',
     format: 'tabular',
     credentials_ref: { secret: 'warehouse' },
@@ -190,6 +191,10 @@ describe('ConnectionDetails', () => {
       'Connection details',
     );
     expect(screen.getByText('Name')).toBeTruthy();
+    const description = within(screen.getByTestId('connection-details-card')).getByText(
+      'Sales data warehouse',
+    );
+    expect((description.closest('dd') as HTMLElement).style.whiteSpace).toBe('pre-wrap');
     expect(screen.getByText('Type')).toBeTruthy();
     expect(screen.getByText('PostgreSQL')).toBeTruthy();
     expect(screen.getByText('Created')).toBeTruthy();
@@ -201,6 +206,21 @@ describe('ConnectionDetails', () => {
     expect(screen.getByText('us-east-1')).toBeTruthy();
     expect(screen.getByText('bucket')).toBeTruthy();
     expect(screen.getByText('warehouse-data')).toBeTruthy();
+  });
+
+  it('should not render a description item when the connection has no description', () => {
+    mockUseConnection.mockReturnValue([
+      { ...connection, resource: { ...connection.resource, description: undefined } },
+      true,
+      undefined,
+      refresh,
+    ]);
+
+    renderDetails();
+
+    const card = within(screen.getByTestId('connection-details-card'));
+    expect(card.queryByText('Description')).toBeNull();
+    expect(card.queryByText('Sales data warehouse')).toBeNull();
   });
 
   it.each([true, false])(

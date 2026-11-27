@@ -11,6 +11,7 @@ type Connection struct {
 	} `json:"metadata"`
 	Resource struct {
 		Name                 string          `json:"name"`
+		Description          *string         `json:"description,omitempty"`
 		DataConnectionTypeID string          `json:"data_connection_type_id"`
 		DataConnectionType   *ConnectionType `json:"data_connection_type,omitempty"`
 		Format               string          `json:"format"`

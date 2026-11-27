@@ -25,6 +25,7 @@ paths:
       operationId: healthcheck
       summary: HealthCheck
       description: HealthCheck endpoint.
+      security: []
   /api/v1/namespaces:
     summary: Path used to get available namespaces.
     description: >-
@@ -40,6 +41,22 @@ paths:
       operationId: getNamespaces
       summary: Get Available Namespaces
       description: Returns available namespaces in the cluster.
+  /healthcheck/backend:
+    summary: Path used to check the upstream Data Connect Hub REST service.
+    get:
+      tags:
+        - DataOperation
+      responses:
+        '204':
+          description: The upstream Data Connect Hub REST service is available.
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: getBackendHealth
+      summary: Get upstream backend health
+      description: Checks the upstream Data Connect Hub REST service health endpoint.
+      security: []
   /api/v1/user:
     summary: Path used to Retrieve a user based on the header.
     description: >-
@@ -331,6 +348,11 @@ components:
       properties:
         name:
           type: string
+        description:
+          type: string
+          nullable: true
+          description: Optional free-form description of the connection.
+          example: Sales data warehouse
         data_connection_type_id:
           type: string
           pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
@@ -411,6 +433,11 @@ components:
             name:
               type: string
               example: warehouse
+            description:
+              type: string
+              nullable: true
+              description: Optional free-form description of the connection.
+              example: Sales data warehouse
             data_connection_type_id:
               type: string
               example: 550e8400-e29b-41d4-a716-446655440003
