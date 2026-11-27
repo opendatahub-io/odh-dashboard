@@ -22,11 +22,18 @@ jest.mock('~/app/hooks/useGenAiAPI');
 jest.mock('~/app/Chatbot/hooks/useFileUploadWithPolling');
 jest.mock('react', () => ({
   ...jest.requireActual('react'),
-  useContext: jest.fn(),
+  useContext: (context: React.Context<unknown>) => {
+    const { GenAiContext } = jest.requireActual('~/app/context/GenAiContext');
+    const { ChatbotContext } = jest.requireActual('~/app/context/ChatbotContext');
+    if (context === GenAiContext || context === ChatbotContext) {
+      return mockUseContext(context);
+    }
+    return jest.requireActual<typeof React>('react').useContext(context);
+  },
 }));
 
 const mockUploadSource = uploadSource as jest.Mock;
-const mockUseContext = React.useContext as jest.MockedFunction<typeof React.useContext>;
+const mockUseContext = jest.fn();
 const { useGenAiAPI } = jest.requireMock('~/app/hooks/useGenAiAPI');
 const mockUseGenAiAPI = useGenAiAPI as jest.Mock;
 

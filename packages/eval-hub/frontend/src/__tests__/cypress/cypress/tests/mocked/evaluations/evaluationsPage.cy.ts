@@ -11,7 +11,13 @@ import {
 } from '~/__mocks__/mockCollection';
 import { evaluationsPage } from '~/__tests__/cypress/cypress/pages/evaluationsPage';
 import { CLIENT_API_VERSION } from '~/__tests__/cypress/cypress/support/commands/api';
-import type { Collection, EvalHubHealthResponse, EvaluationJob, Provider } from '~/app/types';
+import type {
+  Collection,
+  EvalHubHealthResponse,
+  EvaluationJob,
+  InfoResponse,
+  Provider,
+} from '~/app/types';
 
 const NAMESPACE = 'test-namespace';
 const API_VERSION = { apiVersion: CLIENT_API_VERSION };
@@ -23,6 +29,7 @@ type InterceptOptions = {
   providers?: Provider[];
   collections?: Collection[];
   collectionsTotalCount?: number;
+  info?: InfoResponse;
 };
 
 const initIntercepts = ({
@@ -32,12 +39,15 @@ const initIntercepts = ({
   providers = [],
   collections = mockCuratedBenchmarkSuiteCollections(),
   collectionsTotalCount,
+  info = { hardware_profiles: [] },
 }: InterceptOptions = {}) => {
   cy.interceptApi(
     'GET /api/:apiVersion/user',
     { path: API_VERSION },
     mockUserSettings({ userId: 'test-user' }),
   );
+
+  cy.interceptApi('GET /api/:apiVersion/info', { path: API_VERSION }, info);
 
   cy.interceptApi('GET /api/:apiVersion/namespaces', { path: API_VERSION }, namespaces);
 
@@ -233,7 +243,7 @@ describe('Evaluations Page - Tabs', () => {
     evaluationsPage.visitEvaluate(NAMESPACE);
     evaluationsPage.findEvaluateTab().should('contain.text', 'Benchmark collections');
     evaluationsPage.findBrowseAllBenchmarksExploreButton().click();
-    cy.url().should('include', `/evaluation/${NAMESPACE}/create/benchmarks`);
+    cy.url().should('include', `/evaluation/${NAMESPACE}/create/single-benchmark`);
   });
 
   it('should switch to Runs and render its content description', () => {
@@ -415,6 +425,66 @@ describe('Evaluations Page - Table', () => {
     evaluationsPage.findEvaluationRow(0).should('exist');
     evaluationsPage.findEvaluationRow(1).should('exist');
     evaluationsPage.findEvaluationRow(2).should('exist');
+  });
+
+  it('should show a queue-assigned pending evaluation as Queued and filter it', () => {
+    const queuedJob = mockEvaluationJob({
+      id: 'eval-004',
+      name: 'Queued_Eval',
+      state: 'pending',
+      modelName: 'llama-3',
+      createdAt: '2026-03-17T08:00:00Z',
+      benchmarkIds: ['hellaswag'],
+      providerId: 'lm_evaluation_harness',
+    });
+    queuedJob.hardware_config = { queue: { name: 'gpu-default' } };
+    initIntercepts({ jobs: [queuedJob, runningJob] });
+
+    evaluationsPage.visitRuns(NAMESPACE);
+    evaluationsPage.findStatusLabel(0).should('contain.text', 'Queued');
+
+    evaluationsPage.findFilterTypeToggle().click();
+    evaluationsPage.findFilterTypeOption('status').click();
+    evaluationsPage.findStatusFilterToggle().click();
+    evaluationsPage.findStatusFilterOption('queued').click();
+    evaluationsPage.findEvaluationRow(0).should('contain.text', 'Queued_Eval');
+    evaluationsPage.findEvaluationRow(1).should('not.exist');
+  });
+
+  it('should show a pending profile-mode evaluation as Queued when its hardware profile is queue-backed', () => {
+    const profileModeJob = mockEvaluationJob({
+      id: 'eval-profile-queued',
+      name: 'Profile_Queued_Eval',
+      state: 'pending',
+      modelName: 'llama-3',
+      createdAt: '2026-03-17T08:00:00Z',
+      benchmarkIds: ['hellaswag'],
+      providerId: 'lm_evaluation_harness',
+    });
+    profileModeJob.hardware_config = { hardware_profile_name: 'gpu-profile' };
+    initIntercepts({
+      jobs: [profileModeJob, runningJob],
+      info: {
+        hardware_profiles: [
+          {
+            name: 'gpu-profile',
+            scheduling_type: 'queue',
+            queue_name: 'gpu-profile-queue',
+            identifiers: [],
+          },
+        ],
+      },
+    });
+
+    evaluationsPage.visitRuns(NAMESPACE);
+    evaluationsPage.findStatusLabel(0).should('contain.text', 'Queued');
+
+    evaluationsPage.findFilterTypeToggle().click();
+    evaluationsPage.findFilterTypeOption('status').click();
+    evaluationsPage.findStatusFilterToggle().click();
+    evaluationsPage.findStatusFilterOption('queued').click();
+    evaluationsPage.findEvaluationRow(0).should('contain.text', 'Profile_Queued_Eval');
+    evaluationsPage.findEvaluationRow(1).should('not.exist');
   });
 
   it('should show a link to results on completed evaluations', () => {
@@ -624,6 +694,32 @@ describe('Evaluations Page - Status modal', () => {
     // row 1 = runtime failure (Mar 13)
     evaluationsPage.clickStatusBadge(1);
     evaluationsPage.findStatusModalBadge('failed').should('have.text', 'Failed');
+  });
+
+  it('should show the queued presentation in the modal for a queue-assigned pending evaluation', () => {
+    const queuedJob = mockEvaluationJob({
+      id: 'eval-queued-modal',
+      name: 'Queued_Modal_Eval',
+      state: 'pending',
+      modelName: 'llama-3',
+      createdAt: '2026-03-17T08:00:00Z',
+      benchmarkIds: ['hellaswag'],
+      providerId: 'lm_evaluation_harness',
+    });
+    queuedJob.hardware_config = { queue: { name: 'gpu-default' } };
+    initIntercepts({ jobs: [queuedJob] });
+
+    evaluationsPage.visitRuns(NAMESPACE);
+    evaluationsPage.clickStatusBadge(0);
+    evaluationsPage.findStatusModal().should('exist');
+    // The label testid carries the raw state ('pending'); the derived display state is Queued.
+    evaluationsPage.findStatusModalBadge('pending').should('have.text', 'Queued');
+    evaluationsPage
+      .findStatusModalBenchmarkNameHeader()
+      .should('contain.text', 'Waiting for quota in gpu-default');
+    evaluationsPage
+      .findStatusModalDescription()
+      .should('contain.text', 'Waiting for resources to become available');
   });
 });
 

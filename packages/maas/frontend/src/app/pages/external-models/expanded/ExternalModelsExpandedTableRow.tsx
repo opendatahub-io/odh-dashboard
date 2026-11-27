@@ -4,7 +4,7 @@ import { Button, Flex, Icon, Label } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
 import { Table } from '@odh-dashboard/ui-core';
 import TableRowTitleDescription from '@odh-dashboard/internal/components/table/TableRowTitleDescription';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { ExternalModel, ProviderRef } from '~/app/types/external-models';
 import {
   mapAuthMechanismToHumanReadable,
@@ -35,120 +35,125 @@ const ExternalModelsExpandedTableRow: React.FC<ExternalModelsExpandedTableRowPro
   externalModel,
   setProviderURLModalRef,
   setPathModalRef,
-}) => (
-  <ExpandableRowContent>
-    <Table
-      data={externalModel.providerRefs}
-      columns={ExternalModelsExpandedRowColumns}
-      rowRenderer={(row: ProviderRef, index: number) => (
-        <Tr data-testid={`expanded-provider-row-${row.providerName}`}>
-          <Td>
-            <TableRowTitleDescription
-              title={
-                <Label
-                  color="blue"
-                  data-testid={`expanded-table-row-provider-name-${row.providerName}`}
-                >
-                  {row.provider?.displayName ?? row.providerName}
-                </Label>
-              }
-              onShowPopover={() => {
-                fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODELS_INFO_POPOVER_VIEWED, {
-                  infoTarget: ExternalModelsInfoPopoverTarget.PROVIDER_REFERENCE,
-                  location: ExternalModelsInfoPopoverLocation.EXPANDED_ROW,
-                } satisfies ExternalModelsInfoPopoverViewedProperties);
-              }}
-              resource={getProviderRefResource(row)}
-            />
-          </Td>
-          <Td>
-            <Button
-              variant="link"
-              isInline
-              onClick={() => {
-                setProviderURLModalRef(row);
-                fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_PROVIDER_DETAIL_VIEWED, {
-                  providerType: convertStringToExternalModelProviderType(
-                    row.provider?.provider ?? '',
-                  ),
-                  detailType: ExternalModelProviderDetailType.PROVIDER_URL,
-                } satisfies ExternalModelProviderDetailViewedProperties);
-              }}
-              data-testid={`expanded-table-row-view-url-button-${row.providerName}`}
-            >
-              View URL
-            </Button>
-          </Td>
-          <Td>
-            <Button
-              variant="link"
-              isInline
-              onClick={() => {
-                setPathModalRef(row);
-                fireMiscTrackingEvent(MaaSEvents.EXTERNAL_MODEL_PROVIDER_DETAIL_VIEWED, {
-                  providerType: convertStringToExternalModelProviderType(
-                    row.provider?.provider ?? '',
-                  ),
-                  detailType: ExternalModelProviderDetailType.PATH,
-                } satisfies ExternalModelProviderDetailViewedProperties);
-              }}
-              data-testid={`expanded-table-row-view-path-button-${row.providerName}`}
-            >
-              View path
-            </Button>
-          </Td>
-          <Td data-testid={`expanded-table-row-auth-mechanism-${row.providerName}`}>
-            {row.provider ? mapAuthMechanismToHumanReadable(row.provider.authMechanism) : '-'}
-          </Td>
-          <Td data-testid={`expanded-table-row-credential-secret-ref-${row.providerName}`}>
-            {row.provider?.credentialSecretRef ?? '-'}
-          </Td>
-          <Td>
-            <Label
-              color="grey"
-              variant="outline"
-              isCompact
-              data-testid={`expanded-table-row-api-format-${row.providerName}`}
-            >
-              {row.apiFormat}
-            </Label>
-          </Td>
-          <Td data-testid={`expanded-table-row-target-model-${row.providerName}`}>
-            {row.targetModel}
-          </Td>
-          <Td data-testid={`expanded-table-row-weight-${row.providerName}`}>
-            <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-              <span>{row.weight}</span>
-              <span>({formatProviderRefWeightPercentage(externalModel.providerRefs, index)})</span>
-            </Flex>
-          </Td>
-          <Td data-testid={`expanded-table-row-provider-status-${row.providerName}`}>
-            {isProviderRefMissing(row) ? (
+}) => {
+  const trackEvent = useTrackEvent();
+  return (
+    <ExpandableRowContent>
+      <Table
+        data={externalModel.providerRefs}
+        columns={ExternalModelsExpandedRowColumns}
+        rowRenderer={(row: ProviderRef, index: number) => (
+          <Tr data-testid={`expanded-provider-row-${row.providerName}`}>
+            <Td>
+              <TableRowTitleDescription
+                title={
+                  <Label
+                    color="blue"
+                    data-testid={`expanded-table-row-provider-name-${row.providerName}`}
+                  >
+                    {row.provider?.displayName ?? row.providerName}
+                  </Label>
+                }
+                onShowPopover={() => {
+                  trackEvent(MaaSEvents.EXTERNAL_MODELS_INFO_POPOVER_VIEWED, {
+                    infoTarget: ExternalModelsInfoPopoverTarget.PROVIDER_REFERENCE,
+                    location: ExternalModelsInfoPopoverLocation.EXPANDED_ROW,
+                  } satisfies ExternalModelsInfoPopoverViewedProperties);
+                }}
+                resource={getProviderRefResource(row)}
+              />
+            </Td>
+            <Td>
+              <Button
+                variant="link"
+                isInline
+                onClick={() => {
+                  setProviderURLModalRef(row);
+                  trackEvent(MaaSEvents.EXTERNAL_MODEL_PROVIDER_DETAIL_VIEWED, {
+                    providerType: convertStringToExternalModelProviderType(
+                      row.provider?.provider ?? '',
+                    ),
+                    detailType: ExternalModelProviderDetailType.PROVIDER_URL,
+                  } satisfies ExternalModelProviderDetailViewedProperties);
+                }}
+                data-testid={`expanded-table-row-view-url-button-${row.providerName}`}
+              >
+                View URL
+              </Button>
+            </Td>
+            <Td>
+              <Button
+                variant="link"
+                isInline
+                onClick={() => {
+                  setPathModalRef(row);
+                  trackEvent(MaaSEvents.EXTERNAL_MODEL_PROVIDER_DETAIL_VIEWED, {
+                    providerType: convertStringToExternalModelProviderType(
+                      row.provider?.provider ?? '',
+                    ),
+                    detailType: ExternalModelProviderDetailType.PATH,
+                  } satisfies ExternalModelProviderDetailViewedProperties);
+                }}
+                data-testid={`expanded-table-row-view-path-button-${row.providerName}`}
+              >
+                View path
+              </Button>
+            </Td>
+            <Td data-testid={`expanded-table-row-auth-mechanism-${row.providerName}`}>
+              {row.provider ? mapAuthMechanismToHumanReadable(row.provider.authMechanism) : '-'}
+            </Td>
+            <Td data-testid={`expanded-table-row-credential-secret-ref-${row.providerName}`}>
+              {row.provider?.credentialSecretRef ?? '-'}
+            </Td>
+            <Td>
+              <Label
+                color="grey"
+                variant="outline"
+                isCompact
+                data-testid={`expanded-table-row-api-format-${row.providerName}`}
+              >
+                {row.apiFormat}
+              </Label>
+            </Td>
+            <Td data-testid={`expanded-table-row-target-model-${row.providerName}`}>
+              {row.targetModel}
+            </Td>
+            <Td data-testid={`expanded-table-row-weight-${row.providerName}`}>
               <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
-                <Icon status="danger">
-                  <ExclamationCircleIcon />
-                </Icon>
-                <span>No provider resource</span>
+                <span>{row.weight}</span>
+                <span>
+                  ({formatProviderRefWeightPercentage(externalModel.providerRefs, index)})
+                </span>
               </Flex>
-            ) : (
-              row.provider?.phase && (
-                <PhaseLabel
-                  phase={row.provider.phase}
-                  resourceType={PhaseResourceType.EXTERNAL_PROVIDER}
-                  resourceName={row.provider.displayName ?? row.providerName}
-                  statusMessage={row.provider.statusMessage}
-                  status={row.provider.phase}
-                  conditionType={row.provider.conditionType}
-                  lastTransitionTime={row.provider.lastTransitionTime}
-                  reason={row.provider.reason}
-                />
-              )
-            )}
-          </Td>
-        </Tr>
-      )}
-    />
-  </ExpandableRowContent>
-);
+            </Td>
+            <Td data-testid={`expanded-table-row-provider-status-${row.providerName}`}>
+              {isProviderRefMissing(row) ? (
+                <Flex alignItems={{ default: 'alignItemsCenter' }} gap={{ default: 'gapSm' }}>
+                  <Icon status="danger">
+                    <ExclamationCircleIcon />
+                  </Icon>
+                  <span>No provider resource</span>
+                </Flex>
+              ) : (
+                row.provider?.phase && (
+                  <PhaseLabel
+                    phase={row.provider.phase}
+                    resourceType={PhaseResourceType.EXTERNAL_PROVIDER}
+                    resourceName={row.provider.displayName ?? row.providerName}
+                    statusMessage={row.provider.statusMessage}
+                    status={row.provider.phase}
+                    conditionType={row.provider.conditionType}
+                    lastTransitionTime={row.provider.lastTransitionTime}
+                    reason={row.provider.reason}
+                  />
+                )
+              )}
+            </Td>
+          </Tr>
+        )}
+      />
+    </ExpandableRowContent>
+  );
+};
 
 export default ExternalModelsExpandedTableRow;

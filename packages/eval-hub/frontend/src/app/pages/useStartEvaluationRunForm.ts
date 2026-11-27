@@ -5,7 +5,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import type { MlflowExperiment } from '@odh-dashboard/internal/concepts/mlflow';
-import { createEvaluationJob, getHardwareProfiles } from '~/app/api/k8s';
+import { createEvaluationJob, getInfo, validateHardwareProfiles } from '~/app/api/k8s';
 import {
   EVAL_HUB_EVENTS,
   type RunSourceSelectedProperties,
@@ -32,6 +32,7 @@ import { useConnectionValidation } from '~/app/hooks/useConnectionValidation';
 import { useHardwareProfiles } from '~/app/hooks/useHardwareProfiles';
 import { useKueueAvailability } from '~/app/hooks/useKueueAvailability';
 import {
+  benchmarkParameterValuesSchema,
   startEvaluationRunDefaultValues,
   startEvaluationRunSchema,
   type StartEvaluationRunFormValues,
@@ -75,13 +76,16 @@ const getTrackingContext = (
 
 type UseStartEvaluationRunFormParams = {
   namespace: string | undefined;
-  benchmark: FlatBenchmark | undefined;
+  benchmark?: FlatBenchmark;
   collection: Collection | undefined;
   isCollectionFlow: boolean;
+  benchmarkParameterValues?: Record<string, unknown>;
+  benchmarkParameterKeys?: string[];
   allowDeferredCollection?: boolean;
   experiments: MlflowExperiment[];
   experimentsLoaded: boolean;
   initialValues?: ReconfigureFormData;
+  initialRunValues?: Partial<StartEvaluationRunFormValues>;
   defaultEvaluationName?: string;
   defaultSourceMode?: SourceMode;
   trackingSource?: string;
@@ -157,10 +161,13 @@ export function useStartEvaluationRunForm({
   benchmark,
   collection,
   isCollectionFlow,
+  benchmarkParameterValues,
+  benchmarkParameterKeys,
   allowDeferredCollection = false,
   experiments,
   experimentsLoaded,
   initialValues,
+  initialRunValues,
   defaultEvaluationName,
   defaultSourceMode,
   trackingSource = 'evaluations_page',
@@ -208,13 +215,16 @@ export function useStartEvaluationRunForm({
   const form = useForm<StartEvaluationRunFormValues>({
     mode: 'onChange',
     resolver: zodResolver(startEvaluationRunSchema),
-    defaultValues: buildInitialFormValues({
-      initialValues,
-      defaultEvaluationName,
-      defaultSourceMode,
-      defaultThreshold,
-      defaultPrimaryMetric,
-    }),
+    defaultValues: {
+      ...buildInitialFormValues({
+        initialValues,
+        defaultEvaluationName,
+        defaultSourceMode,
+        defaultThreshold,
+        defaultPrimaryMetric,
+      }),
+      ...initialRunValues,
+    },
   });
 
   const {
@@ -256,6 +266,7 @@ export function useStartEvaluationRunForm({
     showAdditionalArgs,
     additionalArgs,
     hardwareProfile,
+    queue,
   ] = useWatch({
     control: form.control,
     name: [
@@ -279,11 +290,18 @@ export function useStartEvaluationRunForm({
       'showAdditionalArgs',
       'additionalArgs',
       'hardwareProfile',
+      'queue',
     ],
   });
 
-  const thresholdTouched = !!form.formState.dirtyFields.threshold || isReconfigure;
-  const primaryMetricTouched = !!form.formState.dirtyFields.primaryMetric || isReconfigure;
+  const thresholdTouched =
+    !!form.formState.dirtyFields.threshold ||
+    isReconfigure ||
+    initialRunValues?.threshold !== undefined;
+  const primaryMetricTouched =
+    !!form.formState.dirtyFields.primaryMetric ||
+    isReconfigure ||
+    initialRunValues?.primaryMetric !== undefined;
 
   React.useEffect(() => {
     if (!thresholdTouched) {
@@ -551,32 +569,57 @@ export function useStartEvaluationRunForm({
   const hasExperiment =
     (experimentMode === 'existing' && !!selectedExperimentName?.trim()) ||
     (experimentMode === 'new' && newExperimentName.trim() !== '');
-  // A Kueue-managed namespace must schedule its evaluations through a
-  // HardwareProfile. This remains true while its LocalQueues or compatible
-  // profiles are unavailable, so an incomplete Kueue configuration cannot be
-  // bypassed by falling back to provider-default scheduling.
-  const requiresHardwareProfile = kueueAvailability?.enabled === true;
+  // Hardware profile selection is never a blocker: with no profile selected, the job
+  // is submitted without hardware_config and runs on the regular K8s path outside Kueue.
   // Reconfigured jobs can reference profiles or queues that no longer exist. Derive the
   // current selection from the available profiles so hidden, stale form values are never sent.
-  const selectedHardwareProfile =
-    kueueAvailability?.scheduling_ready === true
-      ? hardwareProfiles.find(
-          (profile) =>
-            profile.name === hardwareProfile &&
-            !!profile.local_queue_name &&
-            kueueAvailability.local_queue_names.includes(profile.local_queue_name),
-        )
-      : undefined;
+  // The service only returns queue-backed profiles while their LocalQueue exists in
+  // the tenant namespace, so membership in the list is the availability check. Queue
+  // activity is advisory: an inactive or unknown LocalQueue still accepts the submission,
+  // which then waits for admission.
+  // A stale initial reconfigure value is tolerated (submission falls back to the
+  // default scheduling path), but a profile the user explicitly selected that a
+  // later /info refresh removed must be reselected or explicitly cleared before
+  // submission. dirtyFields cannot distinguish this: it tracks deviation from
+  // defaultValues, so selecting a different profile and returning to the initial
+  // one clears the flag. The manual-selection ref records the interaction itself.
+  const hardwareProfileManuallySelectedRef = React.useRef(false);
+  // An explicit selection is also bound to the queue it was made with: a background
+  // /info refresh that remaps the profile to a different queue must force reselection
+  // or clearing rather than silently redirecting the submission. Stale initial
+  // (reconfigure) values keep the tolerant name-only match so they still fall back to
+  // the default scheduling path.
+  const selectedHardwareProfile = hardwareProfiles.find(
+    (profile) =>
+      profile.name === hardwareProfile &&
+      (!hardwareProfileManuallySelectedRef.current || profile.queue_name === queue),
+  );
+  const hardwareProfileSelectionLost =
+    !!hardwareProfile && hardwareProfileManuallySelectedRef.current && !selectedHardwareProfile;
+
+  const benchmarkParameterErrors = React.useMemo(() => {
+    const result = benchmarkParameterValuesSchema.safeParse(benchmarkParameterValues ?? {});
+    if (result.success) {
+      return {};
+    }
+
+    return Object.fromEntries(
+      result.error.issues.map((issue): [string, string] => [String(issue.path[0]), issue.message]),
+    );
+  }, [benchmarkParameterValues]);
 
   const isValid = React.useMemo(() => {
     if (
       !hardwareProfilesLoaded ||
-      hardwareProfilesError ||
       evaluationName.trim() === '' ||
       !hasBenchmarks ||
       !hasExperiment ||
-      (requiresHardwareProfile && !selectedHardwareProfile)
+      Object.keys(benchmarkParameterErrors).length > 0
     ) {
+      return false;
+    }
+
+    if (hardwareProfileSelectionLost) {
       return false;
     }
 
@@ -610,9 +653,8 @@ export function useStartEvaluationRunForm({
     sourceName,
     selectedInferenceServiceName,
     hardwareProfilesLoaded,
-    hardwareProfilesError,
-    requiresHardwareProfile,
-    selectedHardwareProfile,
+    benchmarkParameterErrors,
+    hardwareProfileSelectionLost,
   ]);
 
   const canVerifyConnection = React.useMemo(() => {
@@ -682,8 +724,12 @@ export function useStartEvaluationRunForm({
   const setHardwareProfile = React.useCallback(
     (profileName: string | undefined) => {
       const profile = hardwareProfiles.find((candidate) => candidate.name === profileName);
+      // Any explicit selection (including clearing) marks the field as
+      // user-touched so a later list refresh losing the selection blocks
+      // submission; see hardwareProfileManuallySelectedRef above.
+      hardwareProfileManuallySelectedRef.current = true;
       form.setValue('hardwareProfile', profile?.name, { shouldValidate: true });
-      form.setValue('queue', profile?.local_queue_name, { shouldValidate: true });
+      form.setValue('queue', profile?.queue_name, { shouldValidate: true });
     },
     [form, hardwareProfiles],
   );
@@ -797,6 +843,24 @@ export function useStartEvaluationRunForm({
           setIsSubmitting(false);
           return;
         }
+
+        const conflictingParameterKeys = Object.keys(parsed).filter((key) =>
+          benchmarkParameterKeys?.includes(key),
+        );
+        if (conflictingParameterKeys.length > 0) {
+          notification.error(
+            'Conflicting benchmark parameters',
+            `Use the dedicated fields for ${conflictingParameterKeys.join(', ')}. Remove them from the advanced JSON.`,
+          );
+          trackEvalHubEvent(
+            EVAL_HUB_EVENTS.JOB_CREATE_VALIDATION_FAILED,
+            { validation_error_category: 'duplicate_benchmark_parameter_keys' },
+            submissionTrackingContext,
+          );
+          setIsSubmitting(false);
+          return;
+        }
+
         Object.assign(parsedArgs, parsed);
 
         for (const [key, val] of Object.entries(parsedArgs)) {
@@ -827,6 +891,9 @@ export function useStartEvaluationRunForm({
         return;
       }
     }
+
+    // Benchmark-declared fields take precedence over advanced JSON values with the same key.
+    Object.assign(parsedArgs, benchmarkParameterValues);
 
     const isNewExperiment = values.experimentMode === 'new';
     const experimentName = isNewExperiment
@@ -911,7 +978,7 @@ export function useStartEvaluationRunForm({
       passCriteriaOverride,
       primaryScoreOverride,
       hardwareProfile: selectedHardwareProfile?.name,
-      queue: selectedHardwareProfile?.local_queue_name,
+      queue: selectedHardwareProfile?.queue_name,
     });
 
     trackEvalHubEvent(
@@ -970,24 +1037,57 @@ export function useStartEvaluationRunForm({
         throw clusterUrlParseError;
       }
       if (selectedHardwareProfile) {
-        // Refresh the structural profile and LocalQueue selection without depending on
-        // advisory provider compatibility, which may be unavailable or lack provider IDs.
-        const currentProfiles = await getHardwareProfiles(
+        // Structural revalidation — blocking. The service re-filters queue-backed
+        // profiles per call, so a deleted LocalQueue drops its profile from the
+        // response.
+        const currentInfo = await getInfo(
           '',
           namespace ?? '',
         )({
           signal: controller.signal,
         });
         if (
-          !currentProfiles.some(
+          !currentInfo.hardware_profiles.some(
             (profile) =>
               profile.name === selectedHardwareProfile.name &&
-              profile.local_queue_name === selectedHardwareProfile.local_queue_name,
+              profile.queue_name === selectedHardwareProfile.queue_name,
           )
         ) {
           throw new Error(
             'The selected HardwareProfile or LocalQueue is no longer available. Refresh the page and select another hardware profile.',
           );
+        }
+        // Compatibility revalidation — advisory. The selector's "Insufficient
+        // resources" label comes from a cached query keyed by profile and provider
+        // names, so server-side resource changes since the form loaded can leave it
+        // stale. Re-run the validation against the submitted providers and warn;
+        // submission stays allowed. Validation is skipped when the submission has no
+        // provider IDs or the call fails, matching the selector's nonblocking behavior.
+        const submissionProviderIds = Array.from(
+          new Set(
+            getProviderIds(benchmark, activeCollection)
+              .map((providerId) => providerId.trim())
+              .filter(Boolean),
+          ),
+        );
+        if (submissionProviderIds.length > 0) {
+          try {
+            const validation = await validateHardwareProfiles('', namespace ?? '', {
+              hardware_profiles: [selectedHardwareProfile.name],
+              provider_ids: submissionProviderIds,
+            })({ signal: controller.signal });
+            const compatibility = validation.items.find(
+              (item) => item.hardware_profile === selectedHardwareProfile.name,
+            );
+            if (compatibility?.compatible === false) {
+              notification.warning(
+                'Hardware profile may be undersized',
+                `"${selectedHardwareProfile.display_name ?? selectedHardwareProfile.name}" may not meet the benchmark provider's minimum resource requirements. The evaluation is still submitted and may wait for resources or fail to schedule.`,
+              );
+            }
+          } catch {
+            // Advisory only — proceed with the submission.
+          }
         }
       }
       await createEvaluationJob('', namespace ?? '', request)({ signal: controller.signal });
@@ -1017,6 +1117,17 @@ export function useStartEvaluationRunForm({
       }
     } catch (e) {
       if (controller.signal.aborted) {
+        // Cancellation must not strand a curated-suite copy created for this
+        // submission — clean it up exactly like a failed run. Reused collections
+        // and copies belonging to an already-created job are never deleted: the
+        // success path returns above once the job exists.
+        if (activeCollectionWasCreated) {
+          try {
+            await onRunFailure?.(e, activeCollection, activeCollectionWasCreated);
+          } catch {
+            // Best-effort cleanup on cancel.
+          }
+        }
         return;
       }
       const message = e instanceof Error ? e.message : 'An unknown error occurred.';
@@ -1099,6 +1210,7 @@ export function useStartEvaluationRunForm({
     handleAdditionalArgsClear,
     isSubmitting,
     isValid,
+    benchmarkParameterErrors,
     handleSubmit,
     handleCancel,
     benchmarkDisplayName,
@@ -1122,8 +1234,8 @@ export function useStartEvaluationRunForm({
     hardwareProfilesError,
     hardwareProfileCompatibilityError,
     kueueAvailability,
-    requiresHardwareProfile,
     hardwareProfile: selectedHardwareProfile?.name,
+    hardwareProfileSelectionLost,
     setHardwareProfile,
   };
 }

@@ -1,12 +1,15 @@
 import * as React from 'react';
 import '@testing-library/jest-dom';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import MCPServersPanel from '~/app/Chatbot/mcp/MCPServersPanel';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import { MCPServer, MCPServerFromAPI } from '~/app/types/mcp';
 import useGenAiMcpRegistryServers from '~/app/hooks/useGenAiMcpRegistryServers';
 import useServerSelection from '~/app/Chatbot/mcp/hooks/useServerSelection';
 import useModalState from '~/app/Chatbot/mcp/hooks/useModalState';
+
+const trackEvent = jest.fn();
 
 // --- Mock dependencies ---
 
@@ -110,11 +113,6 @@ jest.mock('../hooks/useAutoUnlock', () => ({
   })),
 }));
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-}));
-
 jest.mock('../MCPServerPanelRow', () => ({
   __esModule: true,
   default: ({ server }: { server: { id: string; name: string } }) => (
@@ -189,6 +187,7 @@ const renderPanel = (props: Partial<MCPServersPanelProps> = {}) => {
     >
       <MCPServersPanel {...defaultProps} {...props} />
     </GenAiContext.Provider>,
+    { wrapper: createTrackingWrapper(trackEvent) },
   );
 };
 

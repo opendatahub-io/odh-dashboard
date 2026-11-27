@@ -33,6 +33,50 @@ import (
 
 const conditionMaaSPortalAvailable = "MaaSPortalAvailable"
 
+type maaSPortalOperationError struct {
+	err error
+}
+
+func (e *maaSPortalOperationError) Error() string {
+	return fmt.Sprintf("MaaS Portal operand operation failed: %v", e.err)
+}
+
+func (e *maaSPortalOperationError) Unwrap() error {
+	return e.err
+}
+
+func wrapMaaSPortalOperationError(err error) error {
+	if err == nil {
+		return nil
+	}
+	return &maaSPortalOperationError{err: err}
+}
+
+func splitMaaSPortalOperationError(err error) (coreErr, portalErr error) {
+	if err == nil {
+		return nil, nil
+	}
+	if joined, ok := err.(interface{ Unwrap() []error }); ok {
+		var coreErrors []error
+		var portalErrors []error
+		for _, child := range joined.Unwrap() {
+			core, portal := splitMaaSPortalOperationError(child)
+			if core != nil {
+				coreErrors = append(coreErrors, core)
+			}
+			if portal != nil {
+				portalErrors = append(portalErrors, portal)
+			}
+		}
+		return errors.Join(coreErrors...), errors.Join(portalErrors...)
+	}
+	var portalOperationErr *maaSPortalOperationError
+	if errors.As(err, &portalOperationErr) {
+		return nil, portalOperationErr.err
+	}
+	return err, nil
+}
+
 const maasPortalRetryInterval = time.Minute
 
 // Reasons reported by the MaaS Portal availability condition.
@@ -89,30 +133,53 @@ func (r *DashboardReconciler) reconcileMaaSPortalOperand(
 	statuses map[string]v1alpha1.ModuleStatus,
 	observabilityKnown bool,
 ) time.Duration {
+	retryAfter, _ := r.reconcileMaaSPortalOperandWithError(ctx, dashboard, cm, statuses, observabilityKnown)
+	return retryAfter
+}
+
+func (r *DashboardReconciler) reconcileMaaSPortalOperandWithError(
+	ctx context.Context,
+	dashboard *v1alpha1.Dashboard,
+	cm *conditions.Manager,
+	statuses map[string]v1alpha1.ModuleStatus,
+	observabilityKnown bool,
+) (time.Duration, error) {
+	var operationErr error
 	if err := r.deployMaaSPortalFederationConfigMap(ctx, dashboard, statuses, observabilityKnown); err != nil {
 		r.markMaaSPortalFederationConfigMapFailed(cm, err)
 		log.FromContext(ctx).Error(err, "Failed to deploy MaaS Portal federation ConfigMap")
+		operationErr = errors.Join(operationErr, fmt.Errorf("deploy MaaS Portal federation ConfigMap: %w", err))
 	}
-	return r.reconcileMaaSPortal(ctx, dashboard, cm, statuses)
+	retryAfter, portalErr := r.reconcileMaaSPortalWithError(ctx, dashboard, cm, statuses)
+	operationErr = errors.Join(operationErr, portalErr)
+	if operationErr != nil && retryAfter == 0 {
+		retryAfter = maasPortalRetryInterval
+	}
+	return retryAfter, operationErr
 }
 
 // reconcileMaaSPortal independently manages the portal bundle. Its resources
 // are deliberately labeled separately from the dashboard so core teardown cannot prune
 // a portal that remains desired.
 func (r *DashboardReconciler) reconcileMaaSPortal(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager, statuses map[string]v1alpha1.ModuleStatus) time.Duration {
+	retryAfter, _ := r.reconcileMaaSPortalWithError(ctx, dashboard, cm, statuses)
+	return retryAfter
+}
+
+func (r *DashboardReconciler) reconcileMaaSPortalWithError(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager, statuses map[string]v1alpha1.ModuleStatus) (time.Duration, error) {
 	portal := effectiveMaaSPortal(dashboard.Spec)
 	backfillMaaSPortalURL(&dashboard.Status)
 	if portal == nil || portal.ManagementState != "Managed" {
-		return r.reconcileRemovedMaaSPortal(ctx, dashboard, cm)
+		return r.reconcileRemovedMaaSPortalWithError(ctx, dashboard, cm)
 	}
 	if !maasPortalSupportedPlatform(r.Platform) {
-		return r.reconcileUnsupportedMaaSPortal(ctx, dashboard, cm)
+		return r.reconcileUnsupportedMaaSPortalWithError(ctx, dashboard, cm)
 	}
 	gatewayDomain := portalGatewayDomain(dashboard)
 	url, ok := maasPortalURL(gatewayDomain)
 	if !ok {
 		cm.MarkFalse(conditionMaaSPortalAvailable, conditions.WithReason(reasonMaaSPortalDomainRequired), conditions.WithMessage("MaaS Portal is enabled but gateway domain is not set"))
-		return maasPortalRetryInterval
+		return maasPortalRetryInterval, nil
 	}
 	migration, err := r.deployMaaSPortalBundle(ctx, dashboard)
 	if err != nil {
@@ -121,19 +188,19 @@ func (r *DashboardReconciler) reconcileMaaSPortal(ctx context.Context, dashboard
 		// bundle-apply failure, while still applying the portal's desired bundle.
 		if maasPortalUnavailable(cm) {
 			log.FromContext(ctx).Error(err, "MaaS Portal bundle deploy failed (prior condition takes precedence)")
-			return maasPortalRetryInterval
+			return maasPortalRetryInterval, fmt.Errorf("deploy MaaS Portal bundle: %w", err)
 		}
 		cm.MarkFalse(conditionMaaSPortalAvailable,
 			conditions.WithReason(reasonMaaSPortalDeployFailed),
 			conditions.WithMessage("MaaS Portal deployment failed: %s", err))
-		return maasPortalRetryInterval
+		return maasPortalRetryInterval, fmt.Errorf("deploy MaaS Portal bundle: %w", err)
 	}
 	if migration.Pending {
 		if !maasPortalUnavailable(cm) {
 			cm.MarkFalse(conditionMaaSPortalAvailable, conditions.WithReason(reasonMaaSPortalMigrationPending),
 				conditions.WithMessage("Waiting for the updated MaaS Portal rollout or legacy HTTPRoute deletion"))
 		}
-		return maasPortalRetryInterval
+		return maasPortalRetryInterval, nil
 	}
 	// Do not publish a newly derived URL until all portal readiness checks pass.
 	// This preserves the previous endpoint while an update is still unavailable.
@@ -149,7 +216,7 @@ func (r *DashboardReconciler) reconcileMaaSPortal(ctx context.Context, dashboard
 			cm.MarkFalse(conditionMaaSPortalAvailable,
 				conditions.WithReason(reasonMaaSPortalMigrationCleanupFailed),
 				conditions.WithMessage("Legacy MaaS Portal cleanup failed: %s", err))
-			return maasPortalRetryInterval
+			return maasPortalRetryInterval, fmt.Errorf("cleanup legacy MaaS Portal resources: %w", err)
 		}
 		// Serving readiness has passed. Asynchronous legacy deletion must not
 		// hide the available portal or delay publishing its current URL.
@@ -157,13 +224,18 @@ func (r *DashboardReconciler) reconcileMaaSPortal(ctx context.Context, dashboard
 		if migration.Pending || legacyDeployment {
 			// Re-render shared policies without temporary legacy peers even if
 			// the old Deployment had no owner reference to trigger a watch.
-			return maasPortalRetryInterval
+			return maasPortalRetryInterval, nil
 		}
 	}
-	return retryAfter
+	return retryAfter, nil
 }
 
 func (r *DashboardReconciler) reconcileRemovedMaaSPortal(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager) time.Duration {
+	retryAfter, _ := r.reconcileRemovedMaaSPortalWithError(ctx, dashboard, cm)
+	return retryAfter
+}
+
+func (r *DashboardReconciler) reconcileRemovedMaaSPortalWithError(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager) (time.Duration, error) {
 	backfillMaaSPortalURL(&dashboard.Status)
 	cleanup, err := r.deleteMaaSPortalResources(ctx)
 	if err != nil {
@@ -171,20 +243,25 @@ func (r *DashboardReconciler) reconcileRemovedMaaSPortal(ctx context.Context, da
 			conditions.WithReason(reasonMaaSPortalCleanupFailed),
 			conditions.WithMessage("MaaS Portal cleanup failed: %s", err),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
-		return maasPortalRetryInterval
+		return maasPortalRetryInterval, fmt.Errorf("cleanup MaaS Portal resources: %w", err)
 	}
 	if cleanup.Pending {
 		cm.MarkFalse(conditionMaaSPortalAvailable, conditions.WithReason(reasonMaaSPortalCleanupPending),
 			conditions.WithMessage("Waiting for deletion of legacy MaaS Portal resources"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
-		return maasPortalRetryInterval
+		return maasPortalRetryInterval, nil
 	}
 	setMaaSPortalURL(&dashboard.Status, "")
 	cm.MarkFalse(conditionMaaSPortalAvailable, conditions.WithReason(reasonMaaSPortalDisabled), conditions.WithMessage("MaaS Portal is not enabled"), conditions.WithSeverity(common.ConditionSeverityInfo))
-	return 0
+	return 0, nil
 }
 
 func (r *DashboardReconciler) reconcileUnsupportedMaaSPortal(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager) time.Duration {
+	retryAfter, _ := r.reconcileUnsupportedMaaSPortalWithError(ctx, dashboard, cm)
+	return retryAfter
+}
+
+func (r *DashboardReconciler) reconcileUnsupportedMaaSPortalWithError(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager) (time.Duration, error) {
 	backfillMaaSPortalURL(&dashboard.Status)
 	cleanup, err := r.deleteMaaSPortalResources(ctx)
 	if err != nil {
@@ -192,20 +269,20 @@ func (r *DashboardReconciler) reconcileUnsupportedMaaSPortal(ctx context.Context
 			conditions.WithReason(reasonMaaSPortalCleanupFailed),
 			conditions.WithMessage("MaaS Portal cleanup failed: %s", err),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
-		return maasPortalRetryInterval
+		return maasPortalRetryInterval, fmt.Errorf("cleanup MaaS Portal resources: %w", err)
 	}
 	if cleanup.Pending {
 		cm.MarkFalse(conditionMaaSPortalAvailable, conditions.WithReason(reasonMaaSPortalCleanupPending),
 			conditions.WithMessage("Waiting for deletion of legacy MaaS Portal resources"),
 			conditions.WithSeverity(common.ConditionSeverityInfo))
-		return maasPortalRetryInterval
+		return maasPortalRetryInterval, nil
 	}
 	setMaaSPortalURL(&dashboard.Status, "")
 	cm.MarkFalse(conditionMaaSPortalAvailable,
 		conditions.WithReason(reasonMaaSPortalUnsupportedPlatform),
 		conditions.WithMessage("%s", ErrMaaSPortalUnsupportedPlatform),
 		conditions.WithSeverity(common.ConditionSeverityInfo))
-	return 0
+	return 0, nil
 }
 
 func (r *DashboardReconciler) reconcileMaaSPortalAvailability(ctx context.Context, dashboard *v1alpha1.Dashboard, cm *conditions.Manager, statuses map[string]v1alpha1.ModuleStatus) time.Duration {

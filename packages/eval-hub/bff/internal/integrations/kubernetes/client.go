@@ -28,18 +28,13 @@ type KubernetesClientInterface interface {
 	// CanListEvalHubInstances performs a SubjectAccessReview to verify the user has permission
 	// to list EvalHub custom resources in the given namespace.
 	CanListEvalHubInstances(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error)
+	// CanCreateEvalHubResources performs a SubjectAccessReview for the write verb on the
+	// tenant-scoped virtual EvalHub resource, used to gate collection import in the UI.
+	CanCreateEvalHubResources(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error)
 	// GetEvalHubServiceURL lists EvalHub CRs in the namespace (filtered by the ODH dashboard label)
 	// and returns the service URL from the first CR's status.url field.
 	GetEvalHubServiceURL(ctx context.Context, identity *RequestIdentity, namespace string) (string, error)
 	// GetEvalHubCRStatus lists EvalHub CRs in the namespace and returns the full status
 	// of the first found instance, including phase, readiness, conditions, and providers.
 	GetEvalHubCRStatus(ctx context.Context, identity *RequestIdentity, namespace string) (*models.EvalHubCRStatus, error)
-
-	// Kueue and HardwareProfile discovery
-	GetKueueAvailability(ctx context.Context, identity *RequestIdentity, namespace string) (*models.KueueAvailability, error)
-	GetKueueWorkloadStatuses(ctx context.Context, identity *RequestIdentity, namespace string, evaluationIDs []string) (*models.KueueWorkloadStatusesResponse, error)
-	// HardwareProfiles are defined in the platform namespace; the LocalQueue named by a
-	// profile must exist in the namespace where the evaluation runs.
-	ListHardwareProfiles(ctx context.Context, identity *RequestIdentity, evaluationNamespace, hardwareProfilesNamespace string) (*models.HardwareProfilesResponse, error)
-	GetMissingHardwareProfileLocalQueueName(ctx context.Context, identity *RequestIdentity, evaluationNamespace, hardwareProfilesNamespace, profileName string) (string, bool, error)
 }

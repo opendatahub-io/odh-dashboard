@@ -2,6 +2,14 @@ import { getClusterAppsDomain } from './baseCommands';
 import type { CommandLineResult } from '../../types';
 import { Path } from '../../types';
 import { replacePlaceholdersInYaml } from '../../utils/yaml_files';
+import {
+  type ApiKeyCleanupResult,
+  buildApiKeyDeleteCommand,
+  classifyOcGet,
+  getApiKeyCleanupResult,
+  getApiKeyCleanupSkipReason,
+} from '../maasApiKeyCleanup';
+import { getOwnerGroupsReplacements } from '../maasOwnerGroups';
 
 export const modelsAsAServiceNamespace = 'models-as-a-service';
 
@@ -247,41 +255,43 @@ export const cleanupAuthPolicy = (
  * Credentials are read from the `postgres-creds` secret in APPLICATIONS_NAMESPACE.
  * Intended for E2E cleanup of keys created by Cypress tests (matched on `name`).
  *
+ * Throws when APPLICATIONS_NAMESPACE is unset or not a valid namespace, as before. Otherwise it
+ * never fails the test. When the secret or `deployment/postgres` is missing (NotFound), or the
+ * check itself fails (for example Forbidden), it logs one line saying cleanup was skipped and why.
+ * The database user and name are read into shell variables inside a single command, so they never
+ * appear in a command's text: not in the command log, not in the `[EXEC]` terminal log.
+ *
  * @param apiKeyName Display name of the API key to delete (same value used in the UI).
  */
-export const cleanupApiKeys = (apiKeyName: string): Cypress.Chainable<CommandLineResult> => {
+export const cleanupApiKeys = (apiKeyName: string): Cypress.Chainable<ApiKeyCleanupResult> => {
   const applicationNamespace = assertValidK8sNamespace(
     Cypress.env('APPLICATIONS_NAMESPACE') as string,
   );
-  const escapedName = apiKeyName.replace(/'/g, "''");
+  const namespaceArg = quoteShellArg(applicationNamespace);
+  const quiet = { failOnNonZeroExit: false, log: false };
+  // cy.log also reaches the terminal through the command:enqueued handler in support/e2e.ts.
+  const report = (result: ApiKeyCleanupResult): Cypress.Chainable<ApiKeyCleanupResult> =>
+    cy.log(result.message).then(() => result);
   cy.log(`Deleting API key "${apiKeyName}" from Postgres api_keys table`);
 
   return cy
-    .exec(
-      `oc get secret postgres-creds -n ${quoteShellArg(
-        applicationNamespace,
-      )} -o jsonpath='{.data.POSTGRES_USER}' | base64 -d`,
-      { failOnNonZeroExit: false },
-    )
-    .then((userResult) => {
-      const pgUser = userResult.stdout.trim();
-      return cy
-        .exec(
-          `oc get secret postgres-creds -n ${quoteShellArg(
-            applicationNamespace,
-          )} -o jsonpath='{.data.POSTGRES_DB}' | base64 -d`,
-          { failOnNonZeroExit: false },
-        )
-        .then((dbResult) => {
-          const pgDb = dbResult.stdout.trim();
-          return cy.exec(
-            `oc exec -n ${quoteShellArg(
-              applicationNamespace,
-            )} deployment/postgres -- psql -U "${pgUser}" -d "${pgDb}" -c "DELETE FROM api_keys WHERE name = '${escapedName}';"`,
-            { failOnNonZeroExit: false },
-          );
-        });
-    });
+    .exec(`oc get secret postgres-creds -n ${namespaceArg} -o name`, quiet)
+    .then((secretResult) =>
+      cy
+        .exec(`oc get deployment postgres -n ${namespaceArg} -o name`, quiet)
+        .then((deploymentResult) => {
+          const skipReason = getApiKeyCleanupSkipReason(applicationNamespace, {
+            secret: classifyOcGet(secretResult),
+            deployment: classifyOcGet(deploymentResult),
+          });
+          if (skipReason) {
+            return report({ deleted: false, message: skipReason });
+          }
+          return cy
+            .exec(buildApiKeyDeleteCommand(applicationNamespace, apiKeyName), quiet)
+            .then((deleteResult) => report(getApiKeyCleanupResult(apiKeyName, deleteResult)));
+        }),
+    );
 };
 
 /**
@@ -377,6 +387,11 @@ export const createMaaSSubscription = (
       SUBSCRIPTION_DESCRIPTION: subscriptionDescription,
       MODEL_NAME: model,
       PROJECT_NAME: project,
+      ...getOwnerGroupsReplacements(
+        yamlContent,
+        fixtureReplacements,
+        Cypress.env('MAAS_OWNER_GROUPS'),
+      ),
       ...fixtureReplacements,
     };
     const processedYaml = replacePlaceholdersInYaml(yamlContent, replacements);
@@ -404,6 +419,11 @@ export const createMaaSAuthPolicy = (
       POLICY_NAME: name,
       MODEL_NAME: model,
       PROJECT_NAME: project,
+      ...getOwnerGroupsReplacements(
+        yamlContent,
+        fixtureReplacements,
+        Cypress.env('MAAS_OWNER_GROUPS'),
+      ),
       ...fixtureReplacements,
     };
     const processedYaml = replacePlaceholdersInYaml(yamlContent, replacements);
@@ -492,9 +512,9 @@ export const checkExternalProviderExists = (
   const retryIntervalMs = options.retryIntervalMs ?? MAAS_STATE_DEFAULT_RETRY_INTERVAL_MS;
   const name = assertValidK8sLabel(resourceName, 'ExternalProvider name');
   const ns = assertValidK8sNamespace(projectName);
-  const ocCommand = `oc get externalprovider ${quoteShellArg(name)} -n ${quoteShellArg(
-    ns,
-  )} -o json`;
+  const ocCommand = `oc get externalproviders.inference.opendatahub.io ${quoteShellArg(
+    name,
+  )} -n ${quoteShellArg(ns)} -o json`;
   let attempts = 0;
 
   const checkState = (): Cypress.Chainable<CommandLineResult> =>
@@ -672,7 +692,9 @@ export const checkExternalModelExists = (
 ): Cypress.Chainable<CommandLineResult> => {
   const name = assertValidK8sLabel(resourceName, 'ExternalModel name');
   const ns = assertValidK8sNamespace(projectName);
-  const ocCommand = `oc get externalmodel ${quoteShellArg(name)} -n ${quoteShellArg(ns)} -o json`;
+  const ocCommand = `oc get externalmodels.inference.opendatahub.io ${quoteShellArg(
+    name,
+  )} -n ${quoteShellArg(ns)} -o json`;
   const resourceLabel = `ExternalModel ${name} in namespace ${ns}`;
 
   if (options.expectDeleted === true) {
@@ -688,7 +710,7 @@ export const checkExternalModelExists = (
 
   return pollMaaSResourceState(
     resourceLabel,
-    'ExternalModel',
+    'externalmodels.inference.opendatahub.io',
     name,
     ns,
     ocCommand,
@@ -851,9 +873,9 @@ export const cleanupExternalModel = (
 ): Cypress.Chainable<CommandLineResult> => {
   const name = assertValidK8sLabel(resourceName, 'ExternalModel name');
   const ns = assertValidK8sNamespace(projectName);
-  const ocCommand = `oc delete ExternalModel ${quoteShellArg(name)} -n ${quoteShellArg(
-    ns,
-  )} --ignore-not-found`;
+  const ocCommand = `oc delete externalmodels.inference.opendatahub.io ${quoteShellArg(
+    name,
+  )} -n ${quoteShellArg(ns)} --ignore-not-found`;
   cy.log(`Executing delete ExternalModel command: ${ocCommand}`);
   return cy.exec(ocCommand, { failOnNonZeroExit: false });
 };
@@ -878,9 +900,9 @@ export const cleanupExternalProvider = (
 ): Cypress.Chainable<CommandLineResult> => {
   const name = assertValidK8sLabel(resourceName, 'ExternalProvider name');
   const ns = assertValidK8sNamespace(projectName);
-  const ocCommand = `oc delete ExternalProvider ${quoteShellArg(name)} -n ${quoteShellArg(
-    ns,
-  )} --ignore-not-found`;
+  const ocCommand = `oc delete externalproviders.inference.opendatahub.io ${quoteShellArg(
+    name,
+  )} -n ${quoteShellArg(ns)} --ignore-not-found`;
   cy.log(`Executing delete ExternalProvider command: ${ocCommand}`);
   return cy.exec(ocCommand, { failOnNonZeroExit: false });
 };

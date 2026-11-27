@@ -1,15 +1,13 @@
 import * as React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import '@testing-library/jest-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+
 import ModelsListToolbar from '~/app/AIAssets/components/ModelsListToolbar';
 import { AssetsFilterColors, AssetsFilterOptions } from '~/app/AIAssets/data/filterOptions';
 
-// Mock tracking
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
+const trackEvent = jest.fn();
 
 describe('ModelsListToolbar', () => {
   const defaultProps = {
@@ -33,19 +31,19 @@ describe('ModelsListToolbar', () => {
   });
 
   it('should render the toolbar', () => {
-    render(<ModelsListToolbar {...defaultProps} />);
+    render(<ModelsListToolbar {...defaultProps} />, { wrapper: createTrackingWrapper(trackEvent) });
 
     expect(screen.getByTestId('models-table-toolbar')).toBeInTheDocument();
   });
 
   it('should render filter dropdown with default filter type', () => {
-    render(<ModelsListToolbar {...defaultProps} />);
+    render(<ModelsListToolbar {...defaultProps} />, { wrapper: createTrackingWrapper(trackEvent) });
 
     expect(screen.getByText('Name')).toBeInTheDocument();
   });
 
   it('should render search input', () => {
-    render(<ModelsListToolbar {...defaultProps} />);
+    render(<ModelsListToolbar {...defaultProps} />, { wrapper: createTrackingWrapper(trackEvent) });
 
     const searchInput = screen.getByPlaceholderText('Filter by name...');
     expect(searchInput).toBeInTheDocument();
@@ -54,7 +52,9 @@ describe('ModelsListToolbar', () => {
   describe('Filter dropdown', () => {
     it('should open dropdown when toggle is clicked', async () => {
       const user = userEvent.setup();
-      render(<ModelsListToolbar {...defaultProps} />);
+      render(<ModelsListToolbar {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       const filterToggle = screen.getByLabelText('Filter toggle');
       await user.click(filterToggle);
@@ -64,7 +64,9 @@ describe('ModelsListToolbar', () => {
 
     it('should change filter type when dropdown item is clicked', async () => {
       const user = userEvent.setup();
-      render(<ModelsListToolbar {...defaultProps} />);
+      render(<ModelsListToolbar {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       const filterToggle = screen.getByLabelText('Filter toggle');
       await user.click(filterToggle);
@@ -82,7 +84,9 @@ describe('ModelsListToolbar', () => {
         [AssetsFilterOptions.USE_CASE]: 'Use Case',
       };
 
-      render(<ModelsListToolbar {...defaultProps} filterOptions={filterOptions} />);
+      render(<ModelsListToolbar {...defaultProps} filterOptions={filterOptions} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       const filterToggle = screen.getByLabelText('Filter toggle');
       await user.click(filterToggle);
@@ -96,7 +100,9 @@ describe('ModelsListToolbar', () => {
   describe('Search functionality', () => {
     it('should update search value when typing', async () => {
       const user = userEvent.setup();
-      render(<ModelsListToolbar {...defaultProps} />);
+      render(<ModelsListToolbar {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       const searchInput = screen.getByPlaceholderText('Filter by name...');
       await user.type(searchInput, 'test model');
@@ -107,7 +113,9 @@ describe('ModelsListToolbar', () => {
     it('should call onFilterUpdate when search is submitted', async () => {
       const user = userEvent.setup();
       const mockOnFilterUpdate = jest.fn();
-      render(<ModelsListToolbar {...defaultProps} onFilterUpdate={mockOnFilterUpdate} />);
+      render(<ModelsListToolbar {...defaultProps} onFilterUpdate={mockOnFilterUpdate} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       const searchInput = screen.getByPlaceholderText('Filter by name...');
       await user.type(searchInput, 'test model{Enter}');
@@ -117,7 +125,9 @@ describe('ModelsListToolbar', () => {
 
     it('should update placeholder based on selected filter type', async () => {
       const user = userEvent.setup();
-      render(<ModelsListToolbar {...defaultProps} />);
+      render(<ModelsListToolbar {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       // Initially should show "Filter by name..."
       expect(screen.getByPlaceholderText('Filter by name...')).toBeInTheDocument();
@@ -136,7 +146,9 @@ describe('ModelsListToolbar', () => {
 
   describe('Active filters', () => {
     it('should not show active filters section when no filters are applied', () => {
-      render(<ModelsListToolbar {...defaultProps} />);
+      render(<ModelsListToolbar {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       expect(screen.queryByText('Active filters:')).not.toBeInTheDocument();
     });
@@ -146,7 +158,9 @@ describe('ModelsListToolbar', () => {
         [AssetsFilterOptions.NAME]: 'test model',
       };
 
-      render(<ModelsListToolbar {...defaultProps} filterData={filterData} />);
+      render(<ModelsListToolbar {...defaultProps} filterData={filterData} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       expect(screen.getByText('Active filters:')).toBeInTheDocument();
       expect(screen.getByText('Name: test model')).toBeInTheDocument();
@@ -158,7 +172,9 @@ describe('ModelsListToolbar', () => {
         [AssetsFilterOptions.USE_CASE]: 'llm',
       };
 
-      render(<ModelsListToolbar {...defaultProps} filterData={filterData} />);
+      render(<ModelsListToolbar {...defaultProps} filterData={filterData} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       expect(screen.getByText('Name: test model')).toBeInTheDocument();
       expect(screen.getByText('Use Case: llm')).toBeInTheDocument();
@@ -177,6 +193,7 @@ describe('ModelsListToolbar', () => {
           filterData={filterData}
           onClearFilters={mockOnClearFilters}
         />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       const clearAllButton = screen.getByText('Clear all filters');
@@ -198,6 +215,7 @@ describe('ModelsListToolbar', () => {
 
       render(
         <ModelsListToolbar {...defaultProps} filterData={filterData} filterColors={filterColors} />,
+        { wrapper: createTrackingWrapper(trackEvent) },
       );
 
       expect(screen.getByText('Name: test')).toBeInTheDocument();
@@ -209,13 +227,17 @@ describe('ModelsListToolbar', () => {
     it('should render info popover when provided', () => {
       const infoPopover = <div data-testid="info-popover">Info content</div>;
 
-      render(<ModelsListToolbar {...defaultProps} infoPopover={infoPopover} />);
+      render(<ModelsListToolbar {...defaultProps} infoPopover={infoPopover} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       expect(screen.getByTestId('info-popover')).toBeInTheDocument();
     });
 
     it('should not render info popover section when not provided', () => {
-      render(<ModelsListToolbar {...defaultProps} />);
+      render(<ModelsListToolbar {...defaultProps} />, {
+        wrapper: createTrackingWrapper(trackEvent),
+      });
 
       expect(screen.queryByTestId('info-popover')).not.toBeInTheDocument();
     });
@@ -231,12 +253,14 @@ describe('ModelsListToolbar', () => {
         const user = userEvent.setup();
         const infoPopover = <div>Info</div>;
 
-        render(<ModelsListToolbar {...defaultProps} infoPopover={infoPopover} />);
+        render(<ModelsListToolbar {...defaultProps} infoPopover={infoPopover} />, {
+          wrapper: createTrackingWrapper(trackEvent),
+        });
 
         const searchInput = screen.getByPlaceholderText('Filter by name...');
         await user.type(searchInput, 'test{Enter}');
 
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
+        expect(trackEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
           filterType: AssetsFilterOptions.NAME,
           resultsCount: 0,
         });
@@ -249,12 +273,14 @@ describe('ModelsListToolbar', () => {
           [AssetsFilterOptions.USE_CASE]: 'Use Case',
         };
 
-        render(<ModelsListToolbar {...defaultProps} filterOptions={filterOptionsWithUseCase} />);
+        render(<ModelsListToolbar {...defaultProps} filterOptions={filterOptionsWithUseCase} />, {
+          wrapper: createTrackingWrapper(trackEvent),
+        });
 
         const searchInput = screen.getByPlaceholderText('Filter by name...');
         await user.type(searchInput, 'test{Enter}');
 
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
+        expect(trackEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
           filterType: AssetsFilterOptions.NAME,
           resultsCount: 0,
         });
@@ -263,12 +289,14 @@ describe('ModelsListToolbar', () => {
       it('should fire tracking event when neither infoPopover nor useCase exists', async () => {
         const user = userEvent.setup();
 
-        render(<ModelsListToolbar {...defaultProps} />);
+        render(<ModelsListToolbar {...defaultProps} />, {
+          wrapper: createTrackingWrapper(trackEvent),
+        });
 
         const searchInput = screen.getByPlaceholderText('Filter by name...');
         await user.type(searchInput, 'test{Enter}');
 
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
+        expect(trackEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
           filterType: AssetsFilterOptions.NAME,
           resultsCount: 0,
         });
@@ -278,12 +306,14 @@ describe('ModelsListToolbar', () => {
     describe('Filter Applied Tracking', () => {
       it('should fire tracking event when search is submitted', async () => {
         const user = userEvent.setup();
-        render(<ModelsListToolbar {...defaultProps} />);
+        render(<ModelsListToolbar {...defaultProps} />, {
+          wrapper: createTrackingWrapper(trackEvent),
+        });
 
         const searchInput = screen.getByPlaceholderText('Filter by name...');
         await user.type(searchInput, 'llama{Enter}');
 
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
+        expect(trackEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
           filterType: AssetsFilterOptions.NAME,
           resultsCount: 0,
         });
@@ -291,7 +321,9 @@ describe('ModelsListToolbar', () => {
 
       it('should track filter type correctly', async () => {
         const user = userEvent.setup();
-        render(<ModelsListToolbar {...defaultProps} />);
+        render(<ModelsListToolbar {...defaultProps} />, {
+          wrapper: createTrackingWrapper(trackEvent),
+        });
 
         // Change to Use Case filter
         const filterToggle = screen.getByLabelText('Filter toggle');
@@ -303,7 +335,7 @@ describe('ModelsListToolbar', () => {
         const searchInput = screen.getByPlaceholderText('Filter by use case...');
         await user.type(searchInput, 'ai{Enter}');
 
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
+        expect(trackEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
           filterType: AssetsFilterOptions.USE_CASE,
           resultsCount: 0,
         });
@@ -311,12 +343,14 @@ describe('ModelsListToolbar', () => {
 
       it('should track empty search correctly', async () => {
         const user = userEvent.setup();
-        render(<ModelsListToolbar {...defaultProps} />);
+        render(<ModelsListToolbar {...defaultProps} />, {
+          wrapper: createTrackingWrapper(trackEvent),
+        });
 
         const searchInput = screen.getByPlaceholderText('Filter by name...');
         await user.type(searchInput, '{Enter}');
 
-        expect(fireMiscTrackingEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
+        expect(trackEvent).toHaveBeenCalledWith('Available Endpoints Filter Performed', {
           filterType: AssetsFilterOptions.NAME,
           resultsCount: 0,
         });

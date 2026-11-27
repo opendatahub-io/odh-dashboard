@@ -1,3 +1,6 @@
+// cspell:words patternfly
+const path = require('path');
+
 module.exports = {
   root: true,
   ignorePatterns: ['src/__tests__/cypress/coverage'],
@@ -260,7 +263,10 @@ module.exports = {
     'local-rules/no-raw-react-router-hook': 'error',
     '@cspell/spellchecker': [
       'error',
-      { configFile: 'config/cspell.json', customWordListFile: 'config/cspell-ignore-words.txt' },
+      {
+        configFile: path.join(__dirname, 'config/cspell.json'),
+        customWordListFile: path.join(__dirname, 'config/cspell-ignore-words.txt'),
+      },
     ],
   },
   overrides: [
@@ -316,6 +322,8 @@ module.exports = {
     },
     {
       files: ['.eslintrc.js'],
+      extends: ['plugin:@typescript-eslint/disable-type-checked'],
+      rules: { '@typescript-eslint/no-require-imports': 'off' },
       parserOptions: {
         project: null,
       },

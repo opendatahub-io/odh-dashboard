@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import {
   Alert,
@@ -17,10 +18,6 @@ import {
 } from '@patternfly/react-core';
 import { CubesIcon, EllipsisVIcon, ExternalLinkAltIcon } from '@patternfly/react-icons';
 import { useCheckboxTableBase, Table } from 'mod-arch-shared';
-import {
-  fireFormTrackingEvent,
-  fireMiscTrackingEvent,
-} from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import SupportIconDark from '~/app/bgimages/support-icon-dark.svg';
 import SupportIconLight from '~/app/bgimages/support-icon-light.svg';
@@ -80,6 +77,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   onActiveToolsCountChange,
   onMissingAuthServersChange,
 }) => {
+  const trackEvent = useTrackEvent();
   const isDarkMode = useDarkMode();
   const { api, apiAvailable } = useGenAiAPI();
   const mcpRegistryServersEnabled = useGenAiMcpRegistryServers();
@@ -303,10 +301,10 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
       }
     }
     configModal.closeModal();
-    fireFormTrackingEvent(MCP_AUTH_EVENT_NAME, {
+    trackEvent(MCP_AUTH_EVENT_NAME, {
       outcome: TrackingOutcome.cancel,
     });
-  }, [configModal, transformedServers, isSelected, toggleSelection, tokenManagement]);
+  }, [configModal, trackEvent, transformedServers, isSelected, tokenManagement, toggleSelection]);
 
   const handleToolsModalClose = React.useCallback(() => {
     toolsModal.closeModal();
@@ -336,11 +334,11 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
   const handleToolsClick = React.useCallback(
     (server: MCPServer) => {
       toolsModal.openModal(server);
-      fireMiscTrackingEvent('Playground MCP View Tools', {
+      trackEvent('Playground MCP View Tools', {
         mcpServerName: server.name,
       });
     },
-    [toolsModal],
+    [toolsModal, trackEvent],
   );
 
   const successModalProps = React.useMemo(() => {
@@ -386,7 +384,7 @@ const MCPServersPanel: React.FC<MCPServersPanelProps> = ({
         onToggleCheck={() => {
           const wasSelected = isSelected(server);
           toggleSelection(server);
-          fireMiscTrackingEvent('Playground MCP Select', {
+          trackEvent('Playground MCP Select', {
             mcpServerName: server.name,
             isSelected: !wasSelected,
           });

@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import { Button, ButtonVariant, Truncate, Icon, Tooltip } from '@patternfly/react-core';
 import {
@@ -9,7 +10,6 @@ import {
 import { Td, Tr } from '@patternfly/react-table';
 import { useNavigate } from 'react-router-dom';
 import { TruncatedText } from 'mod-arch-shared';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   AIModel,
   ExternalVectorStoreSummary,
@@ -46,6 +46,7 @@ const VectorStoreTableRow: React.FC<VectorStoreTableRowProps> = ({
   existingCollections,
   showPlaygroundColumn = false,
 }) => {
+  const trackEvent = useTrackEvent();
   const navigate = useNavigate();
   const { namespace } = React.useContext(GenAiContext);
   const [isConfigurationModalOpen, setIsConfigurationModalOpen] = React.useState(false);
@@ -107,7 +108,7 @@ const VectorStoreTableRow: React.FC<VectorStoreTableRowProps> = ({
                   status="warning"
                   data-testid="missing-model-tooltip-trigger"
                   onMouseEnter={() =>
-                    fireMiscTrackingEvent('Available Endpoints Missing Model Alert Viewed', {
+                    trackEvent('Available Endpoints Missing Model Alert Viewed', {
                       collectionName: store.vector_store_name,
                       missingModelId: store.embedding_model,
                     })
@@ -129,7 +130,7 @@ const VectorStoreTableRow: React.FC<VectorStoreTableRowProps> = ({
                 variant={ButtonVariant.secondary}
                 data-testid={`vector-store-try-in-playground-${store.vector_store_id}`}
                 onClick={() => {
-                  fireMiscTrackingEvent('Available Endpoints Playground Launched', {
+                  trackEvent('Available Endpoints Playground Launched', {
                     assetType: 'vector_store',
                     assetId: store.vector_store_id,
                   });
@@ -151,7 +152,7 @@ const VectorStoreTableRow: React.FC<VectorStoreTableRowProps> = ({
                 data-testid={`vector-store-add-to-playground-${store.vector_store_id}`}
                 onClick={() => {
                   setIsConfigurationModalOpen(true);
-                  fireMiscTrackingEvent('Available Endpoints Playground Launched', {
+                  trackEvent('Available Endpoints Playground Launched', {
                     assetType: 'vector_store',
                     assetId: store.vector_store_id,
                   });

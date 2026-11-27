@@ -1,6 +1,7 @@
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
+import { timingSafeEqual } from 'crypto';
 
 // @ts-expect-error: Types are not available for this third-party library
 import registerCypressGrep from '@cypress/grep/src/plugin';
@@ -29,6 +30,19 @@ const getCyEnvVariables = (envVars: Record<string, string | undefined>) => {
       .filter((key) => key.startsWith('CY_'))
       .map((key) => [key, envVars[key]]),
   );
+};
+
+const constantTimeEqual = (left: string, right: string): boolean => {
+  const leftBuffer = Buffer.from(left, 'utf8');
+  const rightBuffer = Buffer.from(right, 'utf8');
+  const comparisonLength = Math.max(leftBuffer.length, rightBuffer.length, 1);
+  const paddedLeft = Buffer.alloc(comparisonLength);
+  const paddedRight = Buffer.alloc(comparisonLength);
+
+  leftBuffer.copy(paddedLeft);
+  rightBuffer.copy(paddedRight);
+
+  return timingSafeEqual(paddedLeft, paddedRight) && leftBuffer.length === rightBuffer.length;
 };
 
 const resultsDir = path.resolve(
@@ -99,10 +113,17 @@ export default defineConfig({
     experimentalInteractiveRunEvents: true,
     setupNodeEvents(on, config) {
       const ociSecretFiles = new Set<string>();
+      const secureTempFiles = new Set<string>();
       const deleteOCISecretFile = (filePath: string): void => {
         if (ociSecretFiles.has(filePath)) {
           fs.rmSync(path.dirname(filePath), { recursive: true, force: true });
           ociSecretFiles.delete(filePath);
+        }
+      };
+      const deleteSecureTempFile = (filePath: string): void => {
+        if (secureTempFiles.has(filePath)) {
+          fs.rmSync(path.dirname(filePath), { recursive: true, force: true });
+          secureTempFiles.delete(filePath);
         }
       };
 
@@ -149,6 +170,29 @@ export default defineConfig({
       });
 
       on('task', {
+        compareSecretValues({ actual, expected }: { actual: unknown; expected: unknown }) {
+          if (typeof actual !== 'string' || typeof expected !== 'string') {
+            return false;
+          }
+          return constantTimeEqual(actual, expected);
+        },
+        createSecureTempFile(content: string) {
+          const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'cypress-secret-'));
+          const filePath = path.join(directory, 'manifest.yaml');
+          try {
+            fs.chmodSync(directory, 0o700);
+            fs.writeFileSync(filePath, content, { flag: 'wx', mode: 0o600 });
+            secureTempFiles.add(filePath);
+            return filePath;
+          } catch (error) {
+            fs.rmSync(directory, { recursive: true, force: true });
+            throw error;
+          }
+        },
+        deleteSecureTempFile(filePath: string) {
+          deleteSecureTempFile(filePath);
+          return null;
+        },
         createOCISecretFile(content: Record<string, unknown>) {
           const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'oci-data-connection-secret-'));
           const filePath = path.join(directory, 'secret.json');
@@ -221,6 +265,9 @@ export default defineConfig({
       on('after:spec', (_, results) => {
         for (const filePath of ociSecretFiles) {
           deleteOCISecretFile(filePath);
+        }
+        for (const filePath of secureTempFiles) {
+          deleteSecureTempFile(filePath);
         }
         if (results.video) {
           const failures =

@@ -154,6 +154,36 @@ describe('TypeaheadFilterField', () => {
     expect(onFilterApplied).toHaveBeenCalledTimes(2);
   });
 
+  it('should fire onFilterApplied when the same filter is reapplied after external removal', () => {
+    const onFilterApplied = jest.fn();
+    const view = render(
+      <TypeaheadFilterField
+        options={[{ value: 'granite-8b', content: 'Granite 8B' }]}
+        placeholder="Filter"
+        testId="filter-field"
+        onChange={onChange}
+        value="granite-8b"
+        onFilterApplied={onFilterApplied}
+      />,
+    );
+
+    // External chip removal or clear-all changes the controlled value without
+    // calling onClearSelection
+    view.rerender(
+      <TypeaheadFilterField
+        options={[{ value: 'granite-8b', content: 'Granite 8B' }]}
+        placeholder="Filter"
+        testId="filter-field"
+        onChange={onChange}
+        onFilterApplied={onFilterApplied}
+      />,
+    );
+
+    typeaheadProps.onSelect!(null, 'granite-8b');
+
+    expect(onFilterApplied).toHaveBeenCalledTimes(1);
+  });
+
   it('should match typed text against search aliases', () => {
     render(
       <TypeaheadFilterField

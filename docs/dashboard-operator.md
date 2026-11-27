@@ -21,6 +21,8 @@ As part of the modular architecture initiative (RHAISTRAT-1064), each component 
 | `managementState` | `Managed\|Removed` | Lifecycle intent from orchestrator |
 | `gateway` | `GatewaySpec` | Ingress domain for Route/Ingress |
 | `legacyRedirects` | `LegacyRedirectsSpec` | Optional lifecycle handoff for legacy dashboard and gateway Route redirects |
+| `notebooksNamespace` | `string` | Orchestrator-managed namespace receiving notebook API access for the Dashboard service account |
+| `modelRegistryNamespace` | `string` | Orchestrator-managed namespace receiving model registry API access for the Dashboard service account |
 | `components` | `map[string]ComponentAvailability` | DSC component availability snapshot, projected by orchestrator |
 | `modules` | `map[string]ModuleOverride` | Per-module enable/disable overrides (tri-state) |
 | `observability` | `ObservabilitySpec` | Perses proxy service configuration |
@@ -46,7 +48,7 @@ even if `legacyRedirects.managementState` is `Managed`.
 |-------|------|---------|
 | `phase` | `Ready\|NotReady` | Overall controller health |
 | `conditions` | `[]Condition` | `Ready`, `ProvisioningSucceeded`, `Degraded`, `ObservabilityAvailable`, `MaaSPortalAvailable`, and optional `ModelRegistryConfigValid` |
-| `observedGeneration` | `int64` | Last processed spec generation |
+| `observedGeneration` | `int64` | Last spec generation whose reconcile completed without a returned core/operand operation error. Tracked non-fatal condition failures (for example optional observability or namespaced-RBAC retries) may still advance it; use `phase` and conditions for health. |
 | `url` | `string` | Externally-reachable dashboard URL |
 | `maasPortalUrl` | `string` | Last known good MaaS Portal URL; cleared when the operand is removed |
 | `moduleStatuses` | `map[string]ModuleStatus` | Per-module deployment state |
@@ -71,7 +73,8 @@ The controller follows a sequential pipeline on each reconcile:
 1. Fetch CR            -> return nil for NotFound (deleted)
 2. Handle deletion     -> finalizer + cross-namespace cleanup
 3. Handle core Removed -> reconcile retained modules, then tear down core resources
-4. Deploy:
+4. Reconcile cross-namespace RBAC -> validate protected namespace consent and revoke stale grants
+5. Deploy:
    -> Clean up legacy sidecar resources (upgrade path)
    -> Render overlay (odh or rhoai)
    -> Deploy core pod (3 containers: dashboard, kube-rbac-proxy, core-bff)
@@ -83,8 +86,8 @@ The controller follows a sequential pipeline on each reconcile:
    -> Clean up disabled module resources (garbage collection)
    -> Build dynamic federation-config ConfigMap
    -> Patch main Deployment with config hash annotation (rolling restart)
-5. Extract URL         -> Route admission check
-6. Update status       -> conditions, phase, URL, moduleStatuses, releases
+6. Extract URL         -> Route admission check
+7. Update status       -> conditions, phase, URL, moduleStatuses, releases
 ```
 
 ### ManagementState Handling
@@ -410,6 +413,86 @@ Both certificates reuse the same `selfsigned-issuer` (Issuer kind, namespace-sco
 The webhook is optional and off by default: Helm `webhook.enabled` (default `false`) or the kustomize `config/webhook-enabled` overlay turns on the ValidatingWebhookConfiguration and `--enable-webhook` together. Both use `failurePolicy: Fail`, so the registration must never exist without the server (see [Kustomize](#standalone-kustomize)).
 
 The ValidatingWebhookConfiguration uses cert-manager's `inject-ca-from` annotation to inject the CA bundle. The webhook service listens on port 9443 with certificates mounted from the webhook-tls secret.
+
+#### Namespaced RBAC authorization
+
+When consent enforcement is enabled, the Dashboard service account only
+receives cross-namespace Roles and RoleBindings when all of these conditions
+are true:
+
+- `webhook.enforceNamespacedRBACConsent` is `true`;
+- the validating webhook is enabled;
+- `webhook.namespacedRBACWriters` contains at least one exact Kubernetes username;
+- the target namespace has
+  `dashboard.opendatahub.io/allow-namespaced-rbac=true`; and
+- the orchestrator sets `spec.notebooksNamespace` or
+  `spec.modelRegistryNamespace` on the singleton Dashboard CR.
+
+The webhook protects target fields, consent grants, the controller-owned grant
+inventory and enforcement-state annotations, and the operator-namespace state
+ConfigMap that survives Dashboard replacement. Only the dashboard operator
+service account may change those controller-owned objects. Only the exact
+usernames in `webhook.namespacedRBACWriters` may set the namespace label to
+`true`; anyone already authorized by Kubernetes to update the namespace may
+remove it and revoke consent. API-server match conditions skip the webhook for
+unrelated Dashboard and namespace updates and for namespace creation without
+consent. Consent changes through the namespace main resource, `status`, or
+`finalize` subresource all use the same policy. This prevents the Dashboard
+service account, even though it can patch other namespace metadata, from
+granting itself access without making normal namespace creation depend on
+webhook availability.
+
+Removing the consent label causes the controller to revoke the managed Role and
+RoleBinding before other deployment, removal, or finalizer work runs. Revocation
+uses controller-protected inventory in the operator-namespace state ConfigMap
+and mirrors it on the singleton Dashboard, so changing subjects, stripping
+mutable labels, replacing the reserved RoleBinding, changing its name, or
+replacing the Dashboard cannot hide an active grant from cleanup. A
+one-time label-selected migration records grants made by older versions; normal
+reconciliation then uses direct Role reads and namespace-scoped RoleBinding
+lists. A configured target is not treated as proof that reserved-name RBAC is
+operator-owned: migration and repair require the durable inventory or the
+operator ownership labels. The controller first empties the Role rules, then removes every
+RoleBinding that references the reserved Role and deletes the Role. It retains
+the inventory entry until deletion is confirmed, including when a finalizer
+delays deletion. Normal and Removed-state reconciliation reports this as
+NotReady; Dashboard CR deletion retains its finalizer and retries cleanup.
+
+Consent enforcement defaults to `false` so a dashboard-operator image can be
+upgraded before the platform operator installs the webhook. In this transition
+mode the controller preserves the legacy grants without requiring a consent
+label and reports a separate informational `NamespacedRBACConsentEnforced=False`
+condition with reason `NamespacedRBACConsentNotEnforced` when a target is
+configured. This condition does not replace workload degradation or readiness
+status. Enabling enforcement writes a monotonic latch to the operator-namespace
+`dashboard-namespaced-rbac-state` ConfigMap and mirrors it on the Dashboard for
+observability. The controller-protected ConfigMap survives Dashboard deletion
+and recreation, so a later deployment that accidentally omits the flag remains
+fail-closed. If that deployment also disables the validating webhook, the
+controller revokes existing namespaced grants and refuses to create new ones
+until admission protection is restored. Enabling enforcement without the
+webhook and at least one trusted writer is rejected at chart rendering and
+manager startup. Operator-managed RHOAI and ODH installations normally
+configure the applicable platform operator service account username:
+
+```text
+system:serviceaccount:redhat-ods-operator:redhat-ods-operator-controller-manager
+system:serviceaccount:opendatahub-operator:opendatahub-operator-controller-manager
+system:serviceaccount:openshift-operators:opendatahub-operator-controller-manager
+```
+
+For a standalone manager invocation, the equivalent setting is the
+comma-separated `--namespaced-rbac-writers` flag together with
+`--enforce-namespaced-rbac-consent`. Usernames are matched exactly; Kubernetes
+groups and wildcard values are not supported.
+
+The platform operator change that enables enforcement must update the chart
+configuration and `RELATED_IMAGE_ODH_DASHBOARD_OPERATOR_IMAGE` in the same ODH
+or RHOAI release change. Enabling the new flag with an older image causes an
+unknown-flag startup failure; deploying the new image with older configuration
+is safe because it remains in legacy transition mode. In that mode the webhook
+keeps its existing singleton behavior and does not restrict target fields or
+namespace consent until enforcement is explicitly enabled.
 
 ### Metrics TLS
 

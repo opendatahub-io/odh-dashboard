@@ -163,6 +163,10 @@ func (c *testK8sClient) CanListEvalHubInstances(_ context.Context, _ *kubernetes
 	return true, nil
 }
 
+func (c *testK8sClient) CanCreateEvalHubResources(_ context.Context, _ *kubernetes.RequestIdentity, _ string) (bool, error) {
+	return true, nil
+}
+
 func (c *testK8sClient) GetEvalHubServiceURL(_ context.Context, _ *kubernetes.RequestIdentity, _ string) (string, error) {
 	return "http://mock-evalhub:8080", nil
 }
@@ -178,22 +182,6 @@ func (c *testK8sClient) GetEvalHubCRStatus(_ context.Context, _ *kubernetes.Requ
 		ReadyReplicas:   1,
 		Replicas:        1,
 	}, nil
-}
-
-func (c *testK8sClient) GetKueueAvailability(_ context.Context, _ *kubernetes.RequestIdentity, _ string) (*models.KueueAvailability, error) {
-	return &models.KueueAvailability{}, nil
-}
-
-func (c *testK8sClient) GetKueueWorkloadStatuses(_ context.Context, _ *kubernetes.RequestIdentity, _ string, _ []string) (*models.KueueWorkloadStatusesResponse, error) {
-	return &models.KueueWorkloadStatusesResponse{}, nil
-}
-
-func (c *testK8sClient) ListHardwareProfiles(_ context.Context, _ *kubernetes.RequestIdentity, _, _ string) (*models.HardwareProfilesResponse, error) {
-	return &models.HardwareProfilesResponse{}, nil
-}
-
-func (c *testK8sClient) GetMissingHardwareProfileLocalQueueName(_ context.Context, _ *kubernetes.RequestIdentity, _, _, _ string) (string, bool, error) {
-	return "", false, nil
 }
 
 // erroringEHClient is a minimal EvalHub client whose HealthCheck always returns an error.
@@ -241,6 +229,9 @@ func (e *erroringEHClient) GetEvaluationJobLogs(_ context.Context, _ string, _ s
 }
 func (e *erroringEHClient) GetEvaluationJobBenchmarkLogs(_ context.Context, _ string, _ int, _ string, _ evalhub.GetJobLogsParams) (evalhub.EvaluationJobLogsResponse, error) {
 	return evalhub.EvaluationJobLogsResponse{}, fmt.Errorf("connection refused")
+}
+func (e *erroringEHClient) GetInfo(_ context.Context, _ string) (*evalhub.InfoResponse, error) {
+	return nil, fmt.Errorf("connection refused")
 }
 
 // setupApiTestWithEvalHubRaw exercises handlers that return plain text (not JSON).

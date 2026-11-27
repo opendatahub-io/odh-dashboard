@@ -2,7 +2,7 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { ApplicationsPage } from '@odh-dashboard/ui-core';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { ExternalModel } from '~/app/types/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import { useExternalModelsNamespace } from '~/app/hooks/useExternalModelsNamespace';
@@ -24,6 +24,7 @@ import { filterExternalModelsByKeyword } from './utils';
 import DeleteExternalModelModal from './DeleteExternalModelModal';
 
 const AllExternalModelsPage: React.FC = () => {
+  const trackEvent = useTrackEvent();
   const [filterData, setFilterData] = React.useState<ExternalModelsFilterDataType>(
     initialExternalModelsFilterData,
   );
@@ -109,14 +110,14 @@ const AllExternalModelsPage: React.FC = () => {
             onClose={(deleted) => {
               if (deleted) {
                 refreshExternalModels();
-                fireFormTrackingEvent(MaaSEvents.EXTERNAL_MODEL_DELETED, {
+                trackEvent(MaaSEvents.EXTERNAL_MODEL_DELETED, {
                   outcome: TrackingOutcome.submit,
                   success: true,
                   modelStatus: convertStringToPhaseStatus(deleteExternalModel.phase),
                   providerCount: deleteExternalModel.providerRefs.length,
                 } satisfies ExternalModelDeletedProperties);
               } else {
-                fireFormTrackingEvent(MaaSEvents.EXTERNAL_MODEL_DELETED, {
+                trackEvent(MaaSEvents.EXTERNAL_MODEL_DELETED, {
                   outcome: TrackingOutcome.cancel,
                   success: false,
                   modelStatus: convertStringToPhaseStatus(deleteExternalModel.phase),

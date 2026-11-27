@@ -18,6 +18,7 @@ jest.mock('react-router-dom', () => ({
   ]),
 }));
 jest.mock('@odh-dashboard/ui-core/utilities', () => ({
+  ...jest.requireActual('@odh-dashboard/ui-core/utilities'),
   useBrowserStorage: jest.fn(() => [null, jest.fn()]),
 }));
 jest.mock('@odh-dashboard/ui-core/utilities/axios', () => ({
@@ -30,6 +31,14 @@ jest.mock('@odh-dashboard/ui-core/utilities/axios', () => ({
     },
   },
 }));
+jest.mock('#~/concepts/areas/const', () => {
+  const actual =
+    jest.requireActual<typeof import('#~/concepts/areas/const')>('#~/concepts/areas/const');
+  return {
+    ...actual,
+    definedFeatureFlags: [...actual.definedFeatureFlags, 'hideExample'],
+  };
+});
 
 const axiosMock = jest.mocked(axios);
 const useSearchParamsMock = jest.mocked(useSearchParams);
@@ -220,6 +229,18 @@ describe('useDevFeatureFlags', () => {
       enablement: true,
       disableInfo: true,
     });
+  });
+
+  it('should resolve a hide-prefixed flag from a positive query override', () => {
+    mockSession(null);
+    mockUseSearchParams({ example: true });
+    const dashboardConfig = {
+      spec: { dashboardConfig: {} },
+    } as DashboardConfigKind;
+
+    const renderResult = renderHook(() => useDevFeatureFlags(dashboardConfig), renderOptions());
+
+    expect(renderResult.result.current.devFeatureFlags).toEqual({ hideExample: false });
   });
 
   it('should load flags from query string with true', () => {

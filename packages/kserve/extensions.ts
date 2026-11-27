@@ -1,11 +1,6 @@
 // eslint-disable-next-line no-restricted-syntax
 import type { TemplateKind } from '@odh-dashboard/k8s-core';
-// eslint-disable-next-line no-restricted-syntax
-import { NamespaceApplicationCase } from '@odh-dashboard/k8s-core';
-// eslint-disable-next-line no-restricted-syntax
-import { ProjectObjectType } from '@odh-dashboard/ui-core';
 import type {
-  ModelServingPlatformExtension,
   ModelServingDeleteModal,
   ModelServingPlatformWatchDeploymentsExtension,
   ModelServingMetricsExtension,
@@ -27,6 +22,7 @@ import type { RuntimeImageInstallTargetExtension } from '@odh-dashboard/model-se
 import type {
   AreaExtension,
   ClusterStorageConnectedResourcesExtension,
+  ConnectionsConnectedResourcesExtension,
   RouteExtension,
   TabRouteTabExtension,
 } from '@odh-dashboard/plugin-core/extension-points';
@@ -37,8 +33,9 @@ import type { TimeoutFieldValue } from './src/wizardFields/timeout/TimeoutField'
 import type { KServeServingRuntimeFieldType } from './src/wizardFields/servingRuntime/KServeServingRuntimeField';
 import type { KServeDeployment } from './src/types';
 import type { KServeConnectedResourcesData } from './src/clusterStorage/connectedResources';
+import type { KServeConnectionsResourcesData } from './src/connections/connectedResources';
 
-export const KSERVE_ID = 'kserve';
+export const KSERVE_ID = SupportedArea.K_SERVE;
 const ADMIN_USER = 'ADMIN_USER';
 
 // Duplicated from src/settings/servingRuntimeTemplates/paths.ts — extensions.ts
@@ -164,7 +161,6 @@ export const kserveFormDataExtension: ModelServingDeploymentFormDataExtension<KS
 
 const extensions: (
   | AreaExtension
-  | ModelServingPlatformExtension<KServeDeployment>
   | ModelServingPlatformWatchDeploymentsExtension<KServeDeployment>
   | ModelServingDeploymentFormDataExtension<KServeDeployment>
   | ModelServingAuthExtension<KServeDeployment>
@@ -183,6 +179,7 @@ const extensions: (
   | TabRouteTabExtension
   | RouteExtension
   | ClusterStorageConnectedResourcesExtension<KServeConnectedResourcesData>
+  | ConnectionsConnectedResourcesExtension<KServeConnectionsResourcesData>
   | RuntimeImageInstallTargetExtension
 )[] = [
   {
@@ -211,32 +208,14 @@ const extensions: (
     },
   },
   {
-    type: 'model-serving.platform',
+    type: 'app.connections/connected-resources',
     properties: {
-      id: KSERVE_ID,
-      manage: {
-        namespaceApplicationCase: NamespaceApplicationCase.KSERVE_PROMOTION,
-        priority: 0,
-        default: true,
-        projectRequirements: {
-          labels: {
-            'modelmesh-enabled': 'false',
-          },
-        },
-      },
-      enableCardText: {
-        title: 'Enable model serving',
-        description:
-          'Enable users to serve models using the single-model serving platform which deploys each model on its own dedicated model server. ',
-        selectText: 'Select single-model',
-        enabledText: 'Single-model serving enabled',
-        objectType: ProjectObjectType.singleModel,
-      },
-      deployedModelsView: {
-        startHintTitle: 'Start by deploying a model',
-        startHintDescription: 'Each model is deployed on its own model server',
-        deployButtonText: 'Deploy model',
-      },
+      useConnectedResources: () =>
+        import('./src/connections/connectedResources').then((m) => m.useConnectedKServeResources),
+      getConnectedResources: () =>
+        import('./src/connections/connectedResources').then(
+          (m) => m.getConnectedKServeResourceLabels,
+        ),
     },
     flags: {
       required: [SupportedArea.K_SERVE],

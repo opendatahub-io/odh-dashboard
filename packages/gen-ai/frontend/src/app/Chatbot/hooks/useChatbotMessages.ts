@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import { MessageProps } from '@patternfly/chatbot';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { Modality } from '~/app/tracking/playgroundMultimodalTrackingConstants';
 import userAvatar from '~/app/bgimages/user_avatar.svg';
 import { getId, getLlamaModelDisplayName, splitLlamaModelId } from '~/app/utilities/utils';
@@ -32,7 +32,6 @@ import {
 import { getSelectedServersForAPI } from '~/app/utilities/mcp';
 import { ServerStatusInfo } from '~/app/hooks/useMCPServerStatuses';
 import { classifyError } from '~/app/utilities/errorClassifier';
-
 import { useGenAiAPI } from '~/app/hooks/useGenAiAPI';
 import { ChatbotContext } from '~/app/context/ChatbotContext';
 import { useChatbotConfigStore } from '~/app/Chatbot/store';
@@ -168,6 +167,7 @@ const useChatbotMessages = ({
   isProfileDirty,
   documentAttachments = [],
 }: UseChatbotMessagesProps): UseChatbotMessagesReturn => {
+  const trackEvent = useTrackEvent();
   const [messages, setMessages] = React.useState<ChatbotMessageProps[]>([]);
   const [isMessageSendButtonDisabled, setIsMessageSendButtonDisabled] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -375,7 +375,7 @@ const useChatbotMessages = ({
       isStoppingStreamRef.current = true;
 
       // Track stop button click
-      fireMiscTrackingEvent('Playground Query Stopped', {
+      trackEvent('Playground Query Stopped', {
         isStreaming: isStreamingEnabled,
         isRag: isRagEnabled,
         hasImage: hasImageInConversation ?? false,
@@ -390,7 +390,13 @@ const useChatbotMessages = ({
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-  }, [isStreamingEnabled, isRagEnabled, hasImageInConversation, hasAudioInConversation]);
+  }, [
+    trackEvent,
+    isStreamingEnabled,
+    isRagEnabled,
+    hasImageInConversation,
+    hasAudioInConversation,
+  ]);
 
   const clearConversation = React.useCallback(() => {
     // Mark that we're clearing (not just stopping)
@@ -625,7 +631,7 @@ const useChatbotMessages = ({
       })();
 
       const { profileApplied } = useChatbotConfigStore.getState();
-      fireMiscTrackingEvent('Playground Query Submitted', {
+      trackEvent('Playground Query Submitted', {
         configID: configIndex ?? 0,
         compareMode: isCompareMode ?? false,
         compareID: compareID || '',
@@ -991,17 +997,21 @@ const useChatbotMessages = ({
         return apiError.error.message;
       })();
 
-      if (apiError.error.code === GUARDRAIL_ERROR_CODES.INPUT_VIOLATION) {
-        fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
-        fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.CHAT_BLOCKED, {
-          agentID: useChatbotConfigStore.getState().loadedProfileId ?? '',
-          blockType: 'input',
-        });
-      } else if (apiError.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
-        fireMiscTrackingEvent(PLAYGROUND_AGENT_EVENTS.CHAT_BLOCKED, {
-          agentID: useChatbotConfigStore.getState().loadedProfileId ?? '',
-          blockType: 'output',
-        });
+      try {
+        if (apiError.error.code === GUARDRAIL_ERROR_CODES.INPUT_VIOLATION) {
+          trackEvent('Guardrail Activated', { violationDetected: true });
+          trackEvent(PLAYGROUND_AGENT_EVENTS.CHAT_BLOCKED, {
+            agentID: useChatbotConfigStore.getState().loadedProfileId ?? '',
+            blockType: 'input',
+          });
+        } else if (apiError.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
+          trackEvent(PLAYGROUND_AGENT_EVENTS.CHAT_BLOCKED, {
+            agentID: useChatbotConfigStore.getState().loadedProfileId ?? '',
+            blockType: 'output',
+          });
+        }
+      } catch {
+        // Tracking failures must not bypass guardrail handling.
       }
 
       // Check if this was a user-initiated stop (stop button, not clear conversation)

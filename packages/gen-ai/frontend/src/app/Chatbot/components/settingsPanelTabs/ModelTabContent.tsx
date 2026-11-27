@@ -1,6 +1,6 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import { Form, FormGroup, Switch } from '@patternfly/react-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import TabContentWrapper from '~/app/Chatbot/components/settingsPanelTabs/TabContentWrapper';
 import ModelParameterFormGroup from '~/app/Chatbot/components/ModelParameterFormGroup';
 import ModelDetailsDropdown from '~/app/Chatbot/components/ModelDetailsDropdown';
@@ -34,6 +34,7 @@ function ModelTabContent({
   onSubscriptionChange,
   configId,
 }: ModelTabContentProps): React.ReactElement {
+  const trackEvent = useTrackEvent();
   const audioUploadEnabled = useGenAiAudioUploadEnabled();
 
   return (
@@ -61,7 +62,7 @@ function ModelTabContent({
           value={temperature}
           onChange={(value) => {
             onTemperatureChange(value);
-            fireMiscTrackingEvent('Playground Model Parameter Changed', {
+            trackEvent('Playground Model Parameter Changed', {
               parameter: 'temperature',
               value,
             });

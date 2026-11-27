@@ -115,6 +115,10 @@ class EvaluationsPage {
     return cy.findByTestId('create-suite-button');
   }
 
+  findImportCollectionButton() {
+    return cy.findByTestId('import-collection-button');
+  }
+
   findBrowseAllBenchmarksExploreButton() {
     return cy.findByTestId('browse-all-benchmarks-explore');
   }
@@ -382,6 +386,14 @@ class EvaluationsPage {
 
   findStatusModalTabContent() {
     return this.findStatusModal().findByTestId('status-modal-tab-content');
+  }
+
+  findStatusModalDescription() {
+    return this.findStatusModal().findByTestId('status-description');
+  }
+
+  findStatusModalBenchmarkNameHeader() {
+    return this.findStatusModal().findByTestId('benchmark-name-header');
   }
 
   findStatusDetailHeader() {

@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import React, { useContext } from 'react';
 import {
   Modal,
@@ -19,7 +20,6 @@ import {
   HelperTextItem,
 } from '@patternfly/react-core';
 import { ExclamationCircleIcon } from '@patternfly/react-icons';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { useNotification } from '~/app/hooks/useNotification';
 import { GenAiContext } from '~/app/context/GenAiContext';
@@ -38,6 +38,7 @@ export default function CreatePrompt({
   displayText,
   onClose,
 }: CreatePromptProps): React.ReactNode {
+  const trackEvent = useTrackEvent();
   const { modalMode, closeModal, openModal } = usePlaygroundStore();
   const dirtyPrompt = useChatbotConfigStore(selectDirtyPrompt(configId));
   const updateActivePrompt = useChatbotConfigStore((state) => state.updateActivePrompt);
@@ -73,7 +74,7 @@ export default function CreatePrompt({
         latestVersion != null && dirtyPrompt?.version != null
           ? dirtyPrompt.version === latestVersion
           : undefined;
-      fireMiscTrackingEvent(trackingEvent, {
+      trackEvent(trackingEvent, {
         outcome: 'submit',
         success: true,
         ...(isEditMode && nextVersion != null ? { versionNumber: nextVersion } : {}),
@@ -101,7 +102,7 @@ export default function CreatePrompt({
         latestVersion != null && dirtyPrompt?.version != null
           ? dirtyPrompt.version === latestVersion
           : undefined;
-      fireMiscTrackingEvent(trackingEvent, {
+      trackEvent(trackingEvent, {
         outcome: 'submit',
         success: false,
         error: errorCategory(error),

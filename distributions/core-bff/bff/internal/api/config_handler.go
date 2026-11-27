@@ -55,7 +55,7 @@ func (app *App) PatchConfigHandler(w http.ResponseWriter, r *http.Request, _ htt
 		return
 	}
 
-	_, err = app.repositories.DashboardConfig.PatchRawDashboardConfig(
+	patched, err := app.repositories.DashboardConfig.PatchRawDashboardConfig(
 		ctx, app.config.Namespace, app.config.DashboardConfigName, body, types.MergePatchType,
 	)
 	if err != nil {
@@ -67,10 +67,10 @@ func (app *App) PatchConfigHandler(w http.ResponseWriter, r *http.Request, _ htt
 		return
 	}
 
-	// Re-fetch the merged config to return the updated state
-	config, err := app.repositories.DashboardConfig.GetDashboardConfig(
-		ctx, app.config.Namespace, app.config.DashboardConfigName, nil,
-	)
+	// Build the response from the patched object. A re-read would use the
+	// bootstrap (service-account) path, which on xKS may fall back to defaults
+	// and hide the change the caller just made.
+	config, err := app.repositories.DashboardConfig.MergedDashboardConfig(patched)
 	if err != nil {
 		app.serverErrorResponse(w, r, err)
 		return

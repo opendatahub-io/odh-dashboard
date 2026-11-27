@@ -60,6 +60,7 @@ describe('Data Connect Hub BFF Contract Tests', () => {
     it('should create a connection for a project', async () => {
       const result = await apiClient.post('/api/v1/connections?namespace=default', {
         name: 'warehouse',
+        description: 'Sales data warehouse',
         // eslint-disable-next-line camelcase
         data_connection_type_id: postgresqlConnectionTypeId,
         format: 'tabular',
@@ -72,6 +73,35 @@ describe('Data Connect Hub BFF Contract Tests', () => {
       expect(result).toMatchContract(bffSchema, {
         ref: '#/components/responses/ConnectionResponse/content/application~1json/schema',
         status: 201,
+      });
+    });
+
+    it('should accept a null description when creating a connection', async () => {
+      const result = await apiClient.post('/api/v1/connections?namespace=default', {
+        name: 'warehouse-null-description',
+        description: null,
+        // eslint-disable-next-line camelcase
+        data_connection_type_id: postgresqlConnectionTypeId,
+        format: 'tabular',
+        credentials: {
+          secret: 'warehouse-null-description',
+          properties: { URI: 'postgres://example' },
+        },
+        properties: {},
+      });
+      expect(result).toMatchContract(bffSchema, {
+        ref: '#/components/responses/ConnectionResponse/content/application~1json/schema',
+        status: 201,
+      });
+    });
+
+    it('should check connection name availability for a project', async () => {
+      const result = await apiClient.get(
+        '/api/v1/connection-name-availability?namespace=default&name=warehouse',
+      );
+      expect(result).toMatchContract(bffSchema, {
+        ref: '#/components/responses/ConnectionNameAvailabilityResponse/content/application~1json/schema',
+        status: 200,
       });
     });
   });

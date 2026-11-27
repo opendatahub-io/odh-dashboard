@@ -12,6 +12,8 @@ import {
 } from '@odh-dashboard/model-serving/shared/components';
 import type { LLMdDeployment, LLMInferenceServiceConfigKind } from '../types';
 import { useFetchLLMInferenceServiceConfigs } from '../api/LLMInferenceServiceConfigs';
+import { isLLMd } from '../formUtils';
+import { CUSTOM_LLM_INFERENCE_SERVICE_OPTION, LLMD_OPTION } from '../deployments/server';
 
 export const useServingDetailsData = (): FetchStateObject<LLMInferenceServiceConfigKind[]> => {
   const { dashboardNamespace } = useDashboardNamespace();
@@ -65,8 +67,10 @@ const LLMInferenceServiceServingDetails: React.FC<Props> = ({ deployment, data }
         </LabelGroup>
       </StackItem>
     </Stack>
+  ) : isLLMd(deployment) ? (
+    LLMD_OPTION.label
   ) : (
-    'Distributed inference with llm-d'
+    CUSTOM_LLM_INFERENCE_SERVICE_OPTION.label
   );
 };
 

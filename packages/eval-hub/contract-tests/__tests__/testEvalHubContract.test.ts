@@ -36,29 +36,18 @@ describe('EvalHub API Contract Tests', () => {
     });
   });
 
-  describe('Kueue and HardwareProfile endpoints', () => {
-    it('should return the documented Kueue availability response', async () => {
-      const result = await apiClient.get('/eval-hub/api/v1/kueue/availability?namespace=default');
+  describe('Queue and HardwareProfile endpoints', () => {
+    it('should return the documented info response with tenant hardware profiles', async () => {
+      const result = await apiClient.get('/eval-hub/api/v1/info?namespace=default');
 
       expect(result).toMatchContract(apiSchema, {
-        ref: '#/paths/~1eval-hub~1api~1v1~1kueue~1availability/get/responses/200/content/application~1json/schema',
+        ref: '#/paths/~1eval-hub~1api~1v1~1info/get/responses/200/content/application~1json/schema',
         status: 200,
       });
     });
 
-    it('should return the documented Kueue Workload statuses response', async () => {
-      const result = await apiClient.get(
-        '/eval-hub/api/v1/kueue/workloads?namespace=default&evaluation_ids=evaluation-001',
-      );
-
-      expect(result).toMatchContract(apiSchema, {
-        ref: '#/paths/~1eval-hub~1api~1v1~1kueue~1workloads/get/responses/200/content/application~1json/schema',
-        status: 200,
-      });
-    });
-
-    it('should return a BadRequest error when evaluation_ids are missing', async () => {
-      const result = await apiClient.get('/eval-hub/api/v1/kueue/workloads?namespace=default');
+    it('should return a BadRequest error when the namespace is missing', async () => {
+      const result = await apiClient.get('/eval-hub/api/v1/info');
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -70,15 +59,6 @@ describe('EvalHub API Contract Tests', () => {
           },
         );
       }
-    });
-
-    it('should return the documented compatible HardwareProfiles response', async () => {
-      const result = await apiClient.get('/eval-hub/api/v1/hardwareprofiles?namespace=default');
-
-      expect(result).toMatchContract(apiSchema, {
-        ref: '#/paths/~1eval-hub~1api~1v1~1hardwareprofiles/get/responses/200/content/application~1json/schema',
-        status: 200,
-      });
     });
 
     it('should return the documented HardwareProfile validation response', async () => {
@@ -371,6 +351,95 @@ describe('EvalHub API Contract Tests', () => {
           },
         );
       }
+    });
+  });
+
+  describe('Import Collection Endpoint', () => {
+    it('should import a collection from YAML content with warnings', async () => {
+      const content = [
+        'id: shipped-collection',
+        'curation_order: 10',
+        'name: Imported Collection',
+        'description: Imported from a shipped collection YAML.',
+        'domains:',
+        '  - knowledge_and_reasoning',
+        'benchmarks:',
+        '  - id: arc_easy',
+        '    provider_id: lm_evaluation_harness',
+        '    weight: 0.6',
+      ].join('\n');
+      const result = await apiClient.post(
+        '/eval-hub/api/v1/evaluations/collection-imports?namespace=default',
+        { content },
+      );
+
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/CollectionImportResponse/content/application~1json/schema',
+        status: 201,
+      });
+      if (result.success) {
+        expect(result.response.data).toMatchObject({
+          data: {
+            collection: {
+              name: 'Imported Collection',
+              // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+              benchmarks: [{ id: 'arc_easy', provider_id: 'lm_evaluation_harness' }],
+            },
+          },
+        });
+        const warnings: string[] = result.response.data.data.warnings ?? [];
+        expect(warnings.join('\n')).toContain('managed by the server');
+      }
+    });
+
+    it('should import a collection from JSON content', async () => {
+      const result = await apiClient.post(
+        '/eval-hub/api/v1/evaluations/collection-imports?namespace=default',
+        {
+          content: JSON.stringify({
+            name: 'JSON Imported Collection',
+            domains: ['software'],
+            // eslint-disable-next-line camelcase -- Eval Hub API contract field name.
+            benchmarks: [{ id: 'quality', provider_id: 'garak' }],
+          }),
+        },
+      );
+
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/CollectionImportResponse/content/application~1json/schema',
+        status: 201,
+      });
+    });
+
+    it('should return a BadRequest error for empty content', async () => {
+      const result = await apiClient.post(
+        '/eval-hub/api/v1/evaluations/collection-imports?namespace=default',
+        { content: '# only a comment\n' },
+      );
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect({ status: result.error.status, data: result.error.data }).toMatchContract(
+          apiSchema,
+          {
+            ref: '#/components/responses/BadRequest/content/application~1json/schema',
+            status: 400,
+          },
+        );
+      }
+    });
+  });
+
+  describe('Import Collection Access Endpoint', () => {
+    it('should report whether the user may import collections', async () => {
+      const result = await apiClient.get(
+        '/eval-hub/api/v1/evaluations/collection-imports/access?namespace=default',
+      );
+
+      expect(result).toMatchContract(apiSchema, {
+        ref: '#/components/responses/CollectionImportAccessResponse/content/application~1json/schema',
+        status: 200,
+      });
     });
   });
 

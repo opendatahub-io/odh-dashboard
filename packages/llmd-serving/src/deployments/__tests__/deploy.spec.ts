@@ -179,7 +179,6 @@ describe('assembleLLMdDeployment', () => {
       reliantAreas: {},
       requiredComponents: {},
       requiredCapabilities: {},
-      customCondition: () => false,
     });
     mockUseHardwareProfiles.mockReturnValue({
       projectProfiles: [[projectDRAProfile], true, undefined],
@@ -226,6 +225,24 @@ describe('assembleLLMdDeployment', () => {
     });
     expect(model.spec.template?.resourceClaims).toStrictEqual(resourceClaims);
     expect(model.spec.template?.containers?.[0].resources).toStrictEqual(draResources);
+  });
+
+  it('should name a deployment that does not exist yet from the form, not the YAML it is assembled onto', () => {
+    // After a YAML round-trip the form is assembled onto the YAML model, which has no resource version
+    const yamlModel = mockLLMInferenceServiceK8sResource({
+      name: 'name-from-yaml',
+      namespace: 'namespace-from-yaml',
+      modelName: 'name-from-yaml',
+      isExistingResource: false,
+    });
+
+    const { model } = assembleLLMdDeployment(wizardData(draHardwareProfileConfig()), {
+      model: yamlModel,
+    });
+
+    expect(model.metadata.name).toBe('test-llm-inference-service');
+    expect(model.metadata.namespace).toBe('test-project');
+    expect(model.spec.model.name).toBe('test-llm-inference-service');
   });
 
   it('should write the resource version when a new deployment uses a DRA hardware profile', () => {

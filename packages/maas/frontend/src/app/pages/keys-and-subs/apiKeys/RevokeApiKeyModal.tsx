@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Stack, StackItem } from '@patternfly/react-core';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { errorCategory } from '@odh-dashboard/internal/concepts/analyticsTracking/errorTrackingUtils';
 import { APIKey } from '~/app/types/api-key';
 import DeleteModal from '~/app/shared/DeleteModal';
@@ -23,19 +23,20 @@ const RevokeApiKeyModal: React.FC<RevokeApiKeyModalProps> = ({
   onClose,
   initiatedFrom,
 }) => {
+  const trackEvent = useTrackEvent();
   const { isRevoking, error, revokeApiKeyCallback } = useRevokeApiKey();
 
   const handleClose = React.useCallback(
     (deleted?: boolean) => {
       if (!deleted) {
-        fireFormTrackingEvent(MaaSEvents.API_KEY_REVOKED, {
+        trackEvent(MaaSEvents.API_KEY_REVOKED, {
           outcome: TrackingOutcome.cancel,
           initiatedFrom,
         } satisfies ApiKeyRevokedProperties);
       }
       onClose(deleted);
     },
-    [initiatedFrom, onClose],
+    [initiatedFrom, onClose, trackEvent],
   );
 
   const handleRevoke = React.useCallback(async () => {
@@ -44,14 +45,14 @@ const RevokeApiKeyModal: React.FC<RevokeApiKeyModalProps> = ({
     }
     try {
       await revokeApiKeyCallback(apiKey.id);
-      fireFormTrackingEvent(MaaSEvents.API_KEY_REVOKED, {
+      trackEvent(MaaSEvents.API_KEY_REVOKED, {
         outcome: TrackingOutcome.submit,
         success: true,
         initiatedFrom,
       } satisfies ApiKeyRevokedProperties);
       onClose(true);
     } catch (err) {
-      fireFormTrackingEvent(MaaSEvents.API_KEY_REVOKED, {
+      trackEvent(MaaSEvents.API_KEY_REVOKED, {
         outcome: TrackingOutcome.submit,
         success: false,
         error: errorCategory(err),
@@ -59,7 +60,7 @@ const RevokeApiKeyModal: React.FC<RevokeApiKeyModalProps> = ({
       } satisfies ApiKeyRevokedProperties);
       // Error is handled by the hook and displayed in the modal
     }
-  }, [revokeApiKeyCallback, apiKey.id, onClose, initiatedFrom]);
+  }, [revokeApiKeyCallback, apiKey.id, onClose, initiatedFrom, trackEvent]);
 
   if (!apiKey.id) {
     return null;

@@ -175,7 +175,7 @@ describe('A user can deploy a project-scoped NIM', () => {
       modelServingWizard.findAuthenticationSection().should('be.visible');
       modelServingWizard.findExternalRouteCheckbox().should('not.be.checked').click();
       modelServingWizard.findTokenAuthenticationCheckbox().should('be.checked');
-      modelServingWizard.findServiceAccountNameInput().clear().type(testData.tokenDisplayName);
+      modelServingWizard.findSecretNameInput().clear().type(testData.tokenDisplayName);
       modelServingWizard.findNextButton().should('be.enabled').click();
 
       cy.step('Step 4: Review and deploy the NIM model');

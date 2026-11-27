@@ -2,6 +2,7 @@
 import type { AAModelResponse, AIModel, LlamaModel } from '~/app/types';
 import {
   convertMaaSModelToAIModel,
+  copyToClipboardWithTracking,
   getAIAssetModelIDFromPlaygroundModel,
   getCapabilityDisplay,
   getSourceLabel,
@@ -499,4 +500,50 @@ describe('getVisibleCapabilities', () => {
       'audio-transcription',
     ]);
   });
+});
+
+describe('copyToClipboardWithTracking', () => {
+  it.each([true, false])(
+    'should track only a resolved clipboard write (success: %s)',
+    async (success) => {
+      const original = Object.getOwnPropertyDescriptor(navigator, 'clipboard');
+      const trackEvent = jest.fn();
+      let resolveWrite!: () => void;
+      let rejectWrite!: (error: Error) => void;
+      const write = new Promise<void>((resolve, reject) => {
+        resolveWrite = resolve;
+        rejectWrite = reject;
+      });
+      Object.defineProperty(navigator, 'clipboard', {
+        configurable: true,
+        value: { writeText: jest.fn(() => write) },
+      });
+      try {
+        const properties = { assetType: 'model' as const, copyTarget: 'endpoint' as const };
+        const completion = copyToClipboardWithTracking(
+          trackEvent,
+          'private endpoint',
+          'Available Endpoints Endpoint Copied',
+          properties,
+        );
+        expect(navigator.clipboard.writeText).toHaveBeenCalledWith('private endpoint');
+        expect(trackEvent).not.toHaveBeenCalled();
+        if (success) {
+          resolveWrite();
+        } else {
+          rejectWrite(new Error('Clipboard unavailable'));
+        }
+        await completion;
+        expect(trackEvent.mock.calls).toEqual(
+          success ? [['Available Endpoints Endpoint Copied', properties]] : [],
+        );
+      } finally {
+        if (original) {
+          Object.defineProperty(navigator, 'clipboard', original);
+        } else {
+          Reflect.deleteProperty(navigator, 'clipboard');
+        }
+      }
+    },
+  );
 });

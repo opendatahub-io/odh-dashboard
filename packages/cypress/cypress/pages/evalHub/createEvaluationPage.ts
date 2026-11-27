@@ -1,8 +1,4 @@
 class CreateEvaluationPage {
-  findStandardisedBenchmarksCard() {
-    return cy.findByTestId('standardised-benchmarks-card');
-  }
-
   findSuiteNameInput() {
     return cy.findByTestId('suite-name-input');
   }
@@ -93,6 +89,16 @@ class CreateEvaluationPage {
     return cy.findByTestId(`benchmark-${index}-parameter-input-${parameterKey}`);
   }
 
+  findBenchmarkSections() {
+    return cy
+      .findByTestId('copy-suite-benchmark-sections')
+      .find('section[data-testid^="benchmark-section-"]');
+  }
+
+  findBenchmarkJumpLink(index: number) {
+    return cy.findByTestId(`benchmark-jump-link-${index}`).findByRole('link');
+  }
+
   findCopySuiteSaveOnlyButton() {
     return cy.findByTestId('copy-suite-save-only');
   }
@@ -121,8 +127,12 @@ class CreateEvaluationPage {
     return toggle.filter(':visible').first().find('button').first();
   }
 
-  findStartEvaluationRunCollectionName() {
-    return cy.findByTestId('start-evaluation-run-collection-name');
+  findStartEvaluationRunCollectionName(modalId?: string) {
+    return modalId
+      ? this.findStartEvaluationRunModal(modalId).findByTestId(
+          'start-evaluation-run-collection-name',
+        )
+      : cy.findByTestId('start-evaluation-run-collection-name');
   }
 
   findEvaluationCollectionsCard() {
@@ -131,6 +141,30 @@ class CreateEvaluationPage {
 
   findCollectionsGallery(options?: Partial<Cypress.Timeoutable>) {
     return cy.findByTestId('collections-gallery', options);
+  }
+
+  findCuratedBenchmarkSuitesPage(options?: Partial<Cypress.Timeoutable>) {
+    return cy.findByTestId('curated-benchmark-suites-page', options);
+  }
+
+  findCuratedBenchmarkSuiteName(collectionId: string) {
+    return cy.findByTestId(`benchmark-suite-card-name-${collectionId}`);
+  }
+
+  findCollectionDrawerPanel() {
+    return cy.findByTestId('collection-drawer-panel');
+  }
+
+  findCollectionDrawerPrerequisite() {
+    return cy.findByTestId('collection-drawer-prerequisite');
+  }
+
+  findCustomizeBenchmarkSuiteButton() {
+    return cy.findByTestId('customize-benchmark-suite-button');
+  }
+
+  findCopySuitePrerequisiteAlert() {
+    return cy.findByTestId('copy-suite-prerequisite-alert');
   }
 
   findCollectionCard(collectionId: string) {
@@ -145,27 +179,38 @@ class CreateEvaluationPage {
     return cy.findByTestId('collections-name-filter');
   }
 
-  findBenchmarksGallery(options?: Partial<Cypress.Timeoutable>) {
-    return cy.findByTestId('benchmarks-gallery', options);
-  }
-
-  findBenchmarkCard(providerId: string, benchmarkId: string) {
-    return this.findBenchmarksGallery({ timeout: 30000 }).find(
-      `[data-testid="benchmark-card-${providerId}-${benchmarkId}"]`,
-      { timeout: 30000 },
-    );
-  }
-
-  findSelectBenchmarkButton() {
-    return cy.findByTestId('select-benchmark-button');
-  }
-
   findStartEvaluationForm(options?: Partial<Cypress.Timeoutable>) {
     return cy.findByTestId('start-evaluation-form', options);
   }
 
-  findBenchmarkNameDisplay() {
-    return cy.findByTestId('benchmark-name-display');
+  findStartEvaluationRunBenchmarkName(modalId?: string) {
+    return modalId
+      ? this.findStartEvaluationRunModal(modalId).find(
+          '[data-testid="start-evaluation-run-benchmark-name"]',
+        )
+      : cy.get(
+          '[data-testid="benchmark-name-display"], ' +
+            '[data-testid="start-evaluation-run-benchmark-name"]',
+        );
+  }
+
+  findStartEvaluationRunBreadcrumb() {
+    return cy.findByTestId('start-evaluation-breadcrumb-active');
+  }
+
+  findSingleBenchmarkParameterInput(parameterKey: string) {
+    return cy.findByTestId(`single-benchmark-parameter-input-${parameterKey}`);
+  }
+
+  findAdvancedBenchmarkParametersToggle() {
+    return cy
+      .findByTestId('start-evaluation-run-advanced-benchmark-parameters-toggle')
+      .find('button')
+      .first();
+  }
+
+  findAdditionalArgsInput() {
+    return cy.findByTestId('additional-args-upload').find('textarea').first();
   }
 
   findEvaluationNameInput(modalId?: string) {
@@ -236,14 +281,6 @@ class CreateEvaluationPage {
 
   findValidateConnectionButton() {
     return cy.findByTestId('validate-connection-button');
-  }
-
-  findBenchmarkParametersCheckbox() {
-    return cy.findByTestId('show-additional-args');
-  }
-
-  findAdditionalBenchmarkParamsTextarea() {
-    return cy.findByTestId('additional-args-upload').find('textarea');
   }
 
   findStartEvaluationSubmitButton(modalId?: string) {

@@ -4,6 +4,7 @@ import type {
 } from '@odh-dashboard/model-serving/shared/types/form-data';
 import { DeploymentAssemblyFn } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import { setUpTokenAuth } from '@odh-dashboard/model-serving/concepts/auth';
+import { SupportedArea } from '@odh-dashboard/plugin-core/areas';
 import { KServeDeployment } from './types';
 import { assembleServingRuntime, createServingRuntime, updateServingRuntime } from './deployServer';
 import {
@@ -12,7 +13,6 @@ import {
   type CreatingInferenceServiceObject,
 } from './deployModel';
 import { resolveHfTokenSecretName, resolveHfTokenServiceAccountName } from './hfTokenSecret';
-import { KSERVE_ID } from '../extensions';
 
 export const deployKServeDeployment = async (
   wizardData: WizardFormData['state'],
@@ -67,7 +67,7 @@ export const deployKServeDeployment = async (
 
   const servingRuntime = existingDeployment?.server ?? serverResource;
   let assembledDeployment: KServeDeployment = {
-    modelServingPlatformId: KSERVE_ID,
+    modelServingPlatformId: SupportedArea.K_SERVE,
     model: assembleInferenceService(
       inferenceServiceData,
       existingDeployment?.model,
@@ -124,7 +124,7 @@ export const deployKServeDeployment = async (
   }
 
   return {
-    modelServingPlatformId: KSERVE_ID,
+    modelServingPlatformId: SupportedArea.K_SERVE,
     model: inferenceServiceResult,
     server: servingRuntimeResult,
   };

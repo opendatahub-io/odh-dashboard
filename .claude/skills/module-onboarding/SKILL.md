@@ -226,7 +226,7 @@ Add the flag under `spec.dashboardConfig.properties` (after `dataConnectHub`), o
 
 Mirror the `data-connect-hub` entries:
 - `OWNERS_ALIASES`: `<name>-approvers` and `<name>-reviewers` with the handles from Phase 0
-- `packages/<name>/OWNERS`: the same aliases, `area/<name>` plus `area/components`, and `options.no_parent_owners: true` (without it Prow inherits the root catch-all and `general-approvers` can approve the package)
+- `packages/<name>/OWNERS`: the same aliases, `area/<name>` plus `area/components`, and `options.no_parent_owners: true` (without it Prow inherits the root catch-all and `general-approvers` can approve the package). Use the `filters:` form with the `dependency-approvers` filter; copy the template from `docs/adding-owners-and-reviewers.md#package-ownership`. Top-level `approvers:` makes Prow ignore `filters:`
 - When `/konflux-onboarding` adds `manifests/modules/<name>/`, it must also add `manifests/modules/<name>/OWNERS` with the same aliases, `area/<name>`, `area/manifests`, and `options.no_parent_owners: true`
 
 ### 7. Dependabot — `.github/dependabot.yml`
@@ -302,4 +302,4 @@ Summarize the completed onboarding:
    - Run locally: `pnpm run dev:backend` and `pnpm run dev:frontend` from the root, then `cd packages/<name> && make dev-start-federated`
    - Enable the feature locally: set `<camelCase>: true` in the dashboard config
    - **Run `/konflux-onboarding`** for CI/CD: Dockerfiles, Konflux component, OpenShift CI, standalone manifests (`manifests/modules/<name>/`), dashboard-operator registration, and the `RELATED_IMAGE` entry in the opendatahub-operator
-   - **Before the first release**, get the image `rhoai/odh-mod-arch-<name>-rhel9` registered as a ProdSec `pscomponent` (requested in `#forum-aipcc`; confirmed by ProdSec before release; `/konflux-onboarding` Phase 6 has the steps and the follow-up Jira query). Without it the image gets no CVE tracking tickets, which is how `data-connect-hub` and `data-registry` were missed during the eMudhra remediation.
+   - **Before the first release**, get the image `rhoai/odh-mod-arch-<name>-rhel9` registered as a ProdSec `pscomponent` (an MR to ProdSec's `product-definitions` that adds it to `ps_modules.json`, merged by ProdSec before release; `/konflux-onboarding` Phase 6 has the steps and the follow-up Jira query). Without it the image gets no CVE tracking tickets, which is how `data-connect-hub` and `data-registry` were missed during the eMudhra remediation.

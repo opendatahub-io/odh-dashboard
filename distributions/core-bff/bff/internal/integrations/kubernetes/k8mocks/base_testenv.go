@@ -33,6 +33,16 @@ var DefaultTestUsers = []TestUser{
 		Token:    "FAKE_USER_B_TOKEN",
 		Groups:   []string{},
 	},
+	// servingEditor may create ServingRuntimes in test-ns-a but holds no
+	// cluster-scoped Namespace permissions. It separates "the handler's access
+	// review passed" from "the caller may perform the mutation itself", which
+	// is the difference between the service-account and caller credential
+	// policies (RHOAIENG-101218).
+	{
+		UserName: "servingEditor@example.com",
+		Token:    "FAKE_SERVING_EDITOR_TOKEN",
+		Groups:   []string{},
+	},
 }
 
 // TestUser represents a test user with fake token and group memberships.
@@ -164,6 +174,13 @@ func setupMock(ctx context.Context, mockK8sClient k8sclient.Interface, dynClient
 		err = createNamedNamespaceGetRBAC(ctx, mockK8sClient, users[2].UserName, "test-ns-b")
 		if err != nil {
 			return fmt.Errorf("failed to create named namespace get RBAC: %w", err)
+		}
+	}
+
+	if len(users) > 3 {
+		err = createServingRuntimeEditorRBAC(ctx, mockK8sClient, users[3].UserName, "test-ns-a")
+		if err != nil {
+			return fmt.Errorf("failed to create serving-runtime editor RBAC: %w", err)
 		}
 	}
 

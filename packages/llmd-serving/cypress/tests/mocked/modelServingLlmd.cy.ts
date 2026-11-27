@@ -175,6 +175,11 @@ describe('Model Serving LLMD', () => {
             isReady: true,
             replicas: 2,
           }),
+          mockLLMInferenceServiceK8sResource({
+            name: 'custom-vllm',
+            displayName: 'Custom vLLM',
+            isLLMd: false,
+          }),
         ],
       });
       cy.interceptK8s(
@@ -188,6 +193,9 @@ describe('Model Serving LLMD', () => {
       // Verify deployment details
       const row = modelServingSection.getKServeRow('Facebook OPT 125M');
       row.shouldHaveServingRuntime('Distributed inference with llm-d');
+      modelServingSection
+        .getKServeRow('Custom vLLM')
+        .shouldHaveServingRuntime('Custom LLMInferenceService');
       row.findExternalServiceButton().click();
       row.findExternalServicePopover().findByText('External').should('exist');
       row
@@ -326,6 +334,153 @@ describe('Model Serving LLMD', () => {
         .should('contain', 'KServe Test Model');
     });
 
+    it('should display LLMD deployments when KServe flag is disabled and the KServe DSC component is managed', () => {
+      initIntercepts({
+        llmInferenceServices: [
+          mockLLMInferenceServiceK8sResource({
+            name: 'llmd-with-kserve-ui-disabled',
+            namespace: 'test-project',
+            displayName: 'LLMD Without KServe UI',
+            isReady: true,
+          }),
+        ],
+      });
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableKServe: true,
+          disableLLMd: false,
+        }),
+      );
+
+      modelServingGlobal.visit('test-project');
+
+      modelServingGlobal.getModelRow('LLMD Without KServe UI').should('be.visible');
+      modelServingGlobal.findRows().should('have.length', 1);
+    });
+
+    it('should hide KServe InferenceServices and skip the KServe watcher when the KServe flag is disabled', () => {
+      const llmdDisplayName = 'LLMD Without KServe Watcher';
+      const kserveDisplayName = 'Hidden KServe Test Model';
+
+      initIntercepts({
+        llmInferenceServices: [
+          mockLLMInferenceServiceK8sResource({
+            name: 'llmd-only-visible',
+            namespace: 'test-project',
+            displayName: llmdDisplayName,
+            isReady: true,
+          }),
+        ],
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'hidden-kserve-deployment',
+            namespace: 'test-project',
+            displayName: kserveDisplayName,
+            isReady: true,
+          }),
+        ],
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'test-runtime',
+            namespace: 'test-project',
+          }),
+        ],
+      });
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableNIMModelServing: true,
+          disableKServe: true,
+          disableLLMd: false,
+          genAiStudio: true,
+          modelAsService: true,
+        }),
+      );
+      cy.interceptK8sList(
+        LLMInferenceServiceModel,
+        mockK8sResourceList([
+          mockLLMInferenceServiceK8sResource({
+            name: 'llmd-only-visible',
+            namespace: 'test-project',
+            displayName: llmdDisplayName,
+            isReady: true,
+          }),
+        ]),
+      ).as('listLLMInferenceServices');
+      cy.interceptK8sList(
+        InferenceServiceModel,
+        mockK8sResourceList([
+          mockInferenceServiceK8sResource({
+            name: 'hidden-kserve-deployment',
+            namespace: 'test-project',
+            displayName: kserveDisplayName,
+            isReady: true,
+          }),
+        ]),
+      ).as('listInferenceServices');
+
+      modelServingGlobal.visit('test-project');
+
+      cy.step('LLMD deployments still load from the LLMD watcher');
+      cy.wait('@listLLMInferenceServices');
+      modelServingGlobal.getModelRow(llmdDisplayName).should('be.visible');
+      modelServingGlobal.findRows().should('have.length', 1);
+      cy.findByTestId('deployments-table').contains(kserveDisplayName).should('not.exist');
+      cy.findByTestId('error-loading-deployments').should('not.exist');
+
+      cy.step('KServe InferenceService watcher stays unloaded');
+      cy.get('@listInferenceServices.all').should('have.length', 0);
+    });
+
+    it('should hide KServe InferenceServices in the project deployments tab when the KServe flag is disabled', () => {
+      // Project details still lists InferenceServices via ProjectDetailsContext for
+      // connections/overview — that is unrelated to the KServe platform watcher. This
+      // test only asserts the modular deployments table (ModelDeploymentsProvider).
+      const llmdDisplayName = 'Project LLMD Without KServe UI';
+      const kserveDisplayName = 'Project Hidden KServe Model';
+
+      initIntercepts({
+        llmInferenceServices: [
+          mockLLMInferenceServiceK8sResource({
+            name: 'project-llmd-only-visible',
+            namespace: 'test-project',
+            displayName: llmdDisplayName,
+            isReady: true,
+          }),
+        ],
+        inferenceServices: [
+          mockInferenceServiceK8sResource({
+            name: 'project-hidden-kserve-deployment',
+            namespace: 'test-project',
+            displayName: kserveDisplayName,
+            isReady: true,
+          }),
+        ],
+        servingRuntimes: [
+          mockServingRuntimeK8sResource({
+            name: 'test-runtime',
+            namespace: 'test-project',
+          }),
+        ],
+      });
+      cy.interceptOdh(
+        'GET /api/config',
+        mockDashboardConfig({
+          disableNIMModelServing: true,
+          disableKServe: true,
+          disableLLMd: false,
+          genAiStudio: true,
+          modelAsService: true,
+        }),
+      );
+
+      modelServingSection.visit('test-project');
+
+      modelServingSection.findDeploymentsTable().contains(llmdDisplayName).should('be.visible');
+      modelServingSection.findDeploymentsTable().contains(kserveDisplayName).should('not.exist');
+    });
+
     it('should show LLMD deployments and runtime options when LLMD is enabled but not when disabled', () => {
       initIntercepts({
         llmInferenceServices: [
@@ -420,6 +575,11 @@ describe('Model Serving LLMD', () => {
             modelUri: 'hf://facebook/opt-125m',
             isReady: true,
           }),
+          mockLLMInferenceServiceK8sResource({
+            name: 'custom-vllm',
+            displayName: 'Custom vLLM',
+            isLLMd: false,
+          }),
         ],
       });
 
@@ -431,6 +591,10 @@ describe('Model Serving LLMD', () => {
       projectDetailsOverviewTab
         .findCardServingRuntime('facebook-opt-125m-single')
         .should('contain.text', 'Distributed inference with llm-d');
+      projectDetailsOverviewTab.findDeployedModelCard('custom-vllm').should('be.visible');
+      projectDetailsOverviewTab
+        .findCardServingRuntime('custom-vllm')
+        .should('have.text', 'Custom LLMInferenceService');
     });
   });
 
@@ -1099,10 +1263,58 @@ describe('Model Serving LLMD', () => {
         .should('contain.text', 'vLLM on GPU LLMInferenceServiceConfig');
     });
 
+    it('should pre-select a custom default when editing vLLM without a resolved config', () => {
+      initVLLMOnMaaSIntercepts();
+      cy.interceptK8sList(
+        { model: LLMInferenceServiceConfigModel, ns: 'test-project' },
+        mockK8sResourceList([]),
+      );
+
+      modelServingGlobal.visit('test-project');
+      const row = modelServingGlobal.getDeploymentRow('GPU vLLM Deployment');
+      row.findServingRuntime().should('have.text', 'Custom LLMInferenceService');
+      row.findServingRuntimeVersionLabel().should('not.exist');
+      modelServingGlobal.getModelRow('GPU vLLM Deployment').findKebabAction('Edit').click();
+
+      modelServingWizardEdit.findModelLocationSelectOption(ModelLocationSelectOption.URI).click();
+      modelServingWizardEdit.findUrilocationInput().type('hf://facebook/opt-125m');
+      modelServingWizardEdit.findSaveConnectionCheckbox().click();
+      modelServingWizardEdit.findNextButton().should('be.enabled').click();
+
+      modelServingWizardEdit
+        .findServingRuntimeTemplateSearchSelector()
+        .should('be.disabled')
+        .should('contain.text', 'Custom LLMInferenceService');
+      modelServingWizardEdit.findServingRuntimeVersionLabel().should('not.exist');
+    });
+
     it('Deploy vLLM using LLMInferenceServiceConfig', () => {
       const deploymentName = 'test-vllm-config-deploy';
 
       initVLLMOnMaaSIntercepts();
+      cy.interceptK8sList(
+        { model: LLMInferenceServiceConfigModel, ns: 'opendatahub' },
+        mockK8sResourceList([
+          mockLLMInferenceServiceConfigK8sResource({
+            name: 'vllm-gaudi-config',
+            displayName: 'vLLM on Gaudi LLMInferenceServiceConfig',
+            runtimeVersion: 'v0.9.1',
+            recommendedAccelerators: '["intel.com/gaudi"]',
+          }),
+          mockLLMInferenceServiceConfigK8sResource({
+            name: 'vllm-gpu-config',
+            displayName: 'vLLM on GPU LLMInferenceServiceConfig',
+            runtimeVersion: 'v0.8.2',
+            recommendedAccelerators: '["nvidia.com/gpu"]',
+          }),
+          mockLLMInferenceServiceConfigK8sResource({
+            name: 'vllm-gpu-config-alternative',
+            displayName: 'Alternative GPU LLMInferenceServiceConfig',
+            runtimeVersion: 'v0.8.3',
+            recommendedAccelerators: '["nvidia.com/gpu"]',
+          }),
+        ]),
+      );
 
       cy.interceptK8s(
         'POST',
@@ -1166,6 +1378,20 @@ describe('Model Serving LLMD', () => {
         .findModelServerAutoSelectSuggestion()
         .should('contain.text', 'vLLM on GPU LLMInferenceServiceConfig');
       modelServingWizard.findServingRuntimeVersionLabel().should('contain.text', 'v0.8.2');
+
+      // Manual selection remains available, and returning to Automatic restores the first match.
+      modelServingWizard.findModelServerManualSelectRadio().click();
+      modelServingWizard.findServingRuntimeTemplateSearchSelector().click();
+      modelServingWizard
+        .findGlobalScopedTemplateOption('Alternative GPU LLMInferenceServiceConfig')
+        .click();
+      modelServingWizard
+        .findServingRuntimeTemplateSearchSelector()
+        .should('contain.text', 'Alternative GPU LLMInferenceServiceConfig');
+      modelServingWizard.findModelServerAutoSelectRadio().click();
+      modelServingWizard
+        .findModelServerAutoSelectSuggestion()
+        .should('contain.text', 'vLLM on GPU LLMInferenceServiceConfig');
 
       modelServingWizard.findNextButton().should('be.enabled').click();
 

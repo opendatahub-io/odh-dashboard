@@ -135,7 +135,10 @@ export const renderHook = <
  * ```
  */
 export const testHook =
-  <Result, P extends unknown[]>(hook: (...params: P) => Result) =>
+  <Result, P extends unknown[]>(
+    hook: (...params: P) => Result,
+    wrapper?: React.JSXElementConstructor<React.PropsWithChildren>,
+  ) =>
   // not ideal to nest functions in terms of API but cannot find a better way to infer P from hook and not initialParams
   (
     ...initialParams: P
@@ -145,6 +148,7 @@ export const testHook =
     const renderResult = renderHook<Result, { $params: typeof initialParams }>(
       ({ $params }) => hook(...$params),
       {
+        wrapper,
         initialProps: {
           $params: initialParams,
         },

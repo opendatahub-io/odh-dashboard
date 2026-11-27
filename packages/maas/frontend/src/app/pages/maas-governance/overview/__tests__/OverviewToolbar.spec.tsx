@@ -6,10 +6,7 @@ import '@testing-library/jest-dom';
 import OverviewToolbar from '~/app/pages/maas-governance/overview/OverviewToolbar';
 import { ModelOverviewItem } from '~/app/types/subscriptions';
 import { initialOverviewFilterData } from '~/app/pages/maas-governance/overview/const';
-
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireMiscTrackingEvent: jest.fn(),
-}));
+import { TrackingProvider } from '~/__tests__/unit/testUtils/TrackingProvider';
 
 const modelRow = (namespace: string, displayName: string): ModelOverviewItem => ({
   id: 'granite-3-8b-instruct',
@@ -21,13 +18,15 @@ const modelRow = (namespace: string, displayName: string): ModelOverviewItem => 
 
 const renderToolbar = (rows: ModelOverviewItem[]) =>
   render(
-    <MemoryRouter>
-      <OverviewToolbar
-        filterData={initialOverviewFilterData}
-        onFilterUpdate={jest.fn()}
-        rows={rows}
-      />
-    </MemoryRouter>,
+    <TrackingProvider trackEvent={jest.fn()}>
+      <MemoryRouter>
+        <OverviewToolbar
+          filterData={initialOverviewFilterData}
+          onFilterUpdate={jest.fn()}
+          rows={rows}
+        />
+      </MemoryRouter>
+    </TrackingProvider>,
   );
 
 const selectModelFilter = async (user: ReturnType<typeof userEvent.setup>) => {
@@ -62,13 +61,15 @@ describe('OverviewToolbar', () => {
   it('should select the model by resource name through the real typeahead', async () => {
     const onFilterUpdate = jest.fn();
     render(
-      <MemoryRouter>
-        <OverviewToolbar
-          filterData={initialOverviewFilterData}
-          onFilterUpdate={onFilterUpdate}
-          rows={[modelRow('project-a', 'Granite A'), modelRow('project-b', 'Granite B')]}
-        />
-      </MemoryRouter>,
+      <TrackingProvider trackEvent={jest.fn()}>
+        <MemoryRouter>
+          <OverviewToolbar
+            filterData={initialOverviewFilterData}
+            onFilterUpdate={onFilterUpdate}
+            rows={[modelRow('project-a', 'Granite A'), modelRow('project-b', 'Granite B')]}
+          />
+        </MemoryRouter>
+      </TrackingProvider>,
     );
 
     await selectModelFilter(user);

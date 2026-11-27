@@ -6,6 +6,7 @@ import {
   getDescriptionFromK8sResource,
   getDisplayNameFromK8sResource,
 } from '@odh-dashboard/k8s-core';
+import type { ConnectedResourceLabel } from '@odh-dashboard/plugin-core/extension-points';
 import {
   Connection,
   ConnectionTestStatus,
@@ -30,6 +31,8 @@ type ConnectionsTableRowProps = {
   showWarningIcon?: boolean;
   onEditConnection?: (connection: Connection) => void;
   isTesting?: boolean;
+  getConnectedResourceLabels?: (resource: Connection) => ConnectedResourceLabel[];
+  connectedResourcesLoaded?: boolean;
 };
 
 const isValidStatus = (value: string): value is ConnectionTestStatus =>
@@ -44,6 +47,8 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
   showWarningIcon = false,
   onEditConnection,
   isTesting = false,
+  getConnectedResourceLabels,
+  connectedResourcesLoaded,
 }) => {
   const connectionTypeDisplayName = React.useMemo(
     () => getConnectionTypeDisplayName(obj, connectionTypes ?? []) || 'Unknown',
@@ -107,7 +112,11 @@ const ConnectionsTableRow: React.FC<ConnectionsTableRowProps> = ({
       )}
       {showConnectedResourcesCell && (
         <Td dataLabel="Connected resources">
-          <ConnectedResources connection={obj} />
+          <ConnectedResources
+            connection={obj}
+            additionalResources={getConnectedResourceLabels?.(obj) ?? []}
+            additionalResourcesLoaded={connectedResourcesLoaded}
+          />
         </Td>
       )}
       <Td dataLabel="Status" data-testid="connection-status-cell">

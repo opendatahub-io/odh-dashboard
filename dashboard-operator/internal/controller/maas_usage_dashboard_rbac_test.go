@@ -113,6 +113,9 @@ func TestMaaSUsageDashboardRBACIsNamespacedAndLimited(t *testing.T) {
 	rule := rules[0].(map[string]interface{})
 	assert.Equal(t, []interface{}{"perses.dev"}, rule["apiGroups"])
 	assert.Equal(t, []interface{}{"persesdashboards"}, rule["resources"])
-	assert.Equal(t, []interface{}{"dashboard-5-maas-usage-logs", "dashboard-4-maas-usage-logs-admin"}, rule["resourceNames"])
+	assert.Equal(t, []interface{}{
+		"dashboard-5-maas-usage-logs", "dashboard-4-maas-usage-logs-admin",
+		"maas-portal-usage-logs", "maas-portal-usage-logs-admin",
+	}, rule["resourceNames"])
 	assert.Equal(t, []interface{}{"get"}, rule["verbs"])
 }

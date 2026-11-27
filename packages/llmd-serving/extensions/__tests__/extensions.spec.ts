@@ -1,7 +1,8 @@
 import { PluginStore } from '@odh-dashboard/plugin-core';
 import { isWizardTrackingPropertiesExtension } from '@odh-dashboard/model-serving/extension-points/deployment-wizard';
 import type { WizardFormData } from '@odh-dashboard/model-serving/shared/types/form-data';
-import extensions from '../extensions';
+import { DataScienceStackComponent, SupportedArea } from '@odh-dashboard/plugin-core/areas';
+import extensions from '../index';
 import { extractLlmdDeploymentTrackingProperties } from '../../src/tracking/llmdWizardTracking';
 import { LLM_INFERENCE_SERVICE_CONFIGS_TAB_PATH } from '../../src/settings/llmInferenceServiceConfigs/paths';
 import { TOPOLOGY_CONFIGS_TAB_PATH } from '../../src/settings/topologyConfigs/paths';
@@ -84,6 +85,22 @@ describe('llm-d deployment tracking registration', () => {
 
 const routeExtensions = extensions.filter((extension) => extension.type === 'app.route');
 
+describe('LLM-d connected resources registration', () => {
+  it('should register connected resources when LLM-d serving is enabled', () => {
+    const store = new PluginStore({ llmd: extensions });
+    const connectedResources = () =>
+      store
+        .getExtensions()
+        .filter((extension) => extension.type === 'app.connections/connected-resources');
+
+    store.setFeatureFlags({ [SupportedArea.LLMD_SERVING]: true });
+    expect(connectedResources()).toHaveLength(1);
+
+    store.setFeatureFlags({ [SupportedArea.LLMD_SERVING]: false });
+    expect(connectedResources()).toHaveLength(0);
+  });
+});
+
 const acceleratorTab = extensions.find(
   (extension) =>
     extension.type === 'app.tab-route/tab' &&
@@ -95,6 +112,22 @@ const acceleratorFormPaths = [
   `${LLM_INFERENCE_SERVICE_CONFIGS_TAB_PATH}/edit/:configName`,
   `${LLM_INFERENCE_SERVICE_CONFIGS_TAB_PATH}/duplicate/:configName`,
 ];
+describe('LLMD serving area extension', () => {
+  const llmdArea = extensions.find(
+    (extension) => extension.type === 'app.area' && extension.properties.id === 'llmd-serving',
+  );
+
+  it('should require the KServe DSC component and model-serving shell instead of the KServe area', () => {
+    expect(llmdArea).toBeDefined();
+    expect(llmdArea?.properties).toEqual(
+      expect.objectContaining({
+        featureFlags: ['disableLLMd'],
+        requiredComponents: [DataScienceStackComponent.K_SERVE],
+        reliantAreas: [SupportedArea.MODEL_SERVING],
+      }),
+    );
+  });
+});
 
 describe('LLM inference service configuration extensions', () => {
   it('should register one renamed install target with the settings gates and presentation metadata', () => {

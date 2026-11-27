@@ -1,3 +1,4 @@
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import * as React from 'react';
 import { ApplicationsPage } from 'mod-arch-shared';
 import {
@@ -15,13 +16,13 @@ import {
 } from '@patternfly/react-core';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useExtensions, LazyCodeRefComponent } from '@odh-dashboard/plugin-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import GenAiCoreHeader from '~/app/GenAiCoreHeader';
 import { genAiAiAssetsRoute, genAiAiAssetsTabRoute } from '~/app/utilities/routes';
 import AiAssetEndpointsIcon from '~/app/images/icons/AiAssetEndpointsIcon';
 import { isAIAssetsTabExtension } from '~/odh/extension-points';
 
 export const AIAssetsPage: React.FC = () => {
+  const trackEvent = useTrackEvent();
   const tabExtensions = useExtensions(isAIAssetsTabExtension);
   const { namespace, tab: tabParam } = useParams<{ namespace: string; tab: string }>();
   const navigate = useNavigate();
@@ -53,7 +54,7 @@ export const AIAssetsPage: React.FC = () => {
             if (namespace) {
               navigate(genAiAiAssetsTabRoute(namespace, String(tabKey)));
             }
-            fireMiscTrackingEvent('Available Endpoints Tab Switched', {
+            trackEvent('Available Endpoints Tab Switched', {
               source: String(tabKey),
             });
           }}

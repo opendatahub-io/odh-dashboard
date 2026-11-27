@@ -3,7 +3,9 @@ package repositories
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"log/slog"
 	"strconv"
 	"strings"
@@ -29,14 +31,15 @@ const (
 )
 
 // ClusterSettingsRepository handles cluster settings derived from DashboardConfig and ConfigMaps.
-// Uses the SA clientset for ConfigMap operations, matching the privileged watcher model where the dashboard
-// SA performs reads and admin-gated mutations.
+// Both endpoints are admin-only and user-initiated, so every ConfigMap and
+// Deployment access follows the credential policy: the service account on
+// OpenShift (privileged watcher model), the caller on xKS.
 type ClusterSettingsRepository struct {
-	saClientset kubernetes.Interface
+	clients clientSource
 }
 
 func NewClusterSettingsRepository(saClientset kubernetes.Interface) *ClusterSettingsRepository {
-	return &ClusterSettingsRepository{saClientset: saClientset}
+	return &ClusterSettingsRepository{clients: saSource(saClientset, nil)}
 }
 
 // GetClusterSettings builds a ClusterSettings from DashboardConfig and ConfigMaps.
@@ -48,17 +51,28 @@ func (r *ClusterSettingsRepository) GetClusterSettings(
 
 	applyDashboardConfigToSettings(dashConfig, &settings)
 
-	cullerTimeout, err := readCullerTimeout(ctx, r.saClientset, namespace)
+	cs, err := r.clients.typed(ctx)
+	if err != nil {
+		return nil, err
+	}
+	cullerTimeout, err := readCullerTimeout(ctx, cs, namespace)
 	if err != nil {
 		return nil, err
 	}
 	settings.CullerTimeout = cullerTimeout
 
 	if dashConfig != nil && !dashConfig.Spec.DashboardConfig.DisableTracking {
-		tracking, err := readUserTrackingEnabled(ctx, r.saClientset, namespace)
-		if err != nil {
+		tracking, err := readUserTrackingEnabled(ctx, cs, namespace)
+		switch {
+		case err != nil && r.clients.policy == CredentialPolicyCaller:
+			// Under the caller policy a failed read is the caller's answer, as
+			// for every other read here and as the save plan treats it.
+			return nil, err
+		case err != nil:
+			// The service-account policy keeps showing tracking off; the save
+			// plan treats the unreadable ConfigMap the same way (see buildPlan).
 			slog.Warn("failed to read segment key config, defaulting to tracking disabled", slog.Any("error", err))
-		} else {
+		default:
 			settings.UserTrackingEnabled = tracking
 		}
 	}
@@ -67,7 +81,14 @@ func (r *ClusterSettingsRepository) GetClusterSettings(
 }
 
 // BuildDashboardConfigPatch builds the JSON merge patch for DashboardConfig fields
-// affected by cluster settings.
+// affected by cluster settings. The patch carries the resourceVersion of the
+// configuration it was computed from, so the API server rejects it with a
+// conflict if another save changed the configuration between this request's
+// read and its patch. The request body carries no version, so this covers
+// concurrent saves inside one request only: a form loaded before another
+// admin's save still writes its own values over that save (last writer wins,
+// as before). Defaults that were never stored carry no version and keep the
+// unconditional patch.
 func (r *ClusterSettingsRepository) BuildDashboardConfigPatch(
 	settings *models.ClusterSettings, currentConfig *models.DashboardConfig,
 ) ([]byte, error) {
@@ -85,6 +106,9 @@ func (r *ClusterSettingsRepository) BuildDashboardConfigPatch(
 				"disableLLMd":   !settings.ModelServingPlatformEnabled.LLMd,
 			},
 		},
+	}
+	if rv := currentConfig.Metadata.ResourceVersion; rv != "" {
+		patch["metadata"] = map[string]any{"resourceVersion": rv}
 	}
 
 	modelServing := map[string]any{}
@@ -118,31 +142,90 @@ func (r *ClusterSettingsRepository) BuildDashboardConfigPatch(
 	return json.Marshal(patch)
 }
 
-// UpdateConfigMaps updates culler and segment-key ConfigMaps, and rolls out
-// notebook-controller-deployment when culler or PVC settings changed.
-// All operations use the SA clientset, matching the privileged watcher model.
-func (r *ClusterSettingsRepository) UpdateConfigMaps(
-	ctx context.Context,
-	namespace string, settings *models.ClusterSettings, currentConfig *models.DashboardConfig,
-) error {
-	needsRollout := r.detectChanges(ctx, namespace, settings, currentConfig)
-
-	if err := r.updateCullerConfig(ctx, namespace, settings.CullerTimeout); err != nil {
-		return fmt.Errorf("failed to update culler config: %w", err)
+// VerifyPlanStillHolds re-checks, before anything is written, that the
+// ConfigMaps the plan read are as it read them: a planned create still has no
+// ConfigMap, and every other one is at the version read (or still absent). The
+// handler runs it before the OdhDashboardConfig patch, so a change made by
+// another save since the read is reported before the first write. A change in
+// the short window after this check is still caught by the bound writes.
+func (r *ClusterSettingsRepository) VerifyPlanStillHolds(ctx context.Context, namespace string, plan *ClusterSettingsPlan) error {
+	if plan == nil {
+		return fmt.Errorf("cluster settings update has no plan")
 	}
-	if err := r.updateSegmentKeyConfig(ctx, namespace, settings.UserTrackingEnabled); err != nil {
-		return fmt.Errorf("failed to update segment key config: %w", err)
+	cs, err := r.clients.typed(ctx)
+	if err != nil {
+		return err
+	}
+	if err := requireUnchanged(ctx, cs, namespace, cullerConfigName, plan.culler); err != nil {
+		return err
+	}
+	if plan.trackingManaged {
+		return requireUnchanged(ctx, cs, namespace, segmentKeyConfigName, plan.segmentKey)
+	}
+	return nil
+}
+
+// UpdateConfigMaps executes the ConfigMap writes and the notebook-controller
+// rollout fixed by PlanUpdate, using the clients selected by the credential
+// policy. It does not re-decide an operation: if the cluster changed since the
+// plan, the planned write fails, or a conflict is returned for a ConfigMap the
+// plan left alone, instead of switching to a write the preflight did not check
+// or reporting success for a setting that was not stored.
+//
+// The segment-key ConfigMap, which needs no rollout, is handled first, so a
+// conflict on it stops the update before the culler ConfigMap is written. The
+// caller has already patched the OdhDashboardConfig, so when the PVC size
+// changed the planned rollout still runs after a later failure: a retry sees
+// the PVC size as stored and would not restart the controller.
+func (r *ClusterSettingsRepository) UpdateConfigMaps(ctx context.Context, namespace string, plan *ClusterSettingsPlan) error {
+	if plan == nil {
+		return fmt.Errorf("cluster settings update has no plan")
+	}
+	cs, err := r.clients.typed(ctx)
+	if err != nil {
+		return err
 	}
 
-	if needsRollout {
+	writeErr := r.applySegmentKeyConfig(ctx, cs, namespace, plan)
+	if writeErr != nil {
+		writeErr = fmt.Errorf("failed to update segment key config: %w", writeErr)
+	} else if err := r.applyCullerConfig(ctx, cs, namespace, plan); err != nil {
+		writeErr = fmt.Errorf("failed to update culler config: %w", err)
+	}
+	// A write the caller was denied (RBAC changed since the review) stops here:
+	// the caller's credential must not go on to restart the controller.
+	if writeErr != nil && (!plan.pvcChanged || k8serrors.IsForbidden(writeErr) || k8serrors.IsUnauthorized(writeErr)) {
+		return writeErr
+	}
+
+	if plan.rollout {
 		// TODO: Gate this notebook-controller restart on a platform capability; XKS
 		// must not expose the notebook (workbench) feature or its settings.
-		if err := r.rolloutDeployment(ctx, namespace, notebookControllerDeploy); err != nil {
-			return fmt.Errorf("failed to rollout %s: %w", notebookControllerDeploy, err)
+		// No notebook-controller Deployment (xKS has no workbenches) means there
+		// is nothing to restart, not a failed save.
+		if err := r.rolloutDeployment(ctx, cs, namespace, notebookControllerDeploy); err != nil && !k8serrors.IsNotFound(err) {
+			return joinAuthFirst(writeErr, fmt.Errorf("failed to rollout %s: %w", notebookControllerDeploy, err))
 		}
 	}
 
-	return nil
+	return writeErr
+}
+
+// joinAuthFirst keeps every cause, putting an authorization failure first.
+// The status is taken from the first Kubernetes error in the chain, so a
+// denial is reported as 401/403 rather than hidden behind an earlier conflict.
+func joinAuthFirst(errs ...error) error {
+	var auth, rest []error
+	for _, err := range errs {
+		switch {
+		case err == nil:
+		case k8serrors.IsForbidden(err) || k8serrors.IsUnauthorized(err):
+			auth = append(auth, err)
+		default:
+			rest = append(rest, err)
+		}
+	}
+	return errors.Join(append(auth, rest...)...)
 }
 
 // --- Pure helpers ---

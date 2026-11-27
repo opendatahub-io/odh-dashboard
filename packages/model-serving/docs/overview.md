@@ -9,7 +9,8 @@
 
 - **No package-local BFF:** all API traffic goes through the main dashboard backend (e.g. `/api/k8s/`) or equivalent cluster proxy; the UI never talks to a dedicated model-serving Go/Node service.
 - **Module Federation remote (hybrid):** model-serving operates in two modes. The `src/` subtree is consumed directly as a library via package `exports`. The `frontend/` subtree builds as a standalone MF remote (`modelServing`) producing `remoteEntry.js` on port 9109, exposing `./extensions` and `./extension-points`. Shared dependencies (React, PatternFly, all `@odh-dashboard/*` packages) are managed automatically by `OdhFederationPlugin` as singletons.
-- **Hub-and-spoke architecture:** model-serving is the hub. Platform packages (`packages/kserve`, `packages/nim-serving`, `packages/llmd-serving`) are spokes that implement extension points such as `model-serving.platform`, `watch-deployments`, and `deployment/deploy`. These platform packages form a **cohort** with model-serving — they are added and removed together.
+- **Build-time extension selection:** The remote defaults to the full dashboard manifest. The `deployments` profile exposes serving areas, the deployment list and wizard routes, the shared single-model platform shell, and the deployment-method field through the same `./extensions` federation key. Unsupported profiles fail the build. The selected entry point keeps project integrations, administration, runtime installation, and registry and catalog contributions out of the build.
+- **Hub-and-spoke architecture:** model-serving is the hub and registers the shared single-model `model-serving.platform` shell used by KServe and LLM-d. Platform packages (`packages/kserve`, `packages/nim-serving`, `packages/llmd-serving`) are spokes that implement capabilities such as `watch-deployments` and `deployment/deploy`. These platform packages form a **cohort** with model-serving — they are added and removed together.
 - **Data flow:** Kubernetes → main backend → React; platform-specific behaviour is injected through extension points instead of branching inside every component.
 
 ## Key Concepts
@@ -22,7 +23,7 @@
 | **ModelMesh** | Multi-model serving sharing server pods. |
 | **Endpoint URL** | HTTP(S) URL for inference; shown in table and detail views. |
 | **Deployment** | Package abstraction `Deployment<M, S>` wrapping model + server + status + endpoints. |
-| **Platform extension** | `model-serving.platform` (and related) registered by a platform package. |
+| **Platform extension** | `model-serving.platform` registration for project enablement and platform shell presentation; the shared single-model registration lives in model-serving. |
 | **Extension point** | Interfaces in `extension-points/index.ts` for wizard, table, delete, auth, metrics. |
 | **Feature flag** | `disableModelServing` in `OdhDashboardConfig` hides the entire area. |
 
@@ -93,7 +94,8 @@ The `package.json` `exports` field defines the public API. Key categories:
 
 | Export Path | Category | Purpose |
 |---|---|---|
-| `./extensions` | Extensions | Extension manifest (aggregates `odh.ts`, `model-registry.ts`, `model-catalog.ts`) |
+| `./extensions` | Extensions | Full dashboard extension manifest, preserving contribution order and feature gates |
+| `./extensions/deployments` | Extensions | Build-time deployment surface without administration or project/registry/catalog contributions |
 | `./extension-points`, `./extension-points/deployment-wizard` | Extension contracts | Type definitions and type guards for all `model-serving.*` extension points |
 | `./shared`, `./shared/types`, `./shared/types/form-data` | Shared types | K8s resource types, wizard form data types, enums, utilities |
 | `./shared/types/deploy-prefill` | Types | `ModelDeployPrefillInfo` for deploy-from-registry/catalog flow |

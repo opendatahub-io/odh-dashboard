@@ -8,7 +8,7 @@
 ## Design Intent
 
 - **No BFF**: CRUD for `LLMInferenceService` in `src/api/` uses the OpenShift dynamic plugin SDK from the browser with the main dashboard's in-cluster credentials.
-- **Extension points**: `extensions/extensions.ts` registers `model-serving.platform/watch-deployments`, `model-serving.deployment/deploy`, `model-serving.deployment/form-data`, `model-serving.deployment/wizard-field`, and `model-serving.deployments-table/start-stop-action`; host `model-serving` orchestrates; this package supplies LLM-d-specific behavior only.
+- **Extension points**: `./extensions` composes the full dashboard surface, including deployment lifecycle, advanced wizard fields, runtime installation, and administration. `./extensions/deployments` selects the lifecycle and basic wizard integrations, including YAML assembly, gateway selection, and tracking. Model Serving supplies the shared single-model platform shell. Select the public entry point at build time so optional contributions stay outside the deployment bundle.
 - **No Module Federation remote**: Dashboard loads via monorepo exports (e.g. `./extensions`, `./types`, test helpers under `./__tests__/utils`).
 - **API**: Group `serving.kserve.io`, resource `llminferenceservices`, version `v1alpha2`; shapes in `src/types.ts` as `LLMInferenceServiceKind`.
 
@@ -16,8 +16,9 @@
 
 - Follow the repository [package topology](../../../docs/package-topology.md): `llmd-serving` is a
   spoke of the `model-serving` hub, and feature packages may depend on core shared libraries.
-- The remaining `@odh-dashboard/internal` imports and KServe-area activation are transitional; do
-  not introduce new uses of either boundary.
+- The remaining `@odh-dashboard/internal` imports are transitional; do not introduce new uses of
+  that boundary. LLMD requires the model-serving shell area and the KServe DSC component, but not
+  the KServe feature area or KServe UI extensions.
 
 | Legacy import                                               | Modular import                                         | Symbols                                     |
 | ----------------------------------------------------------- | ------------------------------------------------------ | ------------------------------------------- |
@@ -29,7 +30,7 @@
 
 | Term                       | Definition                                                                                  |
 | -------------------------- | ------------------------------------------------------------------------------------------- |
-| **LLMInferenceService**    | CR `serving.kserve.io/v1alpha2` / `llminferenceservices`; deployed LLM-d model.             |
+| **LLMInferenceService**    | CR `serving.kserve.io/v1alpha2` / `llminferenceservices`; llm-d or custom service.          |
 | **LLMdDeployment**         | `Deployment<LLMInferenceServiceKind>` with `modelServingPlatformId = 'llmd-serving'`.       |
 | **LLMdContainer**          | Container in `spec.template.containers`; vLLM args via `VLLM_ADDITIONAL_ARGS`.              |
 | **Router**                 | `spec.router` with `gateway`, `route`, `scheduler`; LLM-d routing layer.                    |
@@ -53,6 +54,7 @@
 
 - **CRD required**: If `LLMInferenceService` is missing but the area is enabled, `useWatchDeployments` can hit 404.
 - **Token auth RBAC**: `setUpTokenAuth` creates Secrets after the CR may exist; missing `create secrets` leaves a partial deployment.
+- **Unresolved-config classification**: When no `LLMInferenceServiceConfig` resolves (no `baseRefs`, non-matching `baseRefs`, or missing configs), `isLLMd` checks for `spec.router.scheduler` (including `scheduler: {}`). Scheduler-backed services show "Distributed inference with llm-d"; all others show "Custom LLMInferenceService" and get a template-less edit-form selection (`CUSTOM_LLM_INFERENCE_SERVICE_OPTION`).
 - **`spec.router`**: Base shape initializes empty `scheduler`, `route`, `gateway`; omitting them can cause operator rejection.
 - **`VLLM_ADDITIONAL_ARGS`**: Injected on container named `main`; operator renames break arg injection silently.
 - **Patch vs merge**: `patchLLMInferenceService` uses JSON Patch; `updateLLMInferenceService` uses merge patch—use wizard `overwrite: true` on redeploy to avoid stale fields.

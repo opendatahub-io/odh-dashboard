@@ -40,6 +40,11 @@ func (m *InternalKubernetesClientMock) CanListEvalHubInstances(_ context.Context
 	return true, nil
 }
 
+// CanCreateEvalHubResources always returns true in tests — same envtest SAR unreliability as CanListEvalHubInstances.
+func (m *InternalKubernetesClientMock) CanCreateEvalHubResources(_ context.Context, _ *k8s.RequestIdentity, _ string) (bool, error) {
+	return true, nil
+}
+
 // GetEvalHubServiceURL returns a deterministic fake URL for test environments.
 func (m *InternalKubernetesClientMock) GetEvalHubServiceURL(_ context.Context, _ *k8s.RequestIdentity, _ string) (string, error) {
 	return "http://mock-evalhub.test.svc.cluster.local", nil
@@ -56,39 +61,5 @@ func (m *InternalKubernetesClientMock) GetEvalHubCRStatus(_ context.Context, _ *
 		ActiveProviders: []string{"lm-evaluation-harness", "garak"},
 		ReadyReplicas:   1,
 		Replicas:        1,
-	}, nil
-}
-
-func (m *InternalKubernetesClientMock) GetKueueAvailability(_ context.Context, _ *k8s.RequestIdentity, _ string) (*models.KueueAvailability, error) {
-	return &models.KueueAvailability{
-		Enabled:              true,
-		SchedulingReady:      true,
-		ClusterEnabled:       true,
-		NamespaceManaged:     true,
-		LocalQueuesAvailable: true,
-		LocalQueueNames:      []string{"default"},
-	}, nil
-}
-
-func (m *InternalKubernetesClientMock) GetKueueWorkloadStatuses(_ context.Context, _ *k8s.RequestIdentity, _ string, _ []string) (*models.KueueWorkloadStatusesResponse, error) {
-	return &models.KueueWorkloadStatusesResponse{Items: []models.KueueWorkloadStatus{}}, nil
-}
-
-func (m *InternalKubernetesClientMock) ListHardwareProfiles(_ context.Context, _ *k8s.RequestIdentity, _, _ string) (*models.HardwareProfilesResponse, error) {
-	return &models.HardwareProfilesResponse{
-		Items: []models.HardwareProfile{
-			{
-				Name:             "default-gpu",
-				DisplayName:      "Default GPU",
-				Enabled:          true,
-				SchedulingType:   "Queue",
-				LocalQueueName:   "default",
-				ClusterQueueName: "default-cluster",
-				Resources: []models.HardwareProfileResource{
-					{DisplayName: "CPU", Identifier: "cpu", ResourceType: "CPU", Default: "1"},
-					{DisplayName: "Memory", Identifier: "memory", ResourceType: "Memory", Default: "4Gi"},
-				},
-			},
-		},
 	}, nil
 }

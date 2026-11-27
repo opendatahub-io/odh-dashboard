@@ -364,6 +364,92 @@ paths:
       description: >-
         Creates a tenant-scoped copy of an existing benchmark collection with optional overrides.
 
+  /eval-hub/api/v1/evaluations/collection-imports:
+    summary: Import a benchmark collection from file content
+    description: >-
+      Imports a benchmark collection from raw YAML or JSON file content.
+      The BFF parses the content with safe-load semantics, runs advisory
+      pre-submission checks, and creates the collection by submitting to the
+      EvalHub server collections API. Server validation is authoritative.
+    post:
+      tags:
+        - Collections
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          required: true
+          description: Kubernetes namespace to scope the request
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CollectionImportRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/CollectionImportResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+      operationId: importCollection
+      summary: Import Collection
+      description: >-
+        Creates a tenant-scoped benchmark collection from raw YAML or JSON
+        content. Content over 1 MiB, YAML with custom tags, nesting deeper
+        than 50 levels, more than 100 aliases, or mappings wider than 1000
+        entries is rejected. Multi-document YAML imports only the first
+        document. A referenced provider or benchmark that is not found or
+        not accessible returns 404; an unavailable EvalHub instance returns
+        503. Advisory warnings (missing description, unrecognized fields,
+        ignored server-managed fields) are returned alongside the created
+        collection.
+
+  /eval-hub/api/v1/evaluations/collection-imports/access:
+    summary: Check whether the current user can import collections
+    description: >-
+      Runs a SubjectAccessReview for the action that governs collection
+      creation in the tenant namespace, so the UI can disable the import
+      entry points with an informative tooltip for users without permission.
+    get:
+      tags:
+        - Collections
+      security:
+        - Bearer: []
+      parameters:
+        - name: namespace
+          in: query
+          schema:
+            type: string
+          required: true
+          description: Kubernetes namespace to scope the request
+      responses:
+        '200':
+          $ref: '#/components/responses/CollectionImportAccessResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+      operationId: getCollectionImportAccess
+      summary: Get Collection Import Access
+      description: Returns whether the current user may create (import) collections in the namespace.
+
   /eval-hub/api/v1/evaluations/providers:
     summary: List evaluation providers
     description: >-
@@ -479,89 +565,17 @@ paths:
       description: Creates and starts a new evaluation run against the EvalHub control plane.
 
   # =============================================================================
-  # KUEUE AND HARDWARE PROFILE ENDPOINTS
+  # QUEUE AND HARDWARE PROFILE ENDPOINTS
   # =============================================================================
 
-  /eval-hub/api/v1/kueue/availability:
-    summary: Get Kueue availability
-    get:
-      tags:
-        - Kueue
-      security:
-        - Bearer: []
-      parameters:
-        - $ref: '#/components/parameters/namespaceRequired'
-      responses:
-        '200':
-          description: Kueue availability for the namespace
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - data
-                properties:
-                  data:
-                    $ref: '#/components/schemas/KueueAvailability'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-      operationId: getKueueAvailability
-
-  /eval-hub/api/v1/kueue/workloads:
-    summary: Get Kueue Workload statuses for evaluation jobs
+  /eval-hub/api/v1/info:
+    summary: Get EvalHub service info and tenant hardware profiles
     description: >-
-      The Kueue integration is disabled, so no Kubernetes Workloads are queried. The
-      request shape is validated and successful responses contain an empty items array.
-    get:
-      tags:
-        - Kueue
-      security:
-        - Bearer: []
-      parameters:
-        - $ref: '#/components/parameters/namespaceRequired'
-        - in: query
-          name: evaluation_ids
-          required: true
-          description: Comma-separated EvalHub evaluation job IDs, with a maximum of 100 unique IDs.
-          style: form
-          explode: false
-          schema:
-            type: array
-            minItems: 1
-            maxItems: 100
-            items:
-              type: string
-              minLength: 1
-      responses:
-        '200':
-          description: Kueue Workload statuses for the requested evaluations; the Kueue integration is disabled, so items is always empty
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - data
-                properties:
-                  data:
-                    $ref: '#/components/schemas/KueueWorkloadStatusesResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbidden'
-        '500':
-          $ref: '#/components/responses/InternalServerError'
-      operationId: getKueueWorkloadStatuses
-
-  /eval-hub/api/v1/hardwareprofiles:
-    summary: List compatible HardwareProfiles
+      Proxies the EvalHub service info API. Returns build metadata and the enabled
+      hardware profiles available to the caller's tenant, as filtered by the service —
+      queue-backed profiles only appear while their LocalQueue exists in the tenant
+      namespace, each carrying its queue availability. The BFF performs no direct
+      Kubernetes reads.
     get:
       tags:
         - Kueue
@@ -571,7 +585,7 @@ paths:
         - $ref: '#/components/parameters/namespaceRequired'
       responses:
         '200':
-          description: HardwareProfiles for the requested evaluation namespace; the Kueue integration is disabled, so items is always empty
+          description: EvalHub service info and the hardware profiles available to the tenant
           content:
             application/json:
               schema:
@@ -580,7 +594,7 @@ paths:
                   - data
                 properties:
                   data:
-                    $ref: '#/components/schemas/HardwareProfilesResponse'
+                    $ref: '#/components/schemas/InfoResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '401':
@@ -589,14 +603,20 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '500':
           $ref: '#/components/responses/InternalServerError'
-      operationId: listHardwareProfiles
+        '503':
+          description: EvalHub service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      operationId: getInfo
 
   /eval-hub/api/v1/hardwareprofiles/validate:
     summary: Validate HardwareProfiles for evaluation providers
     description: >-
-      Validates the shape of the request only. The Kueue integration is disabled, so no
-      HardwareProfile availability or provider resource compatibility checks are performed
-      and successful responses contain an empty items array.
+      Compares the selected HardwareProfiles' resources against the evaluation
+      providers' minimum resource requirements. Profiles and provider requirements
+      both come from the EvalHub service; no Kubernetes reads are involved.
     post:
       tags:
         - Kueue
@@ -612,7 +632,7 @@ paths:
               $ref: '#/components/schemas/HardwareProfileValidationRequest'
       responses:
         '200':
-          description: Shape validation result for the requested HardwareProfiles; the Kueue integration is disabled, so items is always empty
+          description: Provider resource compatibility results for the requested HardwareProfiles
           content:
             application/json:
               schema:
@@ -1624,135 +1644,103 @@ components:
           type: string
           description: LocalQueue name used for Kueue scheduling
 
-    # KUEUE SCHEMAS
-    KueueAvailability:
+    # QUEUE AND HARDWARE PROFILE SCHEMAS
+    QueueAvailability:
       type: object
+      description: Tenant LocalQueue Active condition, present on queue-backed profiles.
       required:
-        - enabled
-        - scheduling_ready
-        - cluster_enabled
-        - namespace_managed
-        - local_queues_available
-        - local_queue_names
+        - status
       properties:
-        enabled:
-          type: boolean
-          description: Kueue is installed and manages this namespace.
-        scheduling_ready:
-          type: boolean
-          description: An available LocalQueue is configured and queue-backed evaluations can start.
-        cluster_enabled:
-          type: boolean
-        namespace_managed:
-          type: boolean
-        local_queues_available:
-          type: boolean
-        local_queue_names:
-          type: array
-          items:
-            type: string
-
-    KueueWorkloadState:
-      type: string
-      enum:
-        - queued
-        - admitted
-        - finished
-        - preempted
-        - inadmissible
-
-    KueueWorkloadStatus:
-      type: object
-      required:
-        - evaluation_id
-        - queue_name
-        - state
-      properties:
-        evaluation_id:
+        status:
           type: string
-          description: EvalHub evaluation job ID associated with the Kueue Workload
-        queue_name:
+          enum:
+            - active
+            - inactive
+            - unknown
+          description: active when the LocalQueue Active condition is True, inactive when False, unknown when missing or unrecognized
+        reason:
           type: string
-          description: Kueue LocalQueue used by the Workload
-        state:
-          $ref: '#/components/schemas/KueueWorkloadState'
         message:
           type: string
-          description: Optional status detail reported by Kueue
-        queue_position:
-          type: integer
-          minimum: 1
-          description: One-based position of the Workload in its Kueue LocalQueue, when available
 
-    KueueWorkloadStatusesResponse:
+    HardwareProfileIdentifier:
       type: object
-      required:
-        - items
-      properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/KueueWorkloadStatus'
-
-    # HARDWARE PROFILE SCHEMAS
-    HardwareProfileResource:
-      type: object
+      description: A profile resource and its allowed quantities. Counts are strings so both integer counts and Kubernetes quantities have a consistent representation.
       required:
         - identifier
       properties:
-        display_name:
-          type: string
         identifier:
+          type: string
+          description: Kubernetes resource name, such as cpu, memory, or nvidia.com/gpu
+        display_name:
           type: string
         resource_type:
           type: string
-        default:
+          enum:
+            - cpu
+            - memory
+            - accelerator
+        min_count:
           type: string
-        minimum:
+        default_count:
           type: string
-        maximum:
+        max_count:
           type: string
 
-    HardwareProfile:
+    HardwareProfileInfo:
       type: object
+      description: An enabled platform hardware profile available to the tenant, as filtered by the EvalHub service.
       required:
         - name
-        - display_name
-        - enabled
+        - identifiers
       properties:
         name:
           type: string
+          description: Profile name for hardware_config.hardware_profile_name
         display_name:
           type: string
+          description: Optional opendatahub.io/display-name annotation
         description:
           type: string
-        enabled:
-          type: boolean
+          description: Optional opendatahub.io/description annotation
         scheduling_type:
           type: string
-        local_queue_name:
-          type: string
-        cluster_queue_name:
-          type: string
-          description: ClusterQueue backing the HardwareProfile's LocalQueue
-        priority_class:
-          type: string
-        resources:
+          enum:
+            - node
+            - queue
+          description: Scheduling method; omitted when the profile does not configure scheduling
+        identifiers:
           type: array
+          description: Profile resource identifiers; an empty array when none are configured
           items:
-            $ref: '#/components/schemas/HardwareProfileResource'
+            $ref: '#/components/schemas/HardwareProfileIdentifier'
+        queue_name:
+          type: string
+          description: Tenant LocalQueue name for queue-backed profiles; omitted for node-scheduled profiles
+        priority_class_name:
+          type: string
+        queue_availability:
+          $ref: '#/components/schemas/QueueAvailability'
 
-    HardwareProfilesResponse:
+    InfoResponse:
       type: object
       required:
-        - items
+        - hardware_profiles
       properties:
-        items:
-          type: array
-          items:
-            $ref: '#/components/schemas/HardwareProfile'
-        warning:
+        version:
           type: string
+          description: EvalHub service version
+        build:
+          type: string
+        build_date:
+          type: string
+        git_hash:
+          type: string
+        hardware_profiles:
+          type: array
+          description: Enabled hardware profiles available to the caller's tenant, sorted by name
+          items:
+            $ref: '#/components/schemas/HardwareProfileInfo'
 
     HardwareProfileValidationRequest:
       type: object
@@ -2159,6 +2147,52 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Collection'
+
+    CollectionImportRequest:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          description: >-
+            Raw collection definition file content (YAML or JSON). JSON is
+            detected when the trimmed content starts with '{' or '['.
+          example: |
+            name: my-collection
+            description: A short description of what this collection evaluates.
+            domains:
+              - knowledge_and_reasoning
+            benchmarks:
+              - id: arc_easy
+                provider_id: lm_evaluation_harness
+                weight: 1.0
+
+    CollectionImportData:
+      type: object
+      required:
+        - collection
+      properties:
+        collection:
+          $ref: '#/components/schemas/Collection'
+        warnings:
+          type: array
+          description: >-
+            Advisory pre-submission warnings (missing description,
+            unrecognized fields, server-managed fields that were ignored).
+          items:
+            type: string
+          example:
+            - 'Field "id" is managed by the server and will be ignored.'
+
+    CollectionImportAccessData:
+      type: object
+      required:
+        - allowed
+      properties:
+        allowed:
+          type: boolean
+          description: Whether the current user may create (import) collections in the namespace.
 
     ProviderResource:
       type: object
@@ -2622,6 +2656,47 @@ components:
                   provider_id: 'lm_evaluation_harness'
                   weight: 1
 
+    CollectionImportResponse:
+      description: The imported benchmark collection with advisory warnings
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/CollectionImportData'
+          example:
+            data:
+              collection:
+                resource:
+                  id: 'collection-002'
+                name: 'my-collection'
+                domains:
+                  - knowledge_and_reasoning
+                benchmarks:
+                  - id: 'arc_easy'
+                    provider_id: 'lm_evaluation_harness'
+                    weight: 1
+              warnings:
+                - 'Field "id" is managed by the server and will be ignored.'
+
+    CollectionImportAccessResponse:
+      description: Whether the current user may import collections in the namespace
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - data
+            properties:
+              data:
+                $ref: '#/components/schemas/CollectionImportAccessData'
+          example:
+            data:
+              allowed: true
+
     ProvidersResponse:
       description: List of evaluation providers with their benchmark catalogues
       content:
@@ -2734,6 +2809,13 @@ components:
 
     NotFound:
       description: Not Found - Requested resource does not exist
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+
+    ServiceUnavailable:
+      description: Service Unavailable - The EvalHub service cannot be reached
       content:
         application/json:
           schema:
@@ -2929,7 +3011,7 @@ tags:
   - name: HealthCheck
     description: Health check and status endpoints
   - name: Kueue
-    description: Kueue availability and queue-backed scheduling
+    description: Queue-backed scheduling and hardware profiles
   - name: Kubernetes
     description: Kubernetes cluster operations
   - name: Identity

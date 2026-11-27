@@ -50,7 +50,7 @@ const ConnectionTypesTab: React.FC<ConnectionTypesTabProps> = ({ namespace }) =>
 
   return (
     <PageSection isFilled>
-      <p className="pf-v6-u-mb-md">
+      <p className="pf-v6-u-mb-md" data-testid="connection-types-description">
         Discover and configure pre-defined data connections available to your organization. Browse
         available catalogs to easily connect your projects to external storage, databases, and
         services.

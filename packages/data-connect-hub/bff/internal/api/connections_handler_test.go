@@ -23,12 +23,14 @@ import (
 )
 
 type authorizationTestClient struct {
-	allowed  bool
-	err      error
-	token    string
-	verb     string
-	group    string
-	resource string
+	allowed      bool
+	err          error
+	token        string
+	secretExists bool
+	secretErr    error
+	verb         string
+	group        string
+	resource     string
 }
 
 func (c *authorizationTestClient) GetNamespaces(context.Context, *k8s.RequestIdentity) ([]corev1.Namespace, error) {
@@ -49,6 +51,10 @@ func (c *authorizationTestClient) GetUser(*k8s.RequestIdentity) (string, error) 
 	return "test-user", nil
 }
 func (c *authorizationTestClient) BearerToken() (string, error) { return c.token, nil }
+
+func (c *authorizationTestClient) SecretExists(_ context.Context, _ string, _ string) (bool, error) {
+	return c.secretExists, c.secretErr
+}
 
 type authorizationTestFactory struct{ client k8s.KubernetesClientInterface }
 
@@ -83,6 +89,9 @@ func TestGetConnectionsHandlerReturnsMockConnections(t *testing.T) {
 	require.NoError(t, json.Unmarshal(body, &envelope))
 	require.Len(t, envelope.Data, 2)
 	require.Equal(t, "warehouse", envelope.Data[0].Resource.Name)
+	require.NotNil(t, envelope.Data[0].Resource.Description)
+	require.Equal(t, "Sales data warehouse", *envelope.Data[0].Resource.Description)
+	require.Nil(t, envelope.Data[1].Resource.Description)
 }
 
 func TestGetConnectionsHandlerNormalizesMissingProperties(t *testing.T) {
@@ -800,4 +809,45 @@ func TestDataConnectHubHeadersAllowsTokenInLocalInsecureTLSMode(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "Bearer user-token", headers.Get("Authorization"))
 	require.Equal(t, "test-project", headers.Get("X-Tenant-ID"))
+}
+
+func TestCreateConnectionHandlerForwardsDescription(t *testing.T) {
+	var upstreamRequest CreateConnectionRequest
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&upstreamRequest))
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		_, err := w.Write([]byte(`{
+			"metadata":{"id":"550e8400-e29b-41d4-a716-446655440001","created_at":"2026-09-07T16:00:00Z","updated_at":"2026-09-07T16:00:00Z"},
+			"resource":{"name":"new-connection","description":"Sales data warehouse","data_connection_type_id":"550e8400-e29b-41d4-a716-446655440003","format":"tabular","credentials_ref":{"secret":"new-connection"},"properties":{}},
+			"status":{"state":"ready"}
+		}`))
+		require.NoError(t, err)
+	}))
+	defer upstream.Close()
+
+	app := &App{
+		config:                  config.EnvConfig{DataConnectHubAPIURL: upstream.URL},
+		logger:                  slog.Default(),
+		kubernetesClientFactory: &authorizationTestFactory{client: &authorizationTestClient{allowed: true}},
+		repositories:            repositories.NewRepositories(),
+	}
+	response, request := requestWithIdentity(t, http.MethodPost, "/api/v1/connections?namespace=test-project")
+	request.Body = io.NopCloser(bytes.NewBufferString(`{"name":"new-connection","description":"Sales data warehouse","data_connection_type_id":"550e8400-e29b-41d4-a716-446655440003","format":"tabular","credentials":{"secret":"new-connection","properties":{"URI":"postgres://example"}},"properties":{}}`))
+
+	app.CreateConnectionHandler(response, request, httprouter.Params{})
+
+	require.Equal(t, http.StatusCreated, response.Code)
+	require.NotNil(t, upstreamRequest.Description)
+	require.Equal(t, "Sales data warehouse", *upstreamRequest.Description)
+	var body ConnectionResponse
+	require.NoError(t, json.Unmarshal(response.Body.Bytes(), &body))
+	require.NotNil(t, body.Data.Resource.Description)
+	require.Equal(t, "Sales data warehouse", *body.Data.Resource.Description)
+}
+
+func TestCreateConnectionRequestAcceptsNullDescription(t *testing.T) {
+	var request CreateConnectionRequest
+	require.NoError(t, json.Unmarshal([]byte(`{"name":"new-connection","description":null,"data_connection_type_id":"550e8400-e29b-41d4-a716-446655440003","format":"tabular","credentials":{"secret":"new-connection","properties":{"URI":"postgres://example"}},"properties":{}}`), &request))
+	require.Nil(t, request.Description)
 }

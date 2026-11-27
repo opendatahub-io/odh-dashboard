@@ -12,7 +12,7 @@ import { EVAL_HUB_EVENTS } from '~/app/tracking/evalhubTrackingConstants';
 import type {
   Collection,
   CollectionResolution,
-  HardwareProfile,
+  HardwareProfileInfo,
   KueueAvailability,
   SourceMode,
 } from '~/app/types';
@@ -119,17 +119,14 @@ const clonedCollectionResolution: CollectionResolution = {
 const kueueAvailability: KueueAvailability = {
   enabled: true,
   scheduling_ready: true,
-  cluster_enabled: true,
-  namespace_managed: true,
-  local_queues_available: true,
-  local_queue_names: ['default'],
 };
 
-const hardwareProfile: HardwareProfile = {
+const hardwareProfile: HardwareProfileInfo = {
   name: 'default-profile',
   display_name: 'Default profile',
-  enabled: true,
-  local_queue_name: 'default',
+  scheduling_type: 'queue',
+  queue_name: 'default',
+  identifiers: [],
 };
 
 type Deferred<T> = {
@@ -251,7 +248,44 @@ describe('StartEvaluationRunModal', () => {
     expect(screen.queryByTestId('start-evaluation-run-prerequisite')).not.toBeInTheDocument();
   });
 
-  it('shows a required HardwareProfile before collapsed advanced configuration for Kueue', () => {
+  it('should replace the form with skeletons while the LocalQueue request is in flight', () => {
+    mockUseHardwareProfiles.mockReturnValue({
+      profiles: [],
+      loaded: false,
+      error: undefined,
+    });
+    mockUseKueueAvailability.mockReturnValue({
+      availability: undefined,
+      loaded: false,
+      error: undefined,
+    });
+    renderModal();
+
+    expect(screen.getByTestId('start-evaluation-form-skeleton')).toBeInTheDocument();
+    expect(screen.queryByTestId('start-evaluation-form')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('hardware-profile-skeleton')).not.toBeInTheDocument();
+    expect(screen.getByTestId('start-evaluation-run-collection-name')).toBeInTheDocument();
+    expect(screen.getByTestId('start-evaluation-submit')).toBeDisabled();
+  });
+
+  it('should replace the skeletons with the form when the request errors', () => {
+    mockUseHardwareProfiles.mockReturnValue({
+      profiles: [],
+      loaded: true,
+      error: new Error('info request failed'),
+    });
+    mockUseKueueAvailability.mockReturnValue({
+      availability: undefined,
+      loaded: true,
+      error: undefined,
+    });
+    renderModal();
+
+    expect(screen.queryByTestId('start-evaluation-form-skeleton')).not.toBeInTheDocument();
+    expect(screen.getByTestId('start-evaluation-form')).toBeInTheDocument();
+  });
+
+  it('shows the HardwareProfile with its default option before collapsed advanced configuration for Kueue', () => {
     mockUseKueueAvailability.mockReturnValue({
       availability: kueueAvailability,
       loaded: true,
@@ -269,9 +303,7 @@ describe('StartEvaluationRunModal', () => {
     const advancedToggle = screen.getByTestId('start-evaluation-run-advanced-toggle');
 
     expect(hardwareProfileToggle).toBeInTheDocument();
-    expect(
-      screen.queryByText('Select a hardware profile to schedule this evaluation through Kueue.'),
-    ).not.toBeInTheDocument();
+    expect(hardwareProfileToggle).toHaveTextContent('Default (no hardware profile)');
     expect(
       hardwareProfileToggle.compareDocumentPosition(advancedToggle) &
         Node.DOCUMENT_POSITION_FOLLOWING,
@@ -288,7 +320,7 @@ describe('StartEvaluationRunModal', () => {
     expect(screen.getByTestId('model-picker-toggle')).toBeInTheDocument();
   });
 
-  it('should not render benchmark parameters in any modal view', () => {
+  it('should not render benchmark parameters for a collection run', () => {
     renderModal();
 
     expect(screen.queryByTestId('show-additional-args')).not.toBeInTheDocument();
@@ -418,6 +450,44 @@ describe('StartEvaluationRunModal', () => {
     });
 
     expect(mockCreateEvaluationJob).not.toHaveBeenCalled();
+  });
+
+  it('should submit without hardware_config after clearing a selection retained by a failed info refetch', async () => {
+    let infoFailed = false;
+    mockUseKueueAvailability.mockReturnValue({
+      availability: kueueAvailability,
+      loaded: true,
+      error: undefined,
+    });
+    mockUseHardwareProfiles.mockImplementation(() => ({
+      profiles: [hardwareProfile],
+      loaded: true,
+      error: infoFailed ? new Error('info request failed') : undefined,
+    }));
+
+    renderModal();
+
+    fireEvent.click(screen.getByTestId('hardware-profile-toggle'));
+    fireEvent.click(within(screen.getByRole('listbox')).getByText('Default profile'));
+
+    infoFailed = true;
+    // Any form-value change re-renders the form so the failed refetch state propagates.
+    fireEvent.change(screen.getByTestId('evaluation-name-input'), {
+      target: { value: 'Retained selection run' },
+    });
+
+    expect(screen.getByTestId('hardware-profile-toggle')).toBeDisabled();
+    fireEvent.click(screen.getByTestId('hardware-profile-clear-selection'));
+
+    await selectClusterModel();
+    fireEvent.click(screen.getByTestId('start-evaluation-submit'));
+
+    await waitFor(() => expect(mockCreateEvaluationJob).toHaveBeenCalledTimes(1));
+    expect(mockCreateEvaluationJob).toHaveBeenCalledWith(
+      '',
+      'test-namespace',
+      expect.not.objectContaining({ hardware_config: expect.anything() }),
+    );
   });
 
   it('should submit the evaluation using the cloned collection', async () => {

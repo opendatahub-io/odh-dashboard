@@ -382,34 +382,53 @@ rules:
 }
 
 /** Removes the EvalHub tenant label before deleting an E2E tenant namespace. */
-export function removeEvalHubTenantLabel(ns: string): Cypress.Chainable<Cypress.Exec> {
+export function removeEvalHubTenantLabel(
+  ns: string,
+  reportFailure?: (message: string) => void,
+): Cypress.Chainable<Cypress.Exec> {
+  const namespace = assertKubernetesName(ns, 'tenant namespace');
   return cy
-    .exec(`oc get namespace ${ns} --ignore-not-found -o name`, {
+    .exec(`oc --request-timeout=15s get namespace ${namespace} --ignore-not-found -o name`, {
       failOnNonZeroExit: false,
+      timeout: 25000,
+      log: false,
     })
-    .then((result) => {
+    .then<Cypress.Exec>((result) => {
       if (result.exitCode !== 0) {
-        throw new Error(
-          `Failed to check EvalHub tenant namespace ${ns}: ${result.stderr || result.stdout}`,
-        );
+        const message = `Failed to check EvalHub tenant namespace ${namespace}: ${
+          result.stderr || result.stdout
+        }`;
+        if (reportFailure) {
+          reportFailure(message);
+          return cy.wrap(result, { log: false });
+        }
+        throw new Error(message);
       }
       if (!result.stdout.trim()) {
-        return cy.wrap(result);
+        return cy.wrap(result, { log: false });
       }
 
       return cy
-        .exec(`oc label namespace ${ns} evalhub.trustyai.opendatahub.io/tenant-`, {
-          failOnNonZeroExit: false,
-        })
-        .then((labelResult) => {
+        .exec(
+          `oc --request-timeout=15s label namespace ${namespace} evalhub.trustyai.opendatahub.io/tenant-`,
+          {
+            failOnNonZeroExit: false,
+            timeout: 25000,
+            log: false,
+          },
+        )
+        .then<Cypress.Exec>((labelResult) => {
           if (labelResult.exitCode !== 0) {
-            throw new Error(
-              `Failed to remove EvalHub tenant label from ${ns}: ${
-                labelResult.stderr || labelResult.stdout
-              }`,
-            );
+            const message =
+              `Failed to remove EvalHub tenant label from ${namespace}: ` +
+              `${labelResult.stderr || labelResult.stdout}`;
+            if (reportFailure) {
+              reportFailure(message);
+              return cy.wrap(labelResult, { log: false });
+            }
+            throw new Error(message);
           }
-          return labelResult;
+          return cy.wrap(labelResult, { log: false });
         });
     });
 }

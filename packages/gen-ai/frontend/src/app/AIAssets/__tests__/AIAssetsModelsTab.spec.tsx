@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import { createTrackingWrapper } from '~/__tests__/unit/testUtils/TrackingProvider';
 import type { AIModel } from '~/app/types';
 import { GenAiContext } from '~/app/context/GenAiContext';
 import useMergedModels from '~/app/hooks/useMergedModels';
@@ -148,7 +149,7 @@ describe('AIAssetsModelsTab', () => {
       refresh: jest.fn(),
     } as ReturnType<typeof useMergedModels>);
 
-    render(<AIAssetsModelsTab />, { wrapper: TestWrapper });
+    render(<AIAssetsModelsTab />, { wrapper: createTrackingWrapper(undefined, TestWrapper) });
 
     expect(screen.getByRole('progressbar')).toBeInTheDocument();
   });
@@ -161,7 +162,7 @@ describe('AIAssetsModelsTab', () => {
       refresh: jest.fn(),
     } as ReturnType<typeof useMergedModels>);
 
-    render(<AIAssetsModelsTab />, { wrapper: TestWrapper });
+    render(<AIAssetsModelsTab />, { wrapper: createTrackingWrapper(undefined, TestWrapper) });
 
     expect(screen.getByTestId('empty-state')).toBeInTheDocument();
     expect(screen.getByText('To begin you must deploy a model')).toBeInTheDocument();
@@ -175,7 +176,7 @@ describe('AIAssetsModelsTab', () => {
       refresh: jest.fn(),
     } as ReturnType<typeof useMergedModels>);
 
-    render(<AIAssetsModelsTab />, { wrapper: TestWrapper });
+    render(<AIAssetsModelsTab />, { wrapper: createTrackingWrapper(undefined, TestWrapper) });
 
     expect(screen.getByText(/unable to load models/i)).toBeInTheDocument();
     expect(screen.getByTestId('empty-state')).toBeInTheDocument();
@@ -196,7 +197,7 @@ describe('AIAssetsModelsTab', () => {
       refresh: jest.fn(),
     } as ReturnType<typeof useMergedModels>);
 
-    render(<AIAssetsModelsTab />, { wrapper: TestWrapper });
+    render(<AIAssetsModelsTab />, { wrapper: createTrackingWrapper(undefined, TestWrapper) });
 
     expect(screen.getByTestId('models-table')).toBeInTheDocument();
     expect(screen.getByTestId('model-model-1')).toBeInTheDocument();
@@ -226,6 +227,7 @@ describe('AIAssetsModelsTab', () => {
           <AIAssetsModelsTab />
         </MemoryRouter>
       </GenAiContext.Provider>,
+      { wrapper: createTrackingWrapper() },
     );
 
     expect(screen.getByTestId('models-table')).toHaveAttribute(
@@ -258,7 +260,7 @@ describe('AIAssetsModelsTab', () => {
       refresh: refreshMergedModels,
     } as ReturnType<typeof useMergedModels>);
 
-    render(<AIAssetsModelsTab />, { wrapper: TestWrapper });
+    render(<AIAssetsModelsTab />, { wrapper: createTrackingWrapper(undefined, TestWrapper) });
 
     fireEvent.click(screen.getByTestId('create-endpoint-button'));
     fireEvent.click(screen.getByRole('button', { name: 'Mock create endpoint success' }));
@@ -284,7 +286,7 @@ describe('AIAssetsModelsTab', () => {
         refresh: jest.fn(),
       } as ReturnType<typeof useMergedModels>);
 
-      render(<AIAssetsModelsTab />, { wrapper: TestWrapper });
+      render(<AIAssetsModelsTab />, { wrapper: createTrackingWrapper(undefined, TestWrapper) });
     };
 
     it('should show a primary Create playground button when the playground is not created', () => {

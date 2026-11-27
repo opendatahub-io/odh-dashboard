@@ -27,9 +27,8 @@ jest.mock('~/app/shared/Phase/PhaseLabel', () => ({
   default: () => <span data-testid="mock-phase-label" />,
 }));
 
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  fireFormTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
+jest.mock('@odh-dashboard/analytics/react', () => ({
+  useTrackEvent: () => mockTrackEvent,
 }));
 
 jest.mock('~/app/pages/subscriptions/DeleteSubscriptionModal', () => ({
@@ -74,6 +73,7 @@ jest.mock('~/app/pages/auth-policies/DeleteAuthPolicyModal', () => ({
 
 const mockNavigate = jest.fn();
 const mockRefresh = jest.fn();
+const mockTrackEvent = jest.fn();
 let mockAllowedVerbs: Set<string>;
 
 const mockSubscription = (

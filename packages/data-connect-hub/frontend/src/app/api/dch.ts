@@ -3,6 +3,7 @@ import { BFF_API_VERSION, URL_PREFIX } from '~/app/utilities/const';
 import {
   Connection,
   ConnectionType,
+  ConnectionNameAvailability,
   CreateConnectionRequest,
   TestCredentialsRequest,
 } from '~/app/types';
@@ -64,6 +65,9 @@ const isConnection = (value: unknown): value is Connection => {
     (value.metadata.created_at === undefined || typeof value.metadata.created_at === 'string') &&
     (value.metadata.updated_at === undefined || typeof value.metadata.updated_at === 'string') &&
     typeof value.resource.name === 'string' &&
+    (value.resource.description === undefined ||
+      value.resource.description === null ||
+      typeof value.resource.description === 'string') &&
     typeof value.resource.data_connection_type_id === 'string' &&
     (value.resource.format === 'tabular' || value.resource.format === 'binary') &&
     isRecord(value.resource.credentials_ref) &&
@@ -140,6 +144,46 @@ export const getConnections =
       parsed.data.every(isConnection)
     ) {
       return parsed.data;
+    }
+    throw new Error('Invalid response format');
+  };
+
+export const getConnectionNameAvailability =
+  (hostPath: string) =>
+  async (
+    opts: APIOptions,
+    namespace: string,
+    name: string,
+  ): Promise<ConnectionNameAvailability> => {
+    const searchParams = new URLSearchParams({ namespace, name });
+    const response = await fetch(
+      `${hostPath}${URL_PREFIX}/api/${BFF_API_VERSION}/connection-name-availability?${searchParams.toString()}`,
+      {
+        method: 'GET',
+        headers: opts.headers,
+        signal: opts.signal,
+      },
+    );
+    const body = await response.text();
+
+    if (!response.ok) {
+      throw new ConnectionApiError(getResponseErrorMessage(body, response.status), response.status);
+    }
+
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(body);
+    } catch {
+      throw new Error('Invalid response format');
+    }
+    if (
+      isModArchResponse<unknown>(parsed) &&
+      isRecord(parsed.data) &&
+      typeof parsed.data.available === 'boolean' &&
+      Array.isArray(parsed.data.conflicts_with) &&
+      parsed.data.conflicts_with.every((conflict) => typeof conflict === 'string')
+    ) {
+      return parsed.data as ConnectionNameAvailability;
     }
     throw new Error('Invalid response format');
   };

@@ -11,7 +11,6 @@ import {
 import { Connection } from '#~/concepts/connectionTypes/types';
 import { ProjectObjectType } from '#~/concepts/design/utils';
 import ResourceLabel from '#~/pages/projects/screens/detail/connections/ResourceLabel';
-import { useInferenceServicesForConnection } from '#~/pages/projects/useInferenceServicesForConnection';
 
 // Host owns how each contributed resource kind renders (icon + color); extensions only pick a kind.
 const CONNECTED_RESOURCE_LABEL_STYLES: Record<
@@ -41,13 +40,12 @@ const ConnectedResources: React.FC<ConnectedResourcesProps> = ({
       : ConnectedNotebookContext.EXISTING_PVC,
     connection ? connection.metadata.name : pvc.metadata.name,
   );
-  const connectedModels = useInferenceServicesForConnection(connection ?? pvc);
 
   if (!notebooksLoaded || !additionalResourcesLoaded) {
     return <Spinner size="sm" />;
   }
 
-  if (!connectedNotebooks.length && !connectedModels.length && !additionalResources.length) {
+  if (!connectedNotebooks.length && !additionalResources.length) {
     return '--';
   }
 
@@ -61,16 +59,6 @@ const ConnectedResources: React.FC<ConnectedResourcesProps> = ({
       />
     ));
 
-  const renderModelLabels = () =>
-    connectedModels.map((model) => (
-      <ResourceLabel
-        key={model.metadata.name}
-        resourceType={ProjectObjectType.connectedModels}
-        title={getDisplayNameFromK8sResource(model)}
-        outlineColor="purple"
-      />
-    ));
-
   const renderAdditionalResourceLabels = () =>
     additionalResources.map(({ key, title, kind }) => (
       <ResourceLabel key={key} title={title} {...CONNECTED_RESOURCE_LABEL_STYLES[kind]} />
@@ -79,7 +67,6 @@ const ConnectedResources: React.FC<ConnectedResourcesProps> = ({
   return (
     <LabelGroup>
       {renderNotebookLabels()}
-      {renderModelLabels()}
       {renderAdditionalResourceLabels()}
     </LabelGroup>
   );

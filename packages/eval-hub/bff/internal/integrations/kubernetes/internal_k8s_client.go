@@ -216,64 +216,6 @@ func (kc *InternalKubernetesClient) GetUser(identity *RequestIdentity) (string, 
 	return identity.UserID, nil
 }
 
-func (kc *InternalKubernetesClient) GetKueueAvailability(ctx context.Context, _ *RequestIdentity, namespace string) (*models.KueueAvailability, error) {
-	config, err := helper.GetKubeconfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get kubeconfig for Kueue lookup: %w", err)
-	}
-	dynamicClient, err := dynamicFromConfig(config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create dynamic client for Kueue lookup: %w", err)
-	}
-	return getCachedKueueAvailability(ctx, dynamicClient, namespace, kueueAvailabilityCacheKey(namespace, kc.Token.Raw()))
-}
-
-func (kc *InternalKubernetesClient) GetKueueWorkloadStatuses(ctx context.Context, _ *RequestIdentity, namespace string, evaluationIDs []string) (*models.KueueWorkloadStatusesResponse, error) {
-	config, err := helper.GetKubeconfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get kubeconfig for Kueue Workload lookup: %w", err)
-	}
-	dynamicClient, err := dynamicFromConfig(config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create dynamic client for Kueue Workload lookup: %w", err)
-	}
-	return getKueueWorkloadStatuses(ctx, dynamicClient, namespace, evaluationIDs)
-}
-
-func (kc *InternalKubernetesClient) ListHardwareProfiles(ctx context.Context, _ *RequestIdentity, evaluationNamespace, hardwareProfilesNamespace string) (*models.HardwareProfilesResponse, error) {
-	config, err := helper.GetKubeconfig()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get kubeconfig for HardwareProfile lookup: %w", err)
-	}
-	dynamicClient, err := dynamicFromConfig(config)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create dynamic client for HardwareProfile lookup: %w", err)
-	}
-	availability, err := getCachedKueueAvailability(ctx, dynamicClient, evaluationNamespace, kueueAvailabilityCacheKey(evaluationNamespace, kc.Token.Raw()))
-	if err != nil {
-		return nil, err
-	}
-	return listHardwareProfilesForAvailability(
-		ctx,
-		dynamicClient,
-		evaluationNamespace,
-		hardwareProfilesNamespace,
-		availability,
-	)
-}
-
-func (kc *InternalKubernetesClient) GetMissingHardwareProfileLocalQueueName(ctx context.Context, _ *RequestIdentity, evaluationNamespace, hardwareProfilesNamespace, profileName string) (string, bool, error) {
-	config, err := helper.GetKubeconfig()
-	if err != nil {
-		return "", false, fmt.Errorf("failed to get kubeconfig for HardwareProfile lookup: %w", err)
-	}
-	dynamicClient, err := dynamicFromConfig(config)
-	if err != nil {
-		return "", false, fmt.Errorf("failed to create dynamic client for HardwareProfile lookup: %w", err)
-	}
-	return getMissingHardwareProfileLocalQueueName(ctx, dynamicClient, evaluationNamespace, hardwareProfilesNamespace, profileName)
-}
-
 // CanListEvalHubInstances performs a SubjectAccessReview on behalf of the identified user
 // to check whether they have permission to access EvalHub evaluations in the given namespace.
 // Checks the virtual "evaluations" resource provisioned by the TrustyAI operator per-tenant
@@ -300,6 +242,38 @@ func (kc *InternalKubernetesClient) CanListEvalHubInstances(ctx context.Context,
 	if err != nil {
 		kc.Logger.Error("failed to perform EvalHub list SAR", "namespace", namespace, "error", err)
 		return false, fmt.Errorf("failed to verify EvalHub list permissions: %w", err)
+	}
+
+	return resp.Status.Allowed, nil
+}
+
+// CanCreateEvalHubResources performs a SubjectAccessReview for the create verb on the
+// tenant-scoped virtual "evaluations" resource — the same resource CanListEvalHubInstances
+// checks — so the dashboard can disable collection import for users whose tenant Role is
+// read-only. The exact verb/resource mapping for collection creation is pending
+// confirmation with the TrustyAI team; this mirrors the access that governs the
+// collections the EvalHub server materializes in the tenant namespace.
+func (kc *InternalKubernetesClient) CanCreateEvalHubResources(ctx context.Context, identity *RequestIdentity, namespace string) (bool, error) {
+	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	sar := &authv1.SubjectAccessReview{
+		Spec: authv1.SubjectAccessReviewSpec{
+			User:   identity.UserID,
+			Groups: identity.Groups,
+			ResourceAttributes: &authv1.ResourceAttributes{
+				Verb:      "create",
+				Group:     EvalHubCRDGroup,
+				Resource:  EvalHubVirtualResource,
+				Namespace: namespace,
+			},
+		},
+	}
+
+	resp, err := kc.Client.AuthorizationV1().SubjectAccessReviews().Create(ctx, sar, metav1.CreateOptions{})
+	if err != nil {
+		kc.Logger.Error("failed to perform EvalHub create SAR", "namespace", namespace, "error", err)
+		return false, fmt.Errorf("failed to verify EvalHub create permissions: %w", err)
 	}
 
 	return resp.Status.Allowed, nil

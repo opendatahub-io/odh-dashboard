@@ -24,7 +24,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | ProjectDetail
     },
     properties: {
       id: 'notebooks-kf-workspacekinds',
-      title: 'Workbench templates',
+      title: 'Workspace Kinds',
       href: '/notebooks/workspacekinds',
       section: 'settings-environment-setup',
       path: '/notebooks/workspacekinds/*',
@@ -50,7 +50,7 @@ const extensions: (NavExtension | RouteExtension | AreaExtension | ProjectDetail
     type: 'app.project-details/tab',
     properties: {
       id: 'workbenches-v2',
-      title: 'Workbenches v2',
+      title: 'Workspaces',
       component: () => import('./WorkspacesProjectDetailsTab'),
     },
     flags: {

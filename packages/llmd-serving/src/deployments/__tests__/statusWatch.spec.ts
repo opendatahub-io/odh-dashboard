@@ -35,7 +35,10 @@ describe('useLLMInferenceServicePods', () => {
     renderResult.rerender('test-project', opts, true);
 
     expect(mockUseK8sWatchResourceList).toHaveBeenLastCalledWith(
-      expect.objectContaining({ namespace: 'test-project' }),
+      expect.objectContaining({
+        namespace: 'test-project',
+        selector: { matchLabels: { 'app.kubernetes.io/part-of': 'llminferenceservice' } },
+      }),
       PodModel,
       opts,
     );

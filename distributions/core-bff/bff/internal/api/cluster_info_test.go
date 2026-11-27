@@ -76,51 +76,90 @@ func TestQueryClusterBranding_MissingConfigKey(t *testing.T) {
 	assert.Equal(t, defaultClusterBranding, branding)
 }
 
-func TestQueryClusterID_Success(t *testing.T) {
-	cv := &unstructured.Unstructured{
-		Object: map[string]any{
-			"apiVersion": "config.openshift.io/v1",
-			"kind":       "ClusterVersion",
-			"metadata": map[string]any{
-				"name": clusterVersionName,
-			},
-			"spec": map[string]any{
-				"clusterID": "test-cluster-id-123",
-			},
+func clusterVersionObject(spec map[string]any) *unstructured.Unstructured {
+	obj := map[string]any{
+		"apiVersion": "config.openshift.io/v1",
+		"kind":       "ClusterVersion",
+		"metadata": map[string]any{
+			"name": clusterVersionName,
 		},
 	}
+	if spec != nil {
+		obj["spec"] = spec
+	}
+	return &unstructured.Unstructured{Object: obj}
+}
 
-	scheme := runtime.NewScheme()
-	dynClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme,
+func clusterVersionClient(objs ...runtime.Object) *dynamicfake.FakeDynamicClient {
+	return dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(),
 		map[schema.GroupVersionResource]string{
 			models.ClusterVersionGVR: "ClusterVersionList",
-		}, cv)
-
-	clusterID, err := queryClusterID(dynClient, testLogger())
-	require.NoError(t, err)
-	assert.Equal(t, "test-cluster-id-123", clusterID)
+		}, objs...)
 }
 
-func TestQueryClusterID_NotFound(t *testing.T) {
-	scheme := runtime.NewScheme()
-	dynClient := dynamicfake.NewSimpleDynamicClient(scheme)
-	clusterID, err := queryClusterID(dynClient, testLogger())
+func TestQueryClusterVersion_Success(t *testing.T) {
+	dynClient := clusterVersionClient(clusterVersionObject(map[string]any{"clusterID": "test-cluster-id-123"}))
+
+	probe, err := queryClusterVersion(dynClient, emptyDiscovery(), testLogger())
 	require.NoError(t, err)
-	assert.Equal(t, "", clusterID)
+	assert.Equal(t, clusterVersionFound, probe.outcome)
+	assert.Equal(t, "test-cluster-id-123", probe.clusterID)
 }
 
-func TestQueryClusterID_NilClient(t *testing.T) {
-	clusterID, err := queryClusterID(nil, testLogger())
-	require.NoError(t, err)
-	assert.Equal(t, "", clusterID)
-}
-
-func TestQueryClusterID_ForbiddenReturnsError(t *testing.T) {
-	scheme := runtime.NewScheme()
-	dynClient := dynamicfake.NewSimpleDynamicClientWithCustomListKinds(scheme,
-		map[schema.GroupVersionResource]string{
-			models.ClusterVersionGVR: "ClusterVersionList",
+// A ClusterVersion object that was read establishes OpenShift even when its
+// cluster ID is missing or malformed: the ID is metadata, not the platform.
+func TestQueryClusterVersion_FoundWithoutUsableClusterID(t *testing.T) {
+	for name, spec := range map[string]map[string]any{
+		"no spec":           nil,
+		"empty spec":        {},
+		"non-string ID":     {"clusterID": int64(42)},
+		"empty string ID":   {"clusterID": ""},
+		"spec is not a map": {"unused": true},
+	} {
+		t.Run(name, func(t *testing.T) {
+			obj := clusterVersionObject(spec)
+			if name == "spec is not a map" {
+				obj.Object["spec"] = "malformed"
+			}
+			probe, err := queryClusterVersion(clusterVersionClient(obj), emptyDiscovery(), testLogger())
+			require.NoError(t, err)
+			assert.Equal(t, clusterVersionFound, probe.outcome)
+			assert.Empty(t, probe.clusterID)
 		})
+	}
+}
+
+// Discovery absence (404 without a resource name) is the only probe outcome
+// that positively identifies a non-OpenShift cluster.
+func TestQueryClusterVersion_APIAbsent(t *testing.T) {
+	dynClient := clusterVersionClient()
+	dynClient.PrependReactor("get", "clusterversions", func(k8stesting.Action) (bool, runtime.Object, error) {
+		return true, nil, &k8serrors.StatusError{ErrStatus: metav1.Status{
+			Status: metav1.StatusFailure, Code: 404, Reason: metav1.StatusReasonNotFound,
+		}}
+	})
+
+	probe, err := queryClusterVersion(dynClient, emptyDiscovery(), testLogger())
+	require.NoError(t, err)
+	assert.Equal(t, clusterVersionAPIAbsent, probe.outcome)
+}
+
+// The API is served but the singleton is missing: that does not show the
+// cluster is not OpenShift, so the probe is inconclusive.
+func TestQueryClusterVersion_InstanceMissingIsInconclusive(t *testing.T) {
+	probe, err := queryClusterVersion(clusterVersionClient(), emptyDiscovery(), testLogger())
+	require.Error(t, err)
+	assert.ErrorIs(t, err, errClusterVersionInstanceMissing)
+	assert.Zero(t, probe.outcome)
+}
+
+func TestQueryClusterVersion_NilClientIsInconclusive(t *testing.T) {
+	_, err := queryClusterVersion(nil, emptyDiscovery(), testLogger())
+	require.Error(t, err)
+}
+
+func TestQueryClusterVersion_ForbiddenReturnsError(t *testing.T) {
+	dynClient := clusterVersionClient()
 	dynClient.PrependReactor("get", "clusterversions", func(action k8stesting.Action) (bool, runtime.Object, error) {
 		return true, nil, k8serrors.NewForbidden(
 			schema.GroupResource{Group: "config.openshift.io", Resource: "clusterversions"},
@@ -128,9 +167,9 @@ func TestQueryClusterID_ForbiddenReturnsError(t *testing.T) {
 		)
 	})
 
-	clusterID, err := queryClusterID(dynClient, testLogger())
+	probe, err := queryClusterVersion(dynClient, emptyDiscovery(), testLogger())
 	assert.Error(t, err)
-	assert.Equal(t, "", clusterID)
+	assert.Empty(t, probe.clusterID)
 	assert.Contains(t, err.Error(), "ClusterVersion probe failed")
 }
 
@@ -140,13 +179,13 @@ func TestResolveStartupPlatform_ProbeError_DefaultsToXKS(t *testing.T) {
 		schema.GroupResource{Group: "config.openshift.io", Resource: "clusterversions"},
 		clusterVersionName, nil,
 	)
-	result := resolveStartupPlatform(ci, probeErr, false, "", testLogger())
+	result, _ := resolveStartupPlatform(ci, probeErr, false, "", testLogger())
 	assert.Equal(t, config.PlatformXKS, result)
 }
 
 func TestResolveStartupPlatform_NoError_DetectsXKS(t *testing.T) {
 	ci := clusterInfo{}
-	result := resolveStartupPlatform(ci, nil, false, "", testLogger())
+	result, _ := resolveStartupPlatform(ci, nil, false, "", testLogger())
 	assert.Equal(t, config.PlatformXKS, result)
 }
 
@@ -156,42 +195,42 @@ func TestResolveStartupPlatform_ExplicitOverridesProbeError(t *testing.T) {
 		schema.GroupResource{Group: "config.openshift.io", Resource: "clusterversions"},
 		clusterVersionName, nil,
 	)
-	result := resolveStartupPlatform(ci, probeErr, true, config.PlatformXKS, testLogger())
+	result, _ := resolveStartupPlatform(ci, probeErr, true, config.PlatformXKS, testLogger())
 	assert.Equal(t, config.PlatformXKS, result)
 }
 
 func TestResolveStartupPlatform_ExplicitOpenShift_MismatchDetected(t *testing.T) {
 	ci := clusterInfo{}
-	result := resolveStartupPlatform(ci, nil, true, config.PlatformOpenShift, testLogger())
+	result, _ := resolveStartupPlatform(ci, nil, true, config.PlatformOpenShift, testLogger())
 	assert.Equal(t, config.PlatformOpenShift, result)
 }
 
 func TestResolveStartupPlatform_ExplicitOpenShift_MatchesProbe(t *testing.T) {
 	ci := clusterInfo{clusterID: "real-cluster-id"}
-	result := resolveStartupPlatform(ci, nil, true, config.PlatformOpenShift, testLogger())
+	result, _ := resolveStartupPlatform(ci, nil, true, config.PlatformOpenShift, testLogger())
 	assert.Equal(t, config.PlatformOpenShift, result)
 }
 
 func TestResolveStartupPlatform_ExplicitXKS_NoProbeError(t *testing.T) {
 	ci := clusterInfo{clusterID: "real-cluster-id"}
-	result := resolveStartupPlatform(ci, nil, true, config.PlatformXKS, testLogger())
+	result, _ := resolveStartupPlatform(ci, nil, true, config.PlatformXKS, testLogger())
 	assert.Equal(t, config.PlatformXKS, result)
 }
 
 func TestResolveStartupPlatform_AutoDetect_OpenShift(t *testing.T) {
 	ci := clusterInfo{clusterID: "abc-123"}
-	result := resolveStartupPlatform(ci, nil, false, "", testLogger())
+	result, _ := resolveStartupPlatform(ci, nil, false, "", testLogger())
 	assert.Equal(t, config.PlatformOpenShift, result)
 }
 
-func TestQueryClusterInfo_BothFail(t *testing.T) {
+func TestQueryClusterInfo_InstanceMissingIsAnError(t *testing.T) {
 	typedClient := k8sfake.NewSimpleClientset()
-	scheme := runtime.NewScheme()
-	dynClient := dynamicfake.NewSimpleDynamicClient(scheme)
+	dynClient := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
 
 	info, err := queryClusterInfo(typedClient, dynClient, testLogger())
-	require.NoError(t, err)
+	require.Error(t, err, "a missing ClusterVersion instance is inconclusive, not evidence of xKS")
 	assert.Equal(t, "", info.clusterID)
+	assert.False(t, info.openShiftConfirmed)
 	assert.Equal(t, defaultClusterBranding, info.clusterBranding)
 }
 
@@ -228,5 +267,6 @@ func TestQueryClusterInfo_BothSucceed(t *testing.T) {
 	info, err := queryClusterInfo(typedClient, dynClient, testLogger())
 	require.NoError(t, err)
 	assert.Equal(t, "abc-def-ghi", info.clusterID)
+	assert.True(t, info.openShiftConfirmed)
 	assert.Equal(t, "dedicated", info.clusterBranding)
 }

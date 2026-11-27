@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"runtime"
+	"slices"
 	"strings"
 
 	"github.com/julienschmidt/httprouter"
@@ -58,8 +59,10 @@ func (app *App) EnableCORS(next http.Handler) http.Handler {
 	}
 
 	allowedHeaders := []string{httpcontract.RequestIDHeader, constants.HeaderContentType, constants.HeaderAuthorization, constants.HeaderForwardedToken, constants.HeaderFeatureFlags}
-	if h := app.config.AuthTokenHeader; h != "" && h != constants.HeaderAuthorization && h != constants.HeaderForwardedToken {
-		allowedHeaders = append(allowedHeaders, h)
+	for _, h := range app.credentialHeaders() {
+		if !slices.ContainsFunc(allowedHeaders, func(a string) bool { return strings.EqualFold(a, h) }) {
+			allowedHeaders = append(allowedHeaders, h)
+		}
 	}
 
 	c := cors.New(cors.Options{
@@ -84,7 +87,7 @@ func (app *App) EnableTelemetry(next http.Handler) http.Handler {
 			traceLogger := httpcontract.Log(app.logger, r)
 			ctx = context.WithValue(ctx, constants.TraceLoggerKey, traceLogger)
 
-			traceLogger.Debug("Incoming HTTP request", slog.Any("request", helpers.RequestLogValuer{Request: r, SensitiveHeaders: []string{app.config.AuthTokenHeader}}))
+			traceLogger.Debug("Incoming HTTP request", slog.Any("request", helpers.RequestLogValuer{Request: r, SensitiveHeaders: app.credentialHeaders()}))
 		}
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
