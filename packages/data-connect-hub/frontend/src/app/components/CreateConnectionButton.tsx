@@ -14,8 +14,14 @@ const CreateConnectionButton: React.FC<CreateConnectionButtonProps> = ({
   onCreate,
   testId,
 }) => {
-  const { isAllowed: canCreateConnection, loaded } = useConnectionAccess(namespace, 'create');
-  const isDisabled = !canCreateConnection || !loaded;
+  const { isAllowed: canCreateConnection, loaded: createAccessLoaded } = useConnectionAccess(
+    namespace,
+    'create',
+  );
+  const { isAllowed: canGetConnectionTypes, loaded: connectionTypesAccessLoaded } =
+    useConnectionAccess(namespace, 'get', 'data-connection-types');
+  const loaded = createAccessLoaded && connectionTypesAccessLoaded;
+  const isDisabled = !canCreateConnection || !canGetConnectionTypes || !loaded;
 
   const button = (
     <Button
@@ -34,7 +40,15 @@ const CreateConnectionButton: React.FC<CreateConnectionButtonProps> = ({
 
   if (isDisabled) {
     return (
-      <Tooltip content={loaded ? getConnectionAccessTooltip('create') : 'Checking access...'}>
+      <Tooltip
+        content={
+          !loaded
+            ? 'Checking access...'
+            : canCreateConnection
+              ? getConnectionAccessTooltip('get', 'data-connection-types')
+              : getConnectionAccessTooltip('create')
+        }
+      >
         {button}
       </Tooltip>
     );

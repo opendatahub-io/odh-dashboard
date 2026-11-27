@@ -28,6 +28,16 @@ describe('Data Connect Hub BFF Contract Tests', () => {
     });
   });
 
+  describe('Backend Health Endpoint', () => {
+    it('should verify that the upstream backend is available', async () => {
+      const result = await apiClient.get('/healthcheck/backend');
+      expect(result).toMatchContract(bffSchema, {
+        ref: '#/components/schemas/NoContent',
+        status: 204,
+      });
+    });
+  });
+
   describe('User Endpoint', () => {
     it('should retrieve current user information', async () => {
       const result = await apiClient.get('/api/v1/user');
