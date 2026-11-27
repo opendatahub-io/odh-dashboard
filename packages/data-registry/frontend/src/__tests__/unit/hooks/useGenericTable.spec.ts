@@ -2,7 +2,7 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import * as api from '~/app/api/dataRegistry';
 import { useGenericTable } from '~/app/hooks/useGenericTable';
-import type { AssetResponse } from '~/app/types';
+import type { StructuredAssetResponse } from '~/app/types';
 
 jest.mock('~/app/api/dataRegistry');
 
@@ -32,7 +32,7 @@ describe('useGenericTable', () => {
   });
 
   it('should fetch table data when all params are provided', async () => {
-    const mockTable: AssetResponse = {
+    const mockTable: StructuredAssetResponse = {
       name: 'my-table',
       asset_type: 'table',
       uuid: 'table-uuid',

@@ -6,7 +6,7 @@ import {
   type FetchStateCallbackPromise,
 } from 'mod-arch-core';
 import { fetchCollectionDetails, fetchAssets, fetchVolumes } from '~/app/api/dataRegistry';
-import type { AssetResponse } from '~/app/types';
+import type { StructuredAssetResponse, UnstructuredAssetResponse } from '~/app/types';
 import { parseCollectionDescription } from '~/app/utilities/collectionUtils';
 
 export type CollectionAsset = {
@@ -26,13 +26,13 @@ export type CollectionDetail = {
   unstructuredCount: number;
 };
 
-const mapTableToAsset = (asset: AssetResponse): CollectionAsset => ({
+const mapTableToAsset = (asset: StructuredAssetResponse): CollectionAsset => ({
   name: asset.name,
   assetType: asset.asset_type,
   format: asset.format,
 });
 
-const mapVolumeToAsset = (volume: AssetResponse): CollectionAsset => ({
+const mapVolumeToAsset = (volume: UnstructuredAssetResponse): CollectionAsset => ({
   name: volume.name,
   assetType: volume.asset_type,
   format: volume.format,
