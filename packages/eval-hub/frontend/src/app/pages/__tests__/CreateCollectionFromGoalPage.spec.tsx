@@ -1,7 +1,7 @@
 /* eslint-disable camelcase */
 import * as React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import { Link, MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AnalyticsTrackingProvider } from '@odh-dashboard/analytics/react';
 import { useInferenceServices } from '~/app/hooks/useInferenceServices';
@@ -212,7 +212,12 @@ const failedGeneration: CollectionGenerationResource = {
 
 const LocationDisplay: React.FC = () => {
   const { pathname } = useLocation();
-  return <div data-testid="location-pathname">{pathname}</div>;
+  return (
+    <>
+      <div data-testid="location-pathname">{pathname}</div>
+      <Link to="/evaluation/other-project/create-suite/from-goal">Switch project</Link>
+    </>
+  );
 };
 
 const createPageElement = () => (
@@ -951,6 +956,36 @@ describe('CreateCollectionFromGoalPage', () => {
         'generation-1',
       ),
     );
+  });
+
+  it('should delete a pending generation in its original project after switching projects', async () => {
+    let resolveGeneration: ((resource: CollectionGenerationResource) => void) | undefined;
+    mockCreateCollectionGeneration.mockReturnValue(
+      () =>
+        new Promise<CollectionGenerationResource>((resolve) => {
+          resolveGeneration = resolve;
+        }),
+    );
+    await submitRecommendationRequest();
+    await waitFor(() => expect(resolveGeneration).toBeDefined());
+
+    fireEvent.click(screen.getByRole('link', { name: 'Switch project' }));
+    expect(screen.getByTestId('location-pathname')).toHaveTextContent(
+      '/evaluation/other-project/create-suite/from-goal',
+    );
+    expect(screen.getByTestId('goal-suite-name')).toHaveValue('');
+
+    await act(async () => {
+      resolveGeneration?.(pendingGeneration);
+    });
+    await waitFor(() =>
+      expect(mockDeleteCollectionGeneration).toHaveBeenCalledWith(
+        '',
+        'test-project',
+        'generation-1',
+      ),
+    );
+    expect(mockGetCollectionGeneration).not.toHaveBeenCalled();
   });
 
   it('should close alternatives when the area outside the panel is clicked', async () => {

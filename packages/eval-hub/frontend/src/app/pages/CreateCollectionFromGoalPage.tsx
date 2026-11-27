@@ -49,8 +49,11 @@ import {
 
 import './CreateCollectionFromGoalPage.scss';
 
-const CreateCollectionFromGoalPage: React.FC = () => {
-  const { namespace } = useParams<{ namespace: string }>();
+type GoalCollectionPageContentProps = {
+  namespace?: string;
+};
+
+const GoalCollectionPageContent: React.FC<GoalCollectionPageContentProps> = ({ namespace }) => {
   const navigate = useNavigate();
   const projectDisplayName = useProjectDisplayName(namespace);
   const notification = useNotification();
@@ -560,6 +563,12 @@ const CreateCollectionFromGoalPage: React.FC = () => {
       </ApplicationsPage>
     </div>
   );
+};
+
+const CreateCollectionFromGoalPage: React.FC = () => {
+  const { namespace } = useParams<{ namespace: string }>();
+  // A project switch unmounts the old form so a late generation POST is cleaned up in its original namespace.
+  return <GoalCollectionPageContent key={namespace} namespace={namespace} />;
 };
 
 export default CreateCollectionFromGoalPage;
