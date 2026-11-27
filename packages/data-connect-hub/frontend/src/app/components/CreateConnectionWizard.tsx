@@ -958,6 +958,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
   const verificationRequestRef = React.useRef(0);
   const verificationAbortRef = React.useRef<AbortController>();
   const wasOpenRef = React.useRef(false);
+  const openSessionRef = React.useRef(0);
   const lastTrackedConnectionTypeIdRef = React.useRef<string>();
   const hasNotifiedNameAvailabilityFailureRef = React.useRef(false);
   const [allConnectionTypes, connectionTypesLoaded, connectionTypesError] = useConnectionTypes(
@@ -1087,6 +1088,7 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
 
   React.useEffect(() => {
     if (isOpen && !wasOpenRef.current) {
+      openSessionRef.current += 1;
       const initialPropertyRows = createPropertyRows(initialFormData.properties);
       setFormData(initialFormData);
       setBaselineFormData(initialFormData);
@@ -1099,10 +1101,12 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
       lastTrackedConnectionTypeIdRef.current = undefined;
       hasNotifiedNameAvailabilityFailureRef.current = false;
     } else if (!isOpen && wasOpenRef.current) {
+      openSessionRef.current += 1;
       setIsOpenSessionReady(false);
       setHasResolvedSessionStartIndex(false);
       setSessionStartIndex(1);
       setActiveStepIndex(1);
+      setIsCreating(false);
     }
     wasOpenRef.current = isOpen;
   }, [initialFormData, isOpen, namespace]);
@@ -1410,6 +1414,8 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
       return;
     }
 
+    const creationOpenSession = openSessionRef.current;
+
     if (!onCreate) {
       fireDataConnectHubTrackEvent(trackEvent, {
         eventName: DATA_CONNECT_HUB_EVENT_NAMES.connectionCreated,
@@ -1432,6 +1438,9 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
     setIsCreating(true);
     try {
       const createdConnection = await onCreate(formData, selectedNamespace);
+      if (openSessionRef.current !== creationOpenSession) {
+        return;
+      }
       const connectionName = createdConnection?.resource.name ?? formData.name;
       const projectName = selectedNamespaceDisplayName ?? selectedNamespace;
       const projectHomePath = isEmbedded ? undefined : projectHomeRoute(selectedNamespace);
@@ -1477,6 +1486,9 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
       resetForm();
       onClose('created');
     } catch (error) {
+      if (openSessionRef.current !== creationOpenSession) {
+        return;
+      }
       const creationError =
         error instanceof Error ? error : new Error('Unable to create connection');
       const tagCount = Object.keys(formData.properties).length;
@@ -1496,7 +1508,9 @@ const CreateConnectionWizard: React.FC<CreateConnectionWizardProps> = ({
       });
       notification.error('Unable to create connection', creationError.message);
     } finally {
-      setIsCreating(false);
+      if (openSessionRef.current === creationOpenSession) {
+        setIsCreating(false);
+      }
     }
   }, [
     formData,

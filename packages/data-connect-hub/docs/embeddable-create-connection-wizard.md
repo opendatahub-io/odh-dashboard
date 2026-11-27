@@ -6,7 +6,7 @@ Use the Data Connect Hub (DCH) connection creation wizard from another dashboard
 
 - Enable the `dataConnectHub` dashboard feature when the DCH wizard should be used.
 - Deploy DCH and make its BFF reachable through `/data-connect-hub`.
-- Grant the user permission to create `data-connections` in the target namespace when credential verification or connection creation should be available.
+- Grant the user permission to create `data-connections` and get `data-connection-types` in the target namespace.
 - Add the DCH workspace package to the consumer package.
 
 ```json
@@ -59,10 +59,10 @@ Keep the loader mounted while it is closed and toggle `isOpen`. This keeps its n
 The loader checks availability only while `isOpen` is `true`. It:
 
 1. Checks the `plugin-data-connect-hub` area, including the `dataConnectHub` feature flag.
-2. Checks whether the user can create `data-connections` in the supplied namespace.
-3. Registers `dataConnectHub` with the consumer's Module Federation runtime and loads the availability-aware `EmbeddableConnectionWizard` facade.
+2. Registers `dataConnectHub` with the consumer's Module Federation runtime and loads the availability-aware `EmbeddableConnectionWizard` facade.
+3. Checks whether the user can create `data-connections` and get `data-connection-types` in the supplied namespace.
 4. Calls `GET /data-connect-hub/healthcheck/backend`.
-5. Renders the wizard only when the feature is enabled, the user has create permission, and the BFF is available.
+5. Renders the wizard only when the feature is enabled, the user has both permissions, and the BFF is available.
 
 Only the availability-aware `EmbeddableConnectionWizard` facade is exposed through Module Federation. The implementation component is private to the DCH bundle and is not a supported remote entry point.
 
@@ -160,12 +160,12 @@ The DCH remote entry is served by the dashboard host at `/_mf/dataConnectHub/rem
 
 ## Troubleshooting
 
-| Availability result            | Cause and response                                                                                      |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------- |
-| `reason: 'feature-flag'`       | The `dataConnectHub` feature is disabled; render the consumer fallback.                                 |
-| `reason: 'permissions'`        | The user cannot create `data-connections` in the supplied namespace; render the consumer fallback.      |
-| `reason: 'remote'`             | The DCH remote entry or wizard export could not be loaded; verify both dashboard processes are running. |
-| `reason: 'backend'`            | The DCH BFF could not reach the upstream REST service; verify the DCH REST deployment and gateway.      |
-| Connection types do not load   | The DCH backend is unavailable, the feature is disabled, or `/data-connect-hub/api` is not reachable.   |
-| Verify is disabled             | The user lacks permission to create `data-connections` in the selected namespace.                       |
-| No compatible connection types | The `connectionTypeProviders` filter does not match any available DCH provider.                         |
+| Availability result            | Cause and response                                                                                                                |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| `reason: 'feature-flag'`       | The `dataConnectHub` feature is disabled; render the consumer fallback.                                                           |
+| `reason: 'permissions'`        | The user cannot create `data-connections` or get `data-connection-types` in the supplied namespace; render the consumer fallback. |
+| `reason: 'remote'`             | The DCH remote entry or wizard export could not be loaded; verify both dashboard processes are running.                           |
+| `reason: 'backend'`            | The DCH BFF could not reach the upstream REST service; verify the DCH REST deployment and gateway.                                |
+| Connection types do not load   | The DCH backend is unavailable, the feature is disabled, or `/data-connect-hub/api` is not reachable.                             |
+| Verify is disabled             | The user lacks permission to create `data-connections` in the selected namespace.                                                 |
+| No compatible connection types | The `connectionTypeProviders` filter does not match any available DCH provider.                                                   |

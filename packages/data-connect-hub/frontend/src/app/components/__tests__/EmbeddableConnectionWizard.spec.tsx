@@ -128,6 +128,10 @@ describe('EmbeddableConnectionWizard', () => {
   });
 
   it('renders the fallback without backend checks when the feature is disabled', async () => {
+    const onAvailabilityChange = jest.fn(
+      (_availability: ConnectionWizardAvailability) => undefined,
+    );
+    mockLoadRemote.mockReturnValue(new Promise(() => undefined));
     mockUseIsAreaAvailable.mockReturnValue({
       status: false,
       devFlags: null,
@@ -142,11 +146,17 @@ describe('EmbeddableConnectionWizard', () => {
         isOpen
         namespace="test-project"
         unavailableFallback={<div data-testid="legacy-connection-modal" />}
+        onAvailabilityChange={onAvailabilityChange}
       />,
     );
 
     expect(await screen.findByTestId('legacy-connection-modal')).toBeInTheDocument();
     expect(global.fetch).not.toHaveBeenCalled();
+    expect(mockLoadRemote).not.toHaveBeenCalled();
+    expect(onAvailabilityChange).toHaveBeenCalledWith({
+      status: 'unavailable',
+      reason: 'feature-flag',
+    });
   });
 
   it('renders the fallback before loading the wizard when create permission is denied', async () => {
@@ -221,6 +231,38 @@ describe('EmbeddableConnectionWizard', () => {
     );
 
     expect(await screen.findByTestId('legacy-connection-modal')).toBeInTheDocument();
+  });
+
+  it('renders the fallback when the federated wizard throws while rendering', async () => {
+    const onAvailabilityChange = jest.fn(
+      (_availability: ConnectionWizardAvailability) => undefined,
+    );
+    const ThrowingWizard = () => {
+      throw new Error('remote render failed');
+    };
+    mockLoadRemote.mockResolvedValue({ default: ThrowingWizard });
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+
+    try {
+      render(
+        <EmbeddableConnectionWizard
+          isOpen
+          namespace="test-project"
+          unavailableFallback={<div data-testid="legacy-connection-modal" />}
+          onAvailabilityChange={onAvailabilityChange}
+        />,
+      );
+
+      expect(await screen.findByTestId('legacy-connection-modal')).toBeInTheDocument();
+      await waitFor(() =>
+        expect(onAvailabilityChange).toHaveBeenCalledWith({
+          status: 'unavailable',
+          reason: 'remote',
+        }),
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 
   it('reports checking before each open after a remote failure', async () => {

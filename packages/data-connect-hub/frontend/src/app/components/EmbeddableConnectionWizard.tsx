@@ -2,12 +2,52 @@ import React from 'react';
 import { getInstance, init, loadRemote, registerRemotes } from '@module-federation/runtime';
 import { Alert, Bullseye, Spinner } from '@patternfly/react-core';
 import { Tearsheet, TearsheetBody, TearsheetHeader } from '@patternfly/react-component-groups';
+import { SupportedArea, useIsAreaAvailable } from '@odh-dashboard/plugin-core/areas';
 import type { EmbeddableConnectionWizardProps } from '@odh-dashboard/data-connect-hub/types';
 
 const DATA_CONNECT_HUB_ENTRY = '/_mf/dataConnectHub/remoteEntry.js';
 const REMOTE_MODULE = 'dataConnectHub/EmbeddableConnectionWizard';
 
 let hasRegisteredRemote = false;
+
+const ConnectionWizardUnavailableFallback: React.FC = () => (
+  <Alert
+    variant="danger"
+    isInline
+    title="Connection wizard unavailable"
+    data-testid="connection-wizard-unavailable"
+  >
+    The connection wizard is not available in this environment.
+  </Alert>
+);
+
+type RemoteConnectionWizardErrorBoundaryProps = {
+  unavailableFallback?: React.ReactNode;
+  onAvailabilityChange?: EmbeddableConnectionWizardProps['onAvailabilityChange'];
+  children: React.ReactNode;
+};
+
+class RemoteConnectionWizardErrorBoundary extends React.Component<
+  RemoteConnectionWizardErrorBoundaryProps,
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch() {
+    this.props.onAvailabilityChange?.({ status: 'unavailable', reason: 'remote' });
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.unavailableFallback ?? <ConnectionWizardUnavailableFallback />;
+    }
+    return this.props.children;
+  }
+}
 
 const registerDataConnectHubRemote = (): void => {
   if (hasRegisteredRemote) {
@@ -43,10 +83,12 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
   tearsheetStackLevel,
   ...wizardProps
 }) => {
+  const areaAvailability = useIsAreaAvailable(SupportedArea.PLUGIN_DATA_CONNECT_HUB);
   const [remoteComponent, setRemoteComponent] =
     React.useState<React.ComponentType<EmbeddableConnectionWizardProps> | null>(null);
   const [isRemoteLoading, setIsRemoteLoading] = React.useState(true);
   const [isRemoteUnavailable, setIsRemoteUnavailable] = React.useState(false);
+  const [isFeatureUnavailable, setIsFeatureUnavailable] = React.useState(false);
   const onAvailabilityChangeRef = React.useRef(onAvailabilityChange);
 
   React.useEffect(() => {
@@ -57,6 +99,7 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
     if (!isOpen) {
       setIsRemoteLoading(true);
       setIsRemoteUnavailable(false);
+      setIsFeatureUnavailable(false);
       return undefined;
     }
 
@@ -64,6 +107,14 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
     onAvailabilityChangeRef.current?.({ status: 'checking' });
     setIsRemoteLoading(true);
     setIsRemoteUnavailable(false);
+    setIsFeatureUnavailable(false);
+
+    if (!areaAvailability.status) {
+      setIsRemoteLoading(false);
+      setIsFeatureUnavailable(true);
+      onAvailabilityChangeRef.current?.({ status: 'unavailable', reason: 'feature-flag' });
+      return undefined;
+    }
 
     try {
       registerDataConnectHubRemote();
@@ -101,7 +152,7 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [isOpen]);
+  }, [areaAvailability.status, isOpen]);
 
   if (!isOpen && !remoteComponent) {
     return null;
@@ -130,19 +181,8 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
     );
   }
 
-  if (isOpen && (isRemoteUnavailable || !remoteComponent)) {
-    return (
-      unavailableFallback ?? (
-        <Alert
-          variant="danger"
-          isInline
-          title="Connection wizard unavailable"
-          data-testid="connection-wizard-unavailable"
-        >
-          The connection wizard is not available in this environment.
-        </Alert>
-      )
-    );
+  if (isOpen && (isFeatureUnavailable || isRemoteUnavailable || !remoteComponent)) {
+    return unavailableFallback ?? <ConnectionWizardUnavailableFallback />;
   }
 
   if (!remoteComponent) {
@@ -151,15 +191,20 @@ const EmbeddableConnectionWizard: React.FC<EmbeddableConnectionWizardProps> = ({
 
   const Wizard = remoteComponent;
   return (
-    <Wizard
-      isOpen={isOpen}
-      namespace={namespace}
-      tearsheetStackLevel={tearsheetStackLevel}
+    <RemoteConnectionWizardErrorBoundary
       unavailableFallback={unavailableFallback}
       onAvailabilityChange={onAvailabilityChange}
-      onClose={onClose}
-      {...wizardProps}
-    />
+    >
+      <Wizard
+        isOpen={isOpen}
+        namespace={namespace}
+        tearsheetStackLevel={tearsheetStackLevel}
+        unavailableFallback={unavailableFallback}
+        onAvailabilityChange={onAvailabilityChange}
+        onClose={onClose}
+        {...wizardProps}
+      />
+    </RemoteConnectionWizardErrorBoundary>
   );
 };
 

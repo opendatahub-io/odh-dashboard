@@ -1,6 +1,13 @@
 import React from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { fireEvent, render as rtlRender, screen, waitFor, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render as rtlRender,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import CreateConnectionWizard, { getPropertyErrors } from '~/app/components/CreateConnectionWizard';
@@ -273,6 +280,57 @@ describe('CreateConnectionWizard', () => {
 
     await waitFor(() => expect(onCreate).toHaveBeenCalledTimes(1));
     expect(onCreate.mock.calls[0][0].description).toBeUndefined();
+  });
+
+  it('should not close a reopened session when a previous creation completes', async () => {
+    const user = userEvent.setup();
+    const onClose = jest.fn();
+    const createdConnection: Connection = {
+      metadata: { id: 'connection-id' },
+      resource: {
+        name: 'warehouse',
+        data_connection_type_id: postgresqlConnectionTypeId,
+        format: 'tabular',
+        credentials_ref: { secret: 'warehouse' },
+      },
+      status: { state: 'ready' },
+    };
+    let resolveCreation!: (connection: Connection) => void;
+    const onCreate =
+      jest.fn<(data: CreateConnectionRequest, selectedNamespace: string) => Promise<Connection>>();
+    onCreate.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveCreation = resolve;
+        }),
+    );
+    const props = {
+      namespace: 'test-project',
+      onClose,
+      onCreate,
+      initialFormData: { data_connection_type_id: postgresqlConnectionTypeId },
+    };
+    const { rerender } = render(<CreateConnectionWizard {...props} isOpen />);
+
+    await user.type(await screen.findByTestId('connection-name-input'), 'warehouse');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.type(screen.getByTestId('credential-URI'), 'postgres://warehouse');
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    await user.click(screen.getByRole('button', { name: 'Create connection' }));
+
+    rerender(<CreateConnectionWizard {...props} isOpen={false} />);
+    rerender(<CreateConnectionWizard {...props} isOpen />);
+    await user.type(await screen.findByTestId('connection-name-input'), 'new-warehouse');
+
+    await act(async () => {
+      resolveCreation(createdConnection);
+    });
+
+    expect(onClose).not.toHaveBeenCalled();
+    expect(mockNotificationSuccess).not.toHaveBeenCalled();
+    expect((screen.getByTestId('connection-name-input') as HTMLInputElement).value).toBe(
+      'new-warehouse',
+    );
   });
 
   it('tracks connection type selection in the wizard', async () => {
