@@ -19,6 +19,8 @@ import {
   streamingCompletedEventWithFileSearchResults,
 } from './fileCitationHandling.fixtures';
 
+const trackEvent = jest.fn();
+
 // Mock mod-arch-core
 jest.mock('mod-arch-core', () => ({
   ...jest.requireActual('mod-arch-core'),
@@ -46,7 +48,9 @@ describe('file citation handling', () => {
   it('should extract sources from BFF-provided annotations in non-streaming response', async () => {
     mockedRestCREATE.mockResolvedValueOnce({ data: responseWithAnnotations });
 
-    const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
+    const result = await createResponse(trackEvent, URL_PREFIX, { namespace: testNamespace })(
+      mockRequest,
+    );
 
     expect(result.content).toBe('Here is information from the document.');
     expect(result.sources).toHaveLength(1);
@@ -59,7 +63,9 @@ describe('file citation handling', () => {
   it('should read BFF-cleaned text without citation tokens', async () => {
     mockedRestCREATE.mockResolvedValueOnce({ data: responseWithInlineTokens });
 
-    const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
+    const result = await createResponse(trackEvent, URL_PREFIX, { namespace: testNamespace })(
+      mockRequest,
+    );
 
     expect(result.content).toBe('Here is the info .');
     expect(result.content).not.toContain('<|');
@@ -70,7 +76,9 @@ describe('file citation handling', () => {
   it('should handle multiple sources and deduplicate by filename', async () => {
     mockedRestCREATE.mockResolvedValueOnce({ data: responseWithMultipleSources });
 
-    const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
+    const result = await createResponse(trackEvent, URL_PREFIX, { namespace: testNamespace })(
+      mockRequest,
+    );
 
     expect(result.content).toBe('Information from multiple sources.');
     expect(result.sources).toHaveLength(2);
@@ -82,7 +90,9 @@ describe('file citation handling', () => {
   it('should return undefined sources when no annotations exist', async () => {
     mockedRestCREATE.mockResolvedValueOnce({ data: responseWithoutAnnotations });
 
-    const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
+    const result = await createResponse(trackEvent, URL_PREFIX, { namespace: testNamespace })(
+      mockRequest,
+    );
 
     expect(result.content).toBe('Plain response without sources.');
     expect(result.sources).toBeUndefined();
@@ -124,7 +134,7 @@ describe('file citation handling', () => {
 
     mockFetch.mockResolvedValueOnce(mockResponse);
 
-    const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(
+    const result = await createResponse(trackEvent, URL_PREFIX, { namespace: testNamespace })(
       streamingRequest,
       { onStreamData: mockStreamData },
     );
@@ -170,7 +180,7 @@ describe('file citation handling', () => {
 
     mockFetch.mockResolvedValueOnce(mockResponse);
 
-    const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(
+    const result = await createResponse(trackEvent, URL_PREFIX, { namespace: testNamespace })(
       streamingRequest,
       { onStreamData: mockStreamData },
     );
@@ -183,7 +193,9 @@ describe('file citation handling', () => {
   it('should extract sources from BFF-processed file_search_call response (OGX 1.0.0)', async () => {
     mockedRestCREATE.mockResolvedValueOnce({ data: responseWithFileSearchCall });
 
-    const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
+    const result = await createResponse(trackEvent, URL_PREFIX, { namespace: testNamespace })(
+      mockRequest,
+    );
 
     expect(result.content).toBe('Here is the answer.');
     expect(result.content).not.toContain('<|');
@@ -227,7 +239,7 @@ describe('file citation handling', () => {
 
     mockFetch.mockResolvedValueOnce(mockResponse);
 
-    const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(
+    const result = await createResponse(trackEvent, URL_PREFIX, { namespace: testNamespace })(
       streamingRequest,
       { onStreamData: mockStreamData },
     );
@@ -241,7 +253,9 @@ describe('file citation handling', () => {
     it('should insert citation markers at annotation index positions', async () => {
       mockedRestCREATE.mockResolvedValueOnce({ data: responseWithIndexedAnnotations });
 
-      const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
+      const result = await createResponse(trackEvent, URL_PREFIX, { namespace: testNamespace })(
+        mockRequest,
+      );
 
       expect(result.citationMap).toBeDefined();
       expect(result.citationMap!.get('file-a')).toBe(1);
@@ -253,7 +267,9 @@ describe('file citation handling', () => {
     it('should not include citationMap when there are no annotations', async () => {
       mockedRestCREATE.mockResolvedValueOnce({ data: responseWithoutAnnotations });
 
-      const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
+      const result = await createResponse(trackEvent, URL_PREFIX, { namespace: testNamespace })(
+        mockRequest,
+      );
 
       expect(result.citationMap).toBeUndefined();
       expect(result.annotations).toBeUndefined();
@@ -262,7 +278,9 @@ describe('file citation handling', () => {
     it('should include annotations array in response when annotations exist', async () => {
       mockedRestCREATE.mockResolvedValueOnce({ data: responseWithAnnotations });
 
-      const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
+      const result = await createResponse(trackEvent, URL_PREFIX, { namespace: testNamespace })(
+        mockRequest,
+      );
 
       expect(result.annotations).toBeDefined();
       expect(result.annotations).toHaveLength(1);
@@ -274,7 +292,9 @@ describe('file citation handling', () => {
     it('should extract fileSearchData from file_search_call output', async () => {
       mockedRestCREATE.mockResolvedValueOnce({ data: responseWithFileSearchResults });
 
-      const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
+      const result = await createResponse(trackEvent, URL_PREFIX, { namespace: testNamespace })(
+        mockRequest,
+      );
 
       expect(result.fileSearchData).toBeDefined();
       expect(result.fileSearchData!.queries).toEqual(['What is retrieval augmented generation?']);
@@ -287,7 +307,9 @@ describe('file citation handling', () => {
     it('should not include fileSearchData when no file_search_call output exists', async () => {
       mockedRestCREATE.mockResolvedValueOnce({ data: responseWithoutAnnotations });
 
-      const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
+      const result = await createResponse(trackEvent, URL_PREFIX, { namespace: testNamespace })(
+        mockRequest,
+      );
 
       expect(result.fileSearchData).toBeUndefined();
     });
@@ -295,7 +317,9 @@ describe('file citation handling', () => {
     it('should aggregate fileSearchData from multiple file_search_call outputs', async () => {
       mockedRestCREATE.mockResolvedValueOnce({ data: responseWithMultipleFileSearchCalls });
 
-      const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
+      const result = await createResponse(trackEvent, URL_PREFIX, { namespace: testNamespace })(
+        mockRequest,
+      );
 
       expect(result.fileSearchData).toBeDefined();
       expect(result.fileSearchData!.queries).toEqual(['What is RAG?', 'How do embeddings work?']);
@@ -308,7 +332,9 @@ describe('file citation handling', () => {
     it('should not include fileSearchData when file_search_call results are empty', async () => {
       mockedRestCREATE.mockResolvedValueOnce({ data: responseWithEmptyFileSearchResults });
 
-      const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(mockRequest);
+      const result = await createResponse(trackEvent, URL_PREFIX, { namespace: testNamespace })(
+        mockRequest,
+      );
 
       expect(result.fileSearchData).toBeUndefined();
     });
@@ -351,7 +377,7 @@ describe('file citation handling', () => {
 
       mockFetch.mockResolvedValueOnce(mockResponse);
 
-      const result = await createResponse(URL_PREFIX, { namespace: testNamespace })(
+      const result = await createResponse(trackEvent, URL_PREFIX, { namespace: testNamespace })(
         streamingRequest,
         { onStreamData: mockStreamData },
       );

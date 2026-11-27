@@ -7,7 +7,7 @@ import {
   ModalHeader,
   ModalVariant,
 } from '@patternfly/react-core';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
 import { convertStringToAuthMechanism } from '~/app/pages/external-models/utils';
 import { countNonEmptyConfigPairs } from '~/app/utilities/configPairs';
@@ -29,6 +29,7 @@ const CreateExternalProviderModal: React.FC<CreateExternalProviderModalProps> = 
   onClose,
 }) => {
   const form = useCreateExternalProviderForm(namespace);
+  const trackEvent = useTrackEvent();
 
   const handleSubmit = async () => {
     const createdName = await form.submit();
@@ -67,7 +68,7 @@ const CreateExternalProviderModal: React.FC<CreateExternalProviderModalProps> = 
           variant="link"
           onClick={() => {
             onClose();
-            fireFormTrackingEvent(MaaSEvents.EXTERNAL_PROVIDER_ADDED, {
+            trackEvent(MaaSEvents.EXTERNAL_PROVIDER_ADDED, {
               outcome: TrackingOutcome.cancel,
               success: false,
               providerType: convertStringToExternalModelProviderType(form.formData.provider),

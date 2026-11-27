@@ -11,13 +11,14 @@ import (
 )
 
 // ServingRuntimeRepository handles creation of ServingRuntime CRs.
-// Uses the SA dynamic client for privileged operations.
+// The create is user-initiated, so it follows the credential policy: the
+// service account on OpenShift, the caller on xKS.
 type ServingRuntimeRepository struct {
-	saDynClient dynamic.Interface
+	clients clientSource
 }
 
 func NewServingRuntimeRepository(saDynClient dynamic.Interface) *ServingRuntimeRepository {
-	return &ServingRuntimeRepository{saDynClient: saDynClient}
+	return &ServingRuntimeRepository{clients: saSource(nil, saDynClient)}
 }
 
 // Create creates a ServingRuntime CR in the given namespace.
@@ -28,7 +29,11 @@ func (r *ServingRuntimeRepository) Create(ctx context.Context, namespace string,
 		opts.DryRun = []string{dryRun}
 	}
 
-	result, err := r.saDynClient.Resource(models.ServingRuntimeGVR).Namespace(namespace).Create(ctx, obj, opts)
+	dyn, err := r.clients.dynamic(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result, err := dyn.Resource(models.ServingRuntimeGVR).Namespace(namespace).Create(ctx, obj, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create ServingRuntime in namespace %q: %w", namespace, err)
 	}

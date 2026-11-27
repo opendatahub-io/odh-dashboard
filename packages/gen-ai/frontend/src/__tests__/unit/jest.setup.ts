@@ -62,12 +62,3 @@ expect.extend({
     );
   },
 });
-
-// Mocks for internal analytics used by gen-ai specs
-jest.mock('@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils', () => ({
-  __esModule: true,
-  fireFormTrackingEvent: jest.fn(),
-  fireLinkTrackingEvent: jest.fn(),
-  fireMiscTrackingEvent: jest.fn(),
-  fireSimpleTrackingEvent: jest.fn(),
-}));

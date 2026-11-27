@@ -1,4 +1,5 @@
 /* eslint-disable camelcase */
+import type { TrackEvent } from '@odh-dashboard/analytics/types';
 import {
   APIOptions,
   handleRestFailures,
@@ -8,7 +9,6 @@ import {
   restGET,
   restUPDATE,
 } from 'mod-arch-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
 import {
   AgentProfile,
   AgentProfileCreateRequest,
@@ -446,6 +446,7 @@ const postCreateResponse = (
 
 // Streaming POST path via fetch (SSE text/event-stream)
 const streamCreateResponse = (
+  trackEvent: TrackEvent,
   url: string,
   request: CreateResponseRequest,
   onStreamData: (chunk: string, clearPrevious?: boolean, isReasoning?: boolean) => void,
@@ -454,6 +455,14 @@ const streamCreateResponse = (
   headers?: Record<string, string>,
 ): Promise<SimplifiedResponseData> =>
   new Promise((resolve, reject) => {
+    const trackGuardrailViolation = () => {
+      try {
+        trackEvent('Guardrail Activated', { violationDetected: true });
+      } catch {
+        // Tracking failures must not bypass guardrail handling.
+      }
+    };
+
     fetch(url, {
       method: 'POST',
       headers: {
@@ -522,7 +531,7 @@ const streamCreateResponse = (
                     if (data.error) {
                       await reader.cancel('Streaming error');
                       if (data.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
-                        fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
+                        trackGuardrailViolation();
                       }
                       // Preserve the full ApiError structure from BFF
                       reject(new ApiErrorClass(data.error, data.trace_id));
@@ -553,7 +562,7 @@ const streamCreateResponse = (
                         const isFirstRefusal = !receivedRefusal;
                         if (isFirstRefusal) {
                           receivedRefusal = true;
-                          fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
+                          trackGuardrailViolation();
                           if (fullContent.length > 0) {
                             await reader.cancel('Output guardrail violation');
                             reject(
@@ -597,7 +606,7 @@ const streamCreateResponse = (
 
                   if (data.error) {
                     if (data.error.code === GUARDRAIL_ERROR_CODES.OUTPUT_VIOLATION) {
-                      fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
+                      trackGuardrailViolation();
                     }
                     reject(new ApiErrorClass(data.error, data.trace_id));
                     return;
@@ -615,7 +624,7 @@ const streamCreateResponse = (
                       const isFirstRefusal = !receivedRefusal;
                       if (isFirstRefusal) {
                         receivedRefusal = true;
-                        fireMiscTrackingEvent('Guardrail Activated', { violationDetected: true });
+                        trackGuardrailViolation();
                         if (fullContent.length > 0) {
                           reject(
                             new ApiErrorClass({
@@ -720,16 +729,17 @@ const streamCreateResponse = (
   });
 
 /**
- * Request to generate AI responses with RAG and conversation context.
- * @param request - CreateResponseRequest payload for /gen-ai/api/v1/lsd/responses.
- * @param namespace - The namespace to generate responses in
- * @param onStreamData - Optional callback for streaming data chunks. Second param clearPrevious signals to clear previous content (e.g., on refusal violation)
- * @param abortSignal - Optional AbortSignal to cancel the streaming request
- * @returns Promise<SimplifiedResponseData> - The generated response object.
- * @throws Error - When the API request fails or returns an error response.
+ * Creates a response-request function with injected tracking.
+ * @param trackEvent - Injected tracking callback (plain TrackEvent, React-agnostic) used
+ *   for streaming guardrail events. Callers outside React may pass any adapter, spy, or no-op.
+ * @param hostPath - BFF API base path.
+ * @param baseQueryParams - Shared query parameters, such as namespace.
+ * @returns A function accepting response data and optional request options, including
+ * streaming callbacks and an AbortSignal. Its promise resolves with the generated
+ * response or rejects when the request fails.
  */
 export const createResponse =
-  (hostPath: string, baseQueryParams: Record<string, unknown> = {}) =>
+  (trackEvent: TrackEvent, hostPath: string, baseQueryParams: Record<string, unknown> = {}) =>
   (
     data: CreateResponseRequest,
     opts: APIOptions & {
@@ -741,6 +751,7 @@ export const createResponse =
     if (data.stream) {
       const url = buildApiUrl(hostPath, '/lsd/responses', baseQueryParams);
       return streamCreateResponse(
+        trackEvent,
         url,
         data,
         opts.onStreamData ?? (() => undefined),

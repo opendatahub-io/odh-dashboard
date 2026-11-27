@@ -2,7 +2,7 @@ import { Content, ContentVariants, Flex, FlexItem } from '@patternfly/react-core
 import { ExpandableRowContent, Table, Thead, Tbody, Tr, Th, Td } from '@patternfly/react-table';
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { TokenRateLimitInfo, UserSubscription } from '~/app/types/subscriptions';
 import { URL_PREFIX } from '~/app/utilities/const';
 import ApiKeyCountLabel from '~/app/components/ApiKeyCountLabel';
@@ -37,6 +37,7 @@ const SubscriptionRow: React.FC<{
   rowIndex: number;
 }> = ({ subscription, rowIndex }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
+  const trackEvent = useTrackEvent();
 
   return (
     <Tbody isExpanded={isExpanded} data-testid="subscription-row">
@@ -49,7 +50,7 @@ const SubscriptionRow: React.FC<{
             onToggle: () => {
               setIsExpanded((prev) => {
                 const next = !prev;
-                fireMiscTrackingEvent(MaaSEvents.MY_SUBSCRIPTIONS_ROW_EXPANDED, {
+                trackEvent(MaaSEvents.MY_SUBSCRIPTIONS_ROW_EXPANDED, {
                   currentView: MySubscriptionsGrouping.SUBSCRIPTION,
                   nestedItemCount: subscription.model_refs.length,
                   expanded: next,
@@ -67,7 +68,7 @@ const SubscriptionRow: React.FC<{
                 data-testid={`subscription-detail-link-${subscription.subscription_id_header}`}
                 to={`${URL_PREFIX}/keys-and-subs/subscriptions/${subscription.subscription_id_header}`}
                 onClick={() => {
-                  fireMiscTrackingEvent(MaaSEvents.MY_SUBSCRIPTIONS_DETAIL_NAVIGATED, {
+                  trackEvent(MaaSEvents.MY_SUBSCRIPTIONS_DETAIL_NAVIGATED, {
                     currentView: MySubscriptionsGrouping.SUBSCRIPTION,
                     location: SubscriptionDetailNavLocation.LIST_ROW,
                   } satisfies SubscriptionDetailNavigatedProperties);

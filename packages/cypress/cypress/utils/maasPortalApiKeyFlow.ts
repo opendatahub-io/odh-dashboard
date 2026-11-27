@@ -69,7 +69,13 @@ export const createPortalApiKeyAndVerifyInference = (
   copyApiKeyModal.expandAccessDetails();
   copyApiKeyModal.findBaseURL().invoke('val').should('not.be.empty');
   copyApiKeyModal.findModelID().invoke('val').should('not.be.empty');
-  copyApiKeyModal.findUsageExample().should('contain.text', '/v1/chat/completions');
+  // Assert in a callback: a failure then prints true/false, not the text (it can hold the key).
+  copyApiKeyModal.findUsageExample().should(($usageExample) => {
+    expect(
+      $usageExample.text().includes('/v1/chat/completions'),
+      'usage example contains /v1/chat/completions',
+    ).to.equal(true);
+  });
   copyApiKeyModal
     .findEndpointCompatibilityAlert()
     .scrollIntoView()
@@ -87,7 +93,11 @@ export const createPortalApiKeyAndVerifyInference = (
   cy.step('Run the copied usage example and verify HTTP 200');
   copyApiKeyModal.findUsageExampleCopyButton().click();
   getClipboardContent('copiedPortalApiKey', { log: false })
-    .should('have.length.at.least', 2)
+    .should((copiedValues) => {
+      // Check the count only: a failed have.length assertion prints the copied array, which
+      // shows a short key in full.
+      expect(copiedValues.length, 'number of copied values').to.be.at.least(2);
+    })
     .then((copiedValues) => {
       const usageExample = copiedValues[1];
       const { endpoint: usageEndpoint, requestBody } = parseMaaSUsageExample(usageExample);

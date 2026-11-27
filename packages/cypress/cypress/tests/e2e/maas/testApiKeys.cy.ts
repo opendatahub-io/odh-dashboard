@@ -1,3 +1,4 @@
+import type { CreateAPIKeyResponse } from '@odh-dashboard/maas/types/api-key';
 import {
   checkMaaSSubscriptionState,
   checkMaaSAuthPolicyState,
@@ -51,7 +52,6 @@ let tokenRateLimit: { limit: string; window: string; unit: string };
 let tokenLimit: string;
 let apiKeyCount: number;
 let secondApiKeyName: string;
-const keyCreatedAt = new Date();
 
 describe('A user can view subscriptions and manage API keys on the Keys and Subscriptions page', () => {
   retryableBefore(() => {
@@ -184,6 +184,11 @@ describe('A user can view subscriptions and manage API keys on the Keys and Subs
         .findSubscriptionModelRateLimit(modelName)
         .should('contain.text', tokenLimit);
       createApiKeyModal.findExpirationDateInput().should('exist');
+      // The creation response contains the one-time API key.
+      cy.intercept(
+        { method: 'POST', pathname: '**/maas/api/v1/api-keys', times: 1 },
+        { log: false },
+      ).as('createApiKeyForDateChecks');
       createApiKeyModal.findSubmitButton().click();
       copyApiKeyModal.findApiKeyName().should('contain.text', apiKeyName);
       copyApiKeyModal.findSubscriptionName().should('contain.text', subscriptionName);
@@ -199,11 +204,18 @@ describe('A user can view subscriptions and manage API keys on the Keys and Subs
         .findDescription()
         .should('contain.text', `${testData.apiKeyDescription} ${subscriptionName}`);
       apiKeyRow.findStatus().should('contain.text', ApiKeyStatus.active);
-      apiKeyRow.findCreationDate().should('contain.text', formatApiKeyDisplayDate(keyCreatedAt));
+      cy.wait<unknown, { data?: Pick<CreateAPIKeyResponse, 'createdAt'> }>(
+        '@createApiKeyForDateChecks',
+        { log: false },
+      ).then(({ response }) => {
+        const keyCreatedAt = new Date(response?.body.data?.createdAt ?? '');
+        expect(keyCreatedAt.getTime(), 'API key creation timestamp').to.satisfy(Number.isFinite);
+        apiKeyRow.findCreationDate().should('contain.text', formatApiKeyDisplayDate(keyCreatedAt));
+        apiKeyRow
+          .findExpirationDate()
+          .should('contain.text', formatApiKeyExpirationDate(apiKeyExpirationTimeId, keyCreatedAt));
+      });
       apiKeyRow.findLastUsedAt().should('not.be.empty');
-      apiKeyRow
-        .findExpirationDate()
-        .should('contain.text', formatApiKeyExpirationDate(apiKeyExpirationTimeId, keyCreatedAt));
 
       cy.step('Verify active key counts is updated in the Subscriptions tab');
       mySubscriptionsPage.findMySubscriptionsLink().click();

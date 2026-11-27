@@ -1,5 +1,5 @@
 import React from 'react';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   APIKey,
   APIKeyStatus,
@@ -74,6 +74,7 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
   const [localUsername, setLocalUsername] = React.useState('');
   const [isFetching, setIsFetching] = React.useState(false);
   const pendingUsernameSearch = React.useRef(false);
+  const trackEvent = useTrackEvent();
 
   // The API has no concept of "inactive" — it only knows active | revoked | expired.
   // "Inactive" is a client-side display status for active keys whose subscription was
@@ -145,20 +146,23 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
   React.useEffect(() => {
     if (!isFetching && loaded && pendingUsernameSearch.current) {
       pendingUsernameSearch.current = false;
-      fireMiscTrackingEvent(MaaSEvents.API_KEYS_SEARCH_APPLIED, {
+      trackEvent(MaaSEvents.API_KEYS_SEARCH_APPLIED, {
         hasQuery: Boolean(filterData.username),
         resultCount: response.data.length,
         isAdmin: true,
       } satisfies ApiKeysSearchAppliedProperties);
     }
-  }, [isFetching, loaded, filterData.username, response.data.length]);
+  }, [isFetching, loaded, filterData.username, response.data.length, trackEvent]);
 
-  const trackStatusFilter = (statuses: APIKeyDisplayStatus[]) => {
-    fireMiscTrackingEvent(MaaSEvents.API_KEYS_STATUS_FILTER_APPLIED, {
-      selectedStatuses: JSON.stringify(statuses),
-      selectedCount: statuses.length,
-    } satisfies ApiKeysStatusFilterAppliedProperties);
-  };
+  const trackStatusFilter = React.useCallback(
+    (statuses: APIKeyDisplayStatus[]) => {
+      trackEvent(MaaSEvents.API_KEYS_STATUS_FILTER_APPLIED, {
+        selectedStatuses: JSON.stringify(statuses),
+        selectedCount: statuses.length,
+      } satisfies ApiKeysStatusFilterAppliedProperties);
+    },
+    [trackEvent],
+  );
 
   const onUsernameChange = React.useCallback((value: string) => {
     pendingUsernameSearch.current = true;
@@ -169,27 +173,33 @@ export const useApiKeysTableState = (): UseApiKeysTableStateReturn => {
     setIsFetching(true);
   }, []);
 
-  const onStatusToggle = React.useCallback((status: APIKeyDisplayStatus) => {
-    setFilterData((prev) => {
-      const statuses = prev.statuses.includes(status)
-        ? prev.statuses.filter((s) => s !== status)
-        : [...prev.statuses, status];
-      trackStatusFilter(statuses);
-      return { ...prev, statuses };
-    });
-    setPage(1);
-    setIsFetching(true);
-  }, []);
+  const onStatusToggle = React.useCallback(
+    (status: APIKeyDisplayStatus) => {
+      setFilterData((prev) => {
+        const statuses = prev.statuses.includes(status)
+          ? prev.statuses.filter((s) => s !== status)
+          : [...prev.statuses, status];
+        trackStatusFilter(statuses);
+        return { ...prev, statuses };
+      });
+      setPage(1);
+      setIsFetching(true);
+    },
+    [trackStatusFilter],
+  );
 
-  const onStatusClear = React.useCallback((status: APIKeyDisplayStatus) => {
-    setFilterData((prev) => {
-      const statuses = prev.statuses.filter((s) => s !== status);
-      trackStatusFilter(statuses);
-      return { ...prev, statuses };
-    });
-    setPage(1);
-    setIsFetching(true);
-  }, []);
+  const onStatusClear = React.useCallback(
+    (status: APIKeyDisplayStatus) => {
+      setFilterData((prev) => {
+        const statuses = prev.statuses.filter((s) => s !== status);
+        trackStatusFilter(statuses);
+        return { ...prev, statuses };
+      });
+      setPage(1);
+      setIsFetching(true);
+    },
+    [trackStatusFilter],
+  );
 
   const onSubscriptionChange = React.useCallback(
     (subscription: string) => {

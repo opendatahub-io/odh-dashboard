@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/httpcontract"
 	"io"
 	"net/http"
 	"strings"
@@ -100,6 +101,9 @@ func newHTTPBFFClient(cfg clientConfig) *HTTPBFFClient {
 		authTokenPrefix: cfg.AuthTokenPrefix,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
+			// The caller's token rides in a custom header, which net/http
+			// forwards on every redirect, cross-host included.
+			CheckRedirect: httpcontract.SameOriginRedirects,
 			Transport: &http.Transport{
 				TLSClientConfig: tlsConfig,
 			},

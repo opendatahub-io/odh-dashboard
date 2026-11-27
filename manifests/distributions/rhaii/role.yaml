@@ -17,6 +17,18 @@ rules:
       - update
       - patch
       - delete
+  # /api/components lists OdhApplications with the ServiceAccount client. This
+  # is an unconditional install requirement, also on clusters without the
+  # OdhApplication API: the API server authorizes the request before it
+  # resolves the resource, so without this rule an absent API is a 403, not
+  # the empty list the bootstrap contract promises.
+  # See distributions/core-bff/docs/bootstrap-contract.md.
+  - apiGroups:
+      - dashboard.opendatahub.io
+    resources:
+      - odhapplications
+    verbs:
+      - list
   # Admins can create custom KServe ServingRuntime resources through the BFF.
   - apiGroups:
       - serving.kserve.io

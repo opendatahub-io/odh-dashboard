@@ -65,6 +65,22 @@ func TestModelServingProxy_StripsHeaders(t *testing.T) {
 	assert.Empty(t, receivedHeaders.Get("Forwarded"), "Forwarded should be stripped")
 }
 
+// A url.Error quotes the raw URL, userinfo included, so the parse failure is
+// reported by setting name only.
+func TestModelServingProxy_InvalidHostDoesNotEchoURL(t *testing.T) {
+	app := newTestApp(func(a *App) {
+		a.config.ModelServingServiceHost = "https://user:s3cret@model-serving:bad-port"
+		a.config.MockK8Client = false
+	})
+
+	err := app.initModelServingProxy()
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "MODEL_SERVING_HOST")
+	assert.NotContains(t, err.Error(), "s3cret")
+	assert.NotContains(t, err.Error(), "model-serving:bad-port")
+}
+
 func TestModelServingProxy_MockMode(t *testing.T) {
 	app := newTestApp(func(a *App) {
 		a.config.MockK8Client = true
@@ -126,4 +142,39 @@ func TestModelServingProxyTransportFailureContract(t *testing.T) {
 			})
 		}
 	}
+}
+
+// Full review, pass 3: the model-serving proxy sends only the resolved caller
+// token upstream, as Authorization: Bearer, and strips every configured inbound
+// credential header (the ordered AUTH_TOKEN_HEADERS list and the legacy one).
+func TestModelServingProxy_SendsOnlyTheResolvedCallerToken(t *testing.T) {
+	var received http.Header
+	backend := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		received = r.Header.Clone()
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer backend.Close()
+
+	app := newTestApp(func(a *App) {
+		a.config.ModelServingServiceHost = backend.URL
+		a.config.DevMode = true
+		a.config.MockK8Client = false
+		a.config.Namespace = "test-ns"
+		a.config.AuthTokenHeaders = []string{"Authorization", "X-Entra-Access-Token"}
+		a.config.AuthTokenHeader = "x-forwarded-access-token"
+	})
+	require.NoError(t, app.initModelServingProxy())
+
+	req := httptest.NewRequest(http.MethodGet, modelServingPathPrefix+"/v1/models", nil)
+	req.Header.Set("Authorization", "Bearer client-supplied")
+	req.Header.Set("X-Entra-Access-Token", "client-supplied")
+	req.Header.Set("X-Forwarded-Access-Token", "client-supplied")
+	req = reqWithIdentity(req, &k8s.RequestIdentity{Token: k8s.NewBearerToken("resolved-caller")})
+	rr := httptest.NewRecorder()
+	app.modelServingProxy.ServeHTTP(rr, req)
+
+	require.Equal(t, http.StatusOK, rr.Code)
+	assert.Equal(t, "Bearer resolved-caller", received.Get("Authorization"))
+	assert.Empty(t, received.Values("X-Entra-Access-Token"), "configured credential header stripped")
+	assert.Empty(t, received.Values("X-Forwarded-Access-Token"), "legacy credential header stripped")
 }

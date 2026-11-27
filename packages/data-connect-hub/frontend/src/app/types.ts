@@ -63,6 +63,7 @@ export type Connection = {
   };
   resource: {
     name: string;
+    description?: string | null;
     data_connection_type_id: string;
     format: 'tabular' | 'binary';
     credentials_ref: { secret: string };
@@ -121,6 +122,7 @@ export type TestCredentialsRequest = {
 
 export type CreateConnectionRequest = {
   name: string;
+  description?: string | null;
   data_connection_type_id: string;
   format: 'tabular' | 'binary';
   credentials: {

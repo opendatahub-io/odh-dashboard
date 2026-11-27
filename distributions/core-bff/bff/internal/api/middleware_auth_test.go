@@ -33,6 +33,7 @@ func TestInjectRequestIdentity_DisabledAuth(t *testing.T) {
 		ri, ok := identity.(*k8s.RequestIdentity)
 		require.True(t, ok)
 		assert.Equal(t, config.DefaultDisabledAuthToken, ri.Token.Raw())
+		assert.False(t, ri.DevFallback, "without DEV_MODE disabled auth is mock-only and never acts as the kubeconfig")
 	})
 
 	handler := app.InjectRequestIdentity(inner)
@@ -683,4 +684,27 @@ func TestParseDevGroups(t *testing.T) {
 			assert.Equal(t, tt.expect, result)
 		})
 	}
+}
+
+// Review (liday-rh): with DEV_MODE and AUTH_METHOD=disabled the request must
+// run as the kubeconfig identity, so the proxies present the kubeconfig
+// certificate and a real cluster accepts it.
+func TestInjectRequestIdentity_DisabledAuthDevMode_IsDevFallback(t *testing.T) {
+	app := newTestApp(func(a *App) {
+		a.config.AuthMethod = config.AuthMethodDisabled
+		a.config.DevMode = true
+		a.config.DevUser = "dev-user"
+		a.config.DevGroups = "dev-group"
+	})
+
+	var ri *k8s.RequestIdentity
+	handler := app.InjectRequestIdentity(http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		ri, _ = r.Context().Value(constants.RequestIdentityKey).(*k8s.RequestIdentity)
+	}))
+	handler.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, APIHealthCheckPath, nil))
+
+	require.NotNil(t, ri)
+	assert.True(t, ri.DevFallback)
+	assert.Equal(t, "dev-user", ri.UserID)
+	assert.Equal(t, []string{"dev-group"}, ri.Groups)
 }

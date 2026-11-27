@@ -1360,7 +1360,7 @@ jobs:
           echo "::endgroup::"
 
           # A reconcile leaves observable evidence: the controller adds its cleanup
-          # finalizer and writes status.observedGeneration. We do NOT require Ready=True —
+          # finalizer and persists a ProvisioningSucceeded condition. We do NOT require Ready=True —
           # the ODH manifests reference OpenShift-only namespaces (e.g. openshift-ingress)
           # that don't exist in Kind, so full provisioning is expected to error. The point
           # of this check is that the controller *started* reconciling the CR.
@@ -1374,15 +1374,16 @@ jobs:
           # Always, which the operator re-owns each reconcile, so patching it is futile); that
           # is expected and irrelevant here — this step only asserts operator reconcile
           # evidence, not dashboard pod health (already validated above against the PR images).
-          echo "Polling for reconciliation evidence (finalizer + observedGeneration)..."
+          echo "Polling for reconciliation evidence (finalizer + ProvisioningSucceeded condition)..."
           RECONCILED=false
           for i in {1..24}; do
             FINALIZERS=$(kubectl get dashboard default-dashboard \
               -o jsonpath='{.metadata.finalizers}' 2>/dev/null || echo "")
-            OBSERVED_GEN=$(kubectl get dashboard default-dashboard \
-              -o jsonpath='{.status.observedGeneration}' 2>/dev/null || echo "")
+            PROVISIONING_STATUS=$(kubectl get dashboard default-dashboard -o json 2>/dev/null \
+              | jq -r '.status.conditions[]? | select(.type == "ProvisioningSucceeded") | .status' \
+              | head -n1 || echo "")
             if [[ "$FINALIZERS" == *"components.platform.opendatahub.io/cleanup"* ]] \
-               && [ -n "$OBSERVED_GEN" ]; then
+               && [[ "$PROVISIONING_STATUS" == "True" || "$PROVISIONING_STATUS" == "False" || "$PROVISIONING_STATUS" == "Unknown" ]]; then
               RECONCILED=true
               break
             fi
@@ -1401,7 +1402,7 @@ jobs:
           if [ "$RECONCILED" != "true" ]; then
             echo "❌ FAIL: Dashboard CR was not reconciled within timeout"
             echo "   Expected the controller to add its cleanup finalizer and set"
-            echo "   status.observedGeneration. Check the operator logs above."
+            echo "   a ProvisioningSucceeded condition. Check the operator logs above."
             exit 1
           fi
 
@@ -1413,7 +1414,7 @@ jobs:
             exit 1
           fi
 
-          echo "✅ PASS: operator reconciled the Dashboard CR (finalizer + observedGeneration set, 0 restarts)"
+          echo "✅ PASS: operator reconciled the Dashboard CR (finalizer + ProvisioningSucceeded condition, 0 restarts)"
 
       - name: Cleanup
         if: always()

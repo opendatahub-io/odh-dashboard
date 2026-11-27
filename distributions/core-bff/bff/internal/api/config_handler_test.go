@@ -49,10 +49,11 @@ func TestGetConfigHandler_XKSPlatform_DisablesProjects(t *testing.T) {
 		a.config.Namespace = "opendatahub"
 		a.config.DashboardConfigName = "odh-dashboard-config"
 		a.repositories = repositories.NewRepositories(repositories.RepositoriesConfig{
-			Platform:    config.PlatformXKS,
-			SADynClient: testSADynClient,
-			SAClientset: testSAClientset,
-			Namespace:   "",
+			Platform:          config.PlatformXKS,
+			PlatformConfirmed: true,
+			SADynClient:       testSADynClient,
+			SAClientset:       testSAClientset,
+			Namespace:         "",
 		})
 	})
 	admin := k8mocks.DefaultTestUsers[0]
@@ -87,10 +88,11 @@ func TestPatchConfigHandler_Success(t *testing.T) {
 		a.config.Namespace = "dash-ns"
 		a.config.DashboardConfigName = "odh-dashboard-config"
 		a.repositories = repositories.NewRepositories(repositories.RepositoriesConfig{
-			Platform:    config.PlatformOpenShift,
-			SADynClient: fakeDyn,
-			SAClientset: testSAClientset,
-			Namespace:   "",
+			Platform:          config.PlatformOpenShift,
+			PlatformConfirmed: true,
+			SADynClient:       fakeDyn,
+			SAClientset:       testSAClientset,
+			Namespace:         "",
 		})
 	})
 	admin := k8mocks.DefaultTestUsers[0]

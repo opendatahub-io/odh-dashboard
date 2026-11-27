@@ -1,3 +1,4 @@
+import { isEqual } from 'lodash-es';
 import { parse, stringify } from 'yaml';
 import { z } from 'zod';
 import { removeManagedFields } from './removeManagedFields';
@@ -70,5 +71,21 @@ export const convertYamlToResources = (yaml?: string): ResourcesParseResult => {
       resources: { model: undefined },
       error: error instanceof Error ? error : new Error('Failed to parse YAML'),
     };
+  }
+};
+
+/**
+ * Whether the editor YAML differs in content from the YAML generated when the user entered the
+ * editor. Comment and formatting changes are not dirty. Without a snapshot (the editor was seeded
+ * from an existing deployment, not the form) or with unparseable YAML, it is dirty.
+ */
+export const isYamlDirty = (editorYaml: string, yamlAtEntry?: string): boolean => {
+  if (yamlAtEntry === undefined) {
+    return true;
+  }
+  try {
+    return !isEqual(parse(editorYaml), parse(yamlAtEntry));
+  } catch {
+    return true;
   }
 };

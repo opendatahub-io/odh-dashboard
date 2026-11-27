@@ -9,6 +9,8 @@ import (
 	k8s "github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/integrations/kubernetes"
 	"github.com/opendatahub-io/odh-dashboard/distributions/core-bff/bff/internal/models"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"k8s.io/client-go/rest"
 )
 
 func TestImpersonateFromIdentity_SetsHeaders(t *testing.T) {
@@ -71,4 +73,80 @@ func TestResolveK8sHost_MockClientNilTestEnv(t *testing.T) {
 
 	assert.Error(t, err, "should fail when testEnv is nil and no kubeconfig is available")
 	assert.Contains(t, err.Error(), "failed to get kubeconfig for proxy")
+}
+
+// The proxies must target the server URL client-go resolves for the REST
+// clients: a scheme-less host:port gets the scheme client-go would use, and a
+// base path in the server URL is preserved.
+func TestResolveK8sHost_UsesClientGoServerURL(t *testing.T) {
+	cases := []struct {
+		name string
+		cfg  rest.Config
+		want string
+	}{
+		{"scheme-less host with CA", rest.Config{Host: "api.cluster.example:6443", TLSClientConfig: rest.TLSClientConfig{CAData: []byte("ca")}}, "https://api.cluster.example:6443"},
+		{"scheme-less host without TLS", rest.Config{Host: "127.0.0.1:8080"}, "http://127.0.0.1:8080"},
+		{"base path kept", rest.Config{Host: "https://rancher.example/k8s/clusters/c-abc"}, "https://rancher.example/k8s/clusters/c-abc"},
+		{"absolute URL unchanged", rest.Config{Host: "https://api.cluster.example:6443"}, "https://api.cluster.example:6443"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			kc := tc.cfg
+			host, err := resolveK8sHost(config.EnvConfig{}, k8sSetupResult{kubeconfig: &kc})
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, host)
+		})
+	}
+
+	_, err := resolveK8sHost(config.EnvConfig{}, k8sSetupResult{kubeconfig: &rest.Config{Host: "api.cluster.example/extra"}})
+	require.Error(t, err, "client-go refuses a scheme-less host with a path; so must the proxies")
+}
+
+// /api/status reports the same resolved server URL the proxies target.
+func TestReportedServerURL_MatchesProxyTarget(t *testing.T) {
+	kc := &rest.Config{Host: "api.cluster.example:6443", TLSClientConfig: rest.TLSClientConfig{CAData: []byte("ca")}}
+	host, err := resolveK8sHost(config.EnvConfig{}, k8sSetupResult{kubeconfig: kc})
+	require.NoError(t, err)
+	assert.Equal(t, host, reportedServerURL(kc))
+	assert.Equal(t, "api.cluster.example/extra", reportedServerURL(&rest.Config{Host: "api.cluster.example/extra"}), "unresolvable hosts are reported as configured")
+}
+
+// Review (RHOAIENG-96081): in the default mock dev profile (disabled auth,
+// DEV_MODE) the identity is a DevFallback. The REST clients run it as the
+// envtest admin, so the proxy must not impersonate the dev user either.
+func TestImpersonateFromIdentity_DevFallbackNotImpersonated(t *testing.T) {
+	identity := &k8s.RequestIdentity{UserID: "developer", Groups: []string{"system:authenticated"}, DevFallback: true}
+	req := reqWithIdentity(httptest.NewRequest(http.MethodGet, "/", nil), identity)
+	out := http.Header{}
+
+	impersonateFromIdentity(req, out)
+
+	assert.Empty(t, out.Get("Impersonate-User"))
+	assert.Empty(t, out.Values("Impersonate-Group"))
+}
+
+// Review pass 4: the envtest proxies present the admin certificate, so a token
+// that maps to no mocked user must not run as that admin.
+func TestRequireMockUser(t *testing.T) {
+	inner, called := trackingHTTPHandler()
+	h := requireMockUser(inner)
+	for _, tc := range []struct {
+		name     string
+		identity *k8s.RequestIdentity
+		want     bool
+	}{
+		{"unmapped token", &k8s.RequestIdentity{Token: k8s.NewBearerToken("not-a-test-user")}, false},
+		{"mocked test user", &k8s.RequestIdentity{UserID: "user@example.com", Token: k8s.NewBearerToken("t")}, true},
+		{"dev fallback", &k8s.RequestIdentity{DevFallback: true, Token: k8s.NewBearerToken("disabled")}, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			*called = false
+			rr := httptest.NewRecorder()
+			h.ServeHTTP(rr, reqWithIdentity(httptest.NewRequest(http.MethodGet, "/api/k8s/api/v1/namespaces", nil), tc.identity))
+			assert.Equal(t, tc.want, *called)
+			if !tc.want {
+				assert.Equal(t, http.StatusUnauthorized, rr.Code)
+			}
+		})
+	}
 }

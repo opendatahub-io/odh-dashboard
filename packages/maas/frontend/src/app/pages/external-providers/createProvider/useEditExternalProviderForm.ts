@@ -3,7 +3,7 @@ import { useK8sNameDescriptionFieldData } from '@odh-dashboard/ui-core/component
 import { isK8sNameDescriptionDataValid } from '@odh-dashboard/k8s-core';
 import { useZodFormValidation } from '@odh-dashboard/ui-core/hooks/useZodFormValidation';
 import { TrackingOutcome } from '@odh-dashboard/analytics/types';
-import { fireFormTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { ExternalProvider } from '~/app/types/external-models';
 import { useExternalModelsContext } from '~/app/context/ExternalModelsContext';
 import { useCreateSecret } from '~/app/hooks/useCreateSecret';
@@ -33,6 +33,7 @@ import {
 export const useEditExternalProviderForm = (
   externalProvider: ExternalProvider,
 ): UseCreateExternalProviderFormReturn => {
+  const trackEvent = useTrackEvent();
   const { secrets, secretsLoaded, refreshSecrets } = useExternalModelsContext();
   const { isUpdating, updateExternalProviderCallback } = useUpdateExternalProvider();
   const { isCreating: isCreatingSecret, createSecretCallback } = useCreateSecret();
@@ -149,7 +150,7 @@ export const useEditExternalProviderForm = (
           secretValue: '',
         }));
       }
-      fireFormTrackingEvent(MaaSEvents.EXTERNAL_PROVIDER_UPDATED, {
+      trackEvent(MaaSEvents.EXTERNAL_PROVIDER_UPDATED, {
         outcome: TrackingOutcome.submit,
         success: true,
         providerType: convertStringToExternalModelProviderType(formData.provider),
@@ -167,7 +168,7 @@ export const useEditExternalProviderForm = (
           ? formatOrphanedCredentialSecretSubmitError(message, createdSecretName, 'update')
           : message,
       );
-      fireFormTrackingEvent(MaaSEvents.EXTERNAL_PROVIDER_UPDATED, {
+      trackEvent(MaaSEvents.EXTERNAL_PROVIDER_UPDATED, {
         outcome: TrackingOutcome.submit,
         success: false,
         providerType: convertStringToExternalModelProviderType(formData.provider),
@@ -187,6 +188,7 @@ export const useEditExternalProviderForm = (
     isFormValid,
     nameDescData,
     refreshSecrets,
+    trackEvent,
     updateExternalProviderCallback,
   ]);
 

@@ -8,7 +8,7 @@ import {
   ToolbarGroup,
   ToolbarItem,
 } from '@patternfly/react-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import {
   MaaSEvents,
   MySubscriptionsGroupByChangedProperties,
@@ -29,11 +29,12 @@ const SubscriptionsToolbar: React.FC<SubscriptionsToolbarProps> = ({
   sortField,
   onSortFieldChange,
 }) => {
+  const trackEvent = useTrackEvent();
   const handleGroupingChange = (field: SubscriptionSortField) => {
     if (field === sortField) {
       return;
     }
-    fireMiscTrackingEvent(MaaSEvents.MY_SUBSCRIPTIONS_GROUPBY_CHANGED, {
+    trackEvent(MaaSEvents.MY_SUBSCRIPTIONS_GROUPBY_CHANGED, {
       selectedGrouping:
         field === 'model' ? MySubscriptionsGrouping.MODEL : MySubscriptionsGrouping.SUBSCRIPTION,
     } satisfies MySubscriptionsGroupByChangedProperties);

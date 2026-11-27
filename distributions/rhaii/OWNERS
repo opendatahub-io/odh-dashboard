@@ -1,13 +1,19 @@
 # OWNERS
 
-approvers:
-  - distributions-approvers
+filters:
+  '.*':
+    approvers:
+      - distributions-approvers
+    reviewers:
+      - distributions-reviewers
+    labels:
+      - area/distributions
 
-reviewers:
-  - distributions-reviewers
-
-labels:
-  - area/distributions
+  # Dependency manifests: CVE and dependency-bump PRs. See
+  # docs/adding-owners-and-reviewers.md#dependency-approvers
+  '^((bff|cypress|frontend|services)/)?(package\.json|go\.(mod|sum))$':
+    approvers:
+      - dependency-approvers
 
 options:
   no_parent_owners: true

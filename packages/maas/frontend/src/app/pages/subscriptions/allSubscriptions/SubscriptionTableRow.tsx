@@ -4,7 +4,7 @@ import TableRowTitleDescription from '@odh-dashboard/internal/components/table/T
 import { ActionsColumn, ExpandableRowContent, Tbody, Td, Tr } from '@patternfly/react-table';
 import { Link, useNavigate } from 'react-router-dom';
 import type { K8sResourceCommon } from '@odh-dashboard/k8s-core';
-import { fireMiscTrackingEvent } from '@odh-dashboard/internal/concepts/analyticsTracking/segmentIOUtils';
+import { useTrackEvent } from '@odh-dashboard/analytics/react';
 import { MaaSSubscription } from '~/app/types/subscriptions';
 import {
   getSubscriptionEditUrl,
@@ -64,6 +64,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
   showActions = true,
   getSubscriptionDetailUrl = getSubscriptionViewUrl,
 }) => {
+  const trackEvent = useTrackEvent();
   const columns = getSubscriptionsColumns({ showStatus });
   const groupsColumnIndex = columns.findIndex((col) => col.field === GROUP_COLUMN_FIELD);
   const modelsColumnIndex = columns.findIndex((col) => col.field === MODEL_COLUMN_FIELD);
@@ -83,7 +84,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
   };
 
   const onViewDetailsSubscription = (subscriptionName: string) => {
-    fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+    trackEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
       resourceType: EventTrackingResourceType.SUBSCRIPTION,
       source: EventTrackingSource.TAB_KEBAB,
       resourceStatus: subscription.phase ?? '',
@@ -126,7 +127,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
                 to={getSubscriptionDetailUrl(subscription.name)}
                 state={returnTo ? { returnTo } : undefined}
                 onClick={() =>
-                  fireMiscTrackingEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
+                  trackEvent(MaaSEvents.MAAS_RESOURCE_DETAILS_VIEWED, {
                     resourceType: EventTrackingResourceType.SUBSCRIPTION,
                     source: EventTrackingSource.TAB_LINK,
                     resourceStatus: subscription.phase ?? '',
@@ -160,7 +161,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
         resourceUrl={getSubscriptionViewUrl(subscription.name)}
         returnTo={returnTo}
         onClick={() => {
-          fireMiscTrackingEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
+          trackEvent(MaaSEvents.MAAS_GOVERNANCE_STATUS_POPOVER_VIEWED, {
             popoverType: EventTrackingPopoverType.STATUS,
             status: convertStringToPopoverViewedStatus(subscription.phase),
             location: PhaseLabelLocation.SUBSCRIPTIONS_TAB,
@@ -214,7 +215,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
               togglePanel('groups');
               // So it doesn't fire on open and close of the expanded section
               if (expandedPanel !== 'groups') {
-                fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_ROW_EXPANDED, {
+                trackEvent(MaaSEvents.MAAS_SETTINGS_LIST_ROW_EXPANDED, {
                   resourceType: EventTrackingResourceType.SUBSCRIPTION,
                   expandedSection: EventTrackingExpandedSection.GROUPS,
                   resourceStatus: convertStringToPhaseStatus(subscription.phase ?? ''),
@@ -239,7 +240,7 @@ const SubscriptionTableRow: React.FC<SubscriptionTableRowProps> = ({
               togglePanel('models');
               // So it doesn't fire on open and close of the expanded section
               if (expandedPanel !== 'models') {
-                fireMiscTrackingEvent(MaaSEvents.MAAS_SETTINGS_LIST_ROW_EXPANDED, {
+                trackEvent(MaaSEvents.MAAS_SETTINGS_LIST_ROW_EXPANDED, {
                   resourceType: EventTrackingResourceType.SUBSCRIPTION,
                   expandedSection: EventTrackingExpandedSection.MODELS,
                   resourceStatus: convertStringToPhaseStatus(subscription.phase ?? ''),
