@@ -51,7 +51,6 @@ rules:
       - ""
     resources:
       - configmaps
-      - secrets
       - services
       - serviceaccounts
       - persistentvolumeclaims
@@ -703,6 +702,54 @@ rules:
       - update
       - delete
 
+{{- $operatorSecretNamespaces := list .Values.namespace }}
+{{- if .Values.notebooksNamespace }}
+  {{- $operatorSecretNamespaces = append $operatorSecretNamespaces .Values.notebooksNamespace }}
+{{- end }}
+{{- if .Values.modelRegistryNamespace }}
+  {{- $operatorSecretNamespaces = append $operatorSecretNamespaces .Values.modelRegistryNamespace }}
+{{- end }}
+{{- range $namespace := $operatorSecretNamespaces }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "dashboard.namespaceRoleName" $ }}
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "dashboard.labels" $ | nindent 4 }}
+rules:
+  # The controller manages Secrets only in the applications namespace and the
+  # consented notebooks/model-registry target namespaces. It does not watch
+  # Secrets, so the watch verb is intentionally omitted.
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - get
+      - list
+      - create
+      - update
+      - patch
+      - delete
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "dashboard.namespaceRoleBindingName" $ }}
+  namespace: {{ $namespace }}
+  labels:
+    {{- include "dashboard.labels" $ | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "dashboard.namespaceRoleName" $ }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "dashboard.serviceAccountName" $ }}
+    namespace: {{ include "dashboard.namespace" $ }}
+{{- end }}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding

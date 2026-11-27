@@ -367,6 +367,35 @@ func TestRemapRayDashboardGatewayRBAC(t *testing.T) {
 	assert.Equal(t, "opendatahub", resources[2].GetNamespace())
 }
 
+func TestRemapNotebooksSecretRBAC(t *testing.T) {
+	resources := []unstructured.Unstructured{
+		{Object: map[string]interface{}{
+			"kind": "Role", "metadata": map[string]interface{}{"name": notebooksSecretRBACName, "namespace": "opendatahub"},
+		}},
+		{Object: map[string]interface{}{
+			"kind": "RoleBinding", "metadata": map[string]interface{}{"name": notebooksSecretRBACName, "namespace": "opendatahub"},
+			"subjects": []interface{}{map[string]interface{}{
+				"kind": "ServiceAccount", "name": "odh-dashboard-notebooks", "namespace": "opendatahub",
+			}},
+		}},
+		{Object: map[string]interface{}{
+			"kind": "Role", "metadata": map[string]interface{}{"name": "unrelated-role", "namespace": "opendatahub"},
+		}},
+	}
+
+	remapNotebooksSecretRBAC(resources, "notebooks")
+
+	assert.Equal(t, "notebooks", resources[0].GetNamespace())
+	assert.Equal(t, "notebooks", resources[1].GetNamespace())
+	assert.Equal(t, "opendatahub", resources[2].GetNamespace())
+
+	subjects, found, err := unstructured.NestedSlice(resources[1].Object, "subjects")
+	require.NoError(t, err)
+	require.True(t, found)
+	subject := subjects[0].(map[string]interface{})
+	assert.Equal(t, "opendatahub", subject["namespace"], "the notebooks service account must remain in the applications namespace")
+}
+
 func TestRemapDataConnectHubGatewayRBAC(t *testing.T) {
 	resources := []unstructured.Unstructured{
 		{Object: map[string]interface{}{

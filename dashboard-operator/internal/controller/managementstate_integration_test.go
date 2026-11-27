@@ -85,6 +85,8 @@ func TestIntegration_ManagementStateRemoved_TeardownResources(t *testing.T) {
 	assertExists(t, &corev1.ConfigMap{}, types.NamespacedName{Name: "odh-dashboard-config", Namespace: integrationNamespace})
 	assertExists(t, &rbacv1.ClusterRole{}, types.NamespacedName{Name: "dashboard-operator-role"})
 	assertExists(t, &rbacv1.ClusterRoleBinding{}, types.NamespacedName{Name: "dashboard-operator-rolebinding"})
+	assertExists(t, &rbacv1.Role{}, types.NamespacedName{Name: "dashboard-operator-namespaced-role", Namespace: integrationNamespace})
+	assertExists(t, &rbacv1.RoleBinding{}, types.NamespacedName{Name: "dashboard-operator-namespaced-rolebinding", Namespace: integrationNamespace})
 
 	// CR is preserved and its status reflects the removal.
 	dashboard = getDashboard(t)
@@ -151,6 +153,8 @@ func TestIntegration_ManagementStateRemoved_IdempotentRereconcile(t *testing.T) 
 	assertExists(t, &corev1.ConfigMap{}, types.NamespacedName{Name: "odh-dashboard-config", Namespace: integrationNamespace})
 	assertExists(t, &rbacv1.ClusterRole{}, types.NamespacedName{Name: "dashboard-operator-role"})
 	assertExists(t, &rbacv1.ClusterRoleBinding{}, types.NamespacedName{Name: "dashboard-operator-rolebinding"})
+	assertExists(t, &rbacv1.Role{}, types.NamespacedName{Name: "dashboard-operator-namespaced-role", Namespace: integrationNamespace})
+	assertExists(t, &rbacv1.RoleBinding{}, types.NamespacedName{Name: "dashboard-operator-namespaced-rolebinding", Namespace: integrationNamespace})
 }
 
 func createManagedHTTPRoute(t *testing.T, dashboard *v1alpha1.Dashboard) *gatewayv1.HTTPRoute {
@@ -222,6 +226,15 @@ func seedOperatorOwnedResources(t *testing.T) {
 				APIGroup: rbacv1.GroupName,
 				Kind:     "ClusterRole",
 				Name:     "dashboard-operator-role",
+			},
+		},
+		&rbacv1.Role{ObjectMeta: metav1.ObjectMeta{Name: "dashboard-operator-namespaced-role", Namespace: integrationNamespace, Labels: partOf}},
+		&rbacv1.RoleBinding{
+			ObjectMeta: metav1.ObjectMeta{Name: "dashboard-operator-namespaced-rolebinding", Namespace: integrationNamespace, Labels: partOf},
+			RoleRef: rbacv1.RoleRef{
+				APIGroup: rbacv1.GroupName,
+				Kind:     "Role",
+				Name:     "dashboard-operator-namespaced-role",
 			},
 		},
 	}

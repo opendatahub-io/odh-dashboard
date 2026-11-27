@@ -12,6 +12,13 @@ namePrefix: odh-
 
 namespace: opendatahub
 
+# Namespaces where the operator must manage Secrets. The applications namespace
+# is always included; the optional target namespaces let the installer
+# pre-provision the operator's narrowly scoped Secret Roles before the
+# controller reconciles notebooks or model-registry grants.
+notebooksNamespace: ""
+modelRegistryNamespace: ""
+
 commonLabels:
   app.kubernetes.io/part-of: odh-dashboard
   platform.opendatahub.io/part-of: dashboard

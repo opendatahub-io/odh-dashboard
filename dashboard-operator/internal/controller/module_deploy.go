@@ -165,6 +165,7 @@ func (r *DashboardReconciler) deployModuleManifests(
 			return fmt.Errorf("failed to render manifests for module %s: %w", name, err)
 		}
 		remapRayDashboardGatewayRBAC(rendered)
+		remapNotebooksSecretRBAC(rendered, dashboard.Spec.NotebooksNamespace)
 		rendered = filterAndRemapDataConnectHubGatewayRBAC(rendered, r.ApplicationsNamespace, r.Platform)
 		if maasPortalSupportedPlatform(r.Platform) && mod.RequiredByMaaSPortal {
 			if err := preserveLegacyMaaSPortalNetworkAccess(ctx, r.apiReader(), rendered, r.ApplicationsNamespace); err != nil {

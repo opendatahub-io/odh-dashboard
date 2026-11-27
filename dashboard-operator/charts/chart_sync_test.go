@@ -280,7 +280,104 @@ func TestDashboardChartRBACInSync(t *testing.T) {
 			if !rulesEqual(sourceRole, chartRole) {
 				t.Fatalf("chart ClusterRole rules differ from %s; update charts/dashboard/templates/rbac.yaml", tt.input.rolePath)
 			}
+
+			for _, rule := range chartRole {
+				if stringSliceContains(rule.Resources, "secrets") {
+					t.Fatal("chart ClusterRole must not grant Secret access; keep Secret access in the namespaced operator Roles")
+				}
+			}
 		})
+	}
+}
+
+func TestDashboardChartOperatorSecretRoles(t *testing.T) {
+	if _, err := exec.LookPath("helm"); err != nil {
+		t.Skip("helm not installed")
+	}
+
+	chartDir := filepath.Join("..", "charts", "dashboard")
+	output, err := renderChartTemplate(
+		chartDir,
+		"--namespace", "opendatahub",
+		"--set", "notebooksNamespace=notebooks",
+		"--set", "modelRegistryNamespace=model-registry",
+	)
+	if err != nil {
+		t.Fatalf("render chart: %v", err)
+	}
+
+	wantedRoleNamespaces := map[string]bool{
+		"opendatahub":    false,
+		"notebooks":      false,
+		"model-registry": false,
+	}
+	wantedBindingNamespaces := map[string]bool{
+		"opendatahub":    false,
+		"notebooks":      false,
+		"model-registry": false,
+	}
+	wantedRoleName := "odh-dashboard-operator-namespaced-role"
+	wantedBindingName := "odh-dashboard-operator-namespaced-rolebinding"
+	for _, doc := range strings.Split(output, "---") {
+		doc = strings.TrimSpace(doc)
+		if doc == "" {
+			continue
+		}
+
+		if strings.Contains(doc, "\nkind: Role\n") {
+			var role rbacv1.Role
+			if err := yaml.Unmarshal([]byte(doc), &role); err != nil {
+				t.Fatalf("parse chart Role: %v", err)
+			}
+			if role.Name != wantedRoleName {
+				continue
+			}
+			if _, ok := wantedRoleNamespaces[role.Namespace]; !ok {
+				continue
+			}
+			if len(role.Rules) != 1 ||
+				!stringSliceEqual(role.Rules[0].APIGroups, []string{""}) ||
+				!stringSliceEqual(role.Rules[0].Resources, []string{"secrets"}) ||
+				!stringSliceEqual(role.Rules[0].Verbs, []string{"get", "list", "create", "update", "patch", "delete"}) {
+				t.Fatalf("unexpected operator Secret Role rules in %s: %+v", role.Namespace, role.Rules)
+			}
+			wantedRoleNamespaces[role.Namespace] = true
+			continue
+		}
+
+		if strings.Contains(doc, "\nkind: RoleBinding\n") {
+			var binding rbacv1.RoleBinding
+			if err := yaml.Unmarshal([]byte(doc), &binding); err != nil {
+				t.Fatalf("parse chart RoleBinding: %v", err)
+			}
+			if binding.Name != wantedBindingName {
+				continue
+			}
+			if _, ok := wantedBindingNamespaces[binding.Namespace]; !ok {
+				continue
+			}
+			if binding.RoleRef.Kind != "Role" || binding.RoleRef.Name != wantedRoleName {
+				t.Fatalf("unexpected operator Secret RoleBinding roleRef: %+v", binding.RoleRef)
+			}
+			if len(binding.Subjects) != 1 ||
+				binding.Subjects[0].Kind != "ServiceAccount" ||
+				binding.Subjects[0].Name != "odh-dashboard-operator" ||
+				binding.Subjects[0].Namespace != "opendatahub" {
+				t.Fatalf("unexpected operator Secret RoleBinding subject: %+v", binding.Subjects)
+			}
+			wantedBindingNamespaces[binding.Namespace] = true
+		}
+	}
+
+	for namespace, found := range wantedRoleNamespaces {
+		if !found {
+			t.Fatalf("expected chart to install operator Secret Role in namespace %q", namespace)
+		}
+	}
+	for namespace, found := range wantedBindingNamespaces {
+		if !found {
+			t.Fatalf("expected chart to install operator Secret RoleBinding in namespace %q", namespace)
+		}
 	}
 }
 

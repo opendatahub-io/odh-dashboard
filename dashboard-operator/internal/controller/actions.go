@@ -43,6 +43,7 @@ const (
 	odhGatewayNamespace           = "opendatahub"
 	dchRhoaiGatewayRBACName       = "odh-dashboard-data-connect-hub-rhoai-gateway-discovery"
 	dchOdhGatewayRBACName         = "odh-dashboard-data-connect-hub-odh-gateway-discovery"
+	notebooksSecretRBACName       = "odh-dashboard-notebooks-secrets"
 )
 
 const (
@@ -107,6 +108,25 @@ func remapRayDashboardGatewayRBAC(resources []unstructured.Unstructured) {
 			if r.GetName() == rayDataScienceGatewayRBACName {
 				r.SetNamespace(dataScienceGatewayNamespace)
 			}
+		}
+	}
+}
+
+// remapNotebooksSecretRBAC moves the notebooks module's Secret Role and
+// RoleBinding into the configured notebooks namespace. The module service
+// account remains in the applications namespace, so the RoleBinding subject
+// namespace is intentionally left unchanged.
+func remapNotebooksSecretRBAC(resources []unstructured.Unstructured, notebooksNamespace string) {
+	if notebooksNamespace == "" {
+		return
+	}
+	for i := range resources {
+		resource := &resources[i]
+		if resource.GetName() != notebooksSecretRBACName {
+			continue
+		}
+		if resource.GetKind() == "Role" || resource.GetKind() == "RoleBinding" {
+			resource.SetNamespace(notebooksNamespace)
 		}
 	}
 }
