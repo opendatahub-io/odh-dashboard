@@ -21,6 +21,7 @@ type NotebookStateStatusProps = {
   kueueStatus?: KueueWorkloadStatusWithMessage | null;
   isCompact?: boolean;
   onClick?: LabelProps['onClick'];
+  variant?: LabelProps['variant'];
 };
 
 type StatusLabelSettings = {
@@ -38,6 +39,7 @@ const NotebookStatusLabel: React.FC<NotebookStateStatusProps> = ({
   kueueStatus = null,
   isCompact,
   onClick,
+  variant,
 }) => {
   const isError = notebookStatus?.currentStatus === EventStatus.ERROR;
 
@@ -89,7 +91,7 @@ const NotebookStatusLabel: React.FC<NotebookStateStatusProps> = ({
 
   return (
     <Label
-      variant={onClick ? 'filled' : 'outline'}
+      variant={variant ?? (onClick ? 'filled' : 'outline')}
       isCompact={isCompact}
       color={labelSettings.color}
       status={labelSettings.status}

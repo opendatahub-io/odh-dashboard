@@ -101,7 +101,7 @@ const RayJobStatusModal: React.FC<RayJobStatusModalProps> = ({
           <Title headingLevel="h2" size="lg">
             Ray job progress
           </Title>
-          <RayJobStatus job={job} jobStatus={status} />
+          <RayJobStatus job={job} jobStatus={status} variant="filled" />
         </Flex>
       }
       contents={bodyContent}
