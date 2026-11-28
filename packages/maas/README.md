@@ -108,6 +108,13 @@ Define these in a `.env.local` file in the `packages/maas/` directory.
 - **Default**: _(none)_ — auto-resolved from DSC `status.release.name`, then `redhat-ai-gateway-infra` as fallback.
 - **Example**: `MAAS_API_NAMESPACE=redhat-ai-gateway-infra`
 
+### `MAAS_DISCOVERY_STRICT`
+
+- **Description**: Fail BFF startup when maas-api URL discovery fails, instead of starting degraded with background retries. Only applies when `MAAS_API_URL` is unset. Used by the e2e `@MaaSCI` CI job (with `MAAS_BFF_DISCOVERY=true` in `packages/maas/Makefile`) so a discovery regression fails CI before reaching a release (RHAI-50079).
+- **Possible values**: `true`, `false`
+- **Default**: `false`
+- **Example**: `MAAS_DISCOVERY_STRICT=true`
+
 ### Example `.env.local`
 
 ```shell

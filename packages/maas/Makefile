@@ -166,14 +166,24 @@ dev-start-mock-federated:
 
 E2E_BFF_PORT ?= 8081
 
+# When true, dev-bff-e2e-cluster leaves MAAS_API_URL unset so the Go BFF performs
+# real /v1/tenants discovery (using the local oc session token) instead of the
+# Makefile hard-coding the gateway URL. Combined with MAAS_DISCOVERY_STRICT the
+# BFF fails fast when discovery fails, so CI catches discovery regressions (RHAI-50079).
+MAAS_BFF_DISCOVERY ?= false
+
 .PHONY: dev-bff-e2e-mock
 dev-bff-e2e-mock: ## Run BFF for e2e tests (mock mode, no cluster required)
 	cd bff && make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=true MOCK_HTTP_CLIENT=true DEV_MODE=true DEPLOYMENT_MODE=federated
 
 .PHONY: dev-bff-e2e-cluster
 dev-bff-e2e-cluster: ## Run BFF for e2e tests (federated mode, connected to cluster)
+ifeq ($(MAAS_BFF_DISCOVERY),true)
+	cd bff && E2E_USE_PROXY_FROM_ENV=true MAAS_DISCOVERY_STRICT=true make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " INSECURE_SKIP_VERIFY=true
+else
 	@$(resolve_maas_api_url) \
 	cd bff && E2E_USE_PROXY_FROM_ENV=true make run PORT=$(E2E_BFF_PORT) LOG_LEVEL=info MOCK_K8S_CLIENT=false MOCK_HTTP_CLIENT=false DEV_MODE=true DEPLOYMENT_MODE=federated AUTH_METHOD=user_token AUTH_TOKEN_HEADER=Authorization AUTH_TOKEN_PREFIX="Bearer " INSECURE_SKIP_VERIFY=true MAAS_API_URL="$$MAAS_URL"
+endif
 
 ############ Build ############
 

@@ -154,12 +154,18 @@ func NewApp(cfg config.EnvConfig, logger *slog.Logger) (*App, error) {
 		discoveredURL, discoverErr := helper.DiscoverMaasApiURL(discoverCtx, cfg, logger, rootCAs)
 		discoverCancel()
 		if discoverErr != nil {
+			if cfg.MaasDiscoveryStrict {
+				logger.Error("Failed to discover MaaS API URL via /v1/tenants; maas-discovery-strict is enabled, refusing to start",
+					"error", discoverErr)
+				return nil, fmt.Errorf("maas-api URL discovery failed (strict mode): %w", discoverErr)
+			}
 			logger.Warn("Failed to discover MaaS API URL via /v1/tenants; starting in degraded mode and retrying in background",
 				"error", discoverErr)
 			startDiscoveryRetry = true
 		} else {
 			cfg.MaasApiUrl = discoveredURL
 			maasApiURL.Set(discoveredURL)
+			logger.Info("MaaS API URL ready at startup", "url", discoveredURL, "source", "discovery")
 		}
 	}
 
